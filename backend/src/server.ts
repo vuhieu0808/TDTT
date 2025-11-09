@@ -15,10 +15,10 @@ app.use(express.json());
 app.use(cors({ origin: process.env.CLIENT_URL }));
 
 // Public routes
-app.use("/api/test", testRouter);
 
 // Private routes
 app.use(authMiddleware);
+app.use("/api/test", testRouter);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

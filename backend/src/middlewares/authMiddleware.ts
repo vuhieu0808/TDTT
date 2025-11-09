@@ -10,6 +10,7 @@ export const authMiddleware = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  console.log("Đang trong authMiddleware");
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     console.error("Không tìm thấy token");
@@ -27,6 +28,7 @@ export const authMiddleware = async (
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     req.user = decodedToken;
+    console.log("Xác minh thành công trong authMiddleware:", decodedToken);
     next();
   } catch (error) {
     console.error("Lỗi khi xác minh trong authMiddleware:", error);
