@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    /* === File Layout === */
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    /* === Module and Environment Settings === */
+    "module": "NodeNext",
+    "target": "ES2020",
+    "lib": ["esnext"],
+    "types": ["node"],
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    /* === Output Options === */
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    /* === Type Checking Options === */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+
+    /* === Compatibility Settings === */
+    "isolatedModules": false,
+    "moduleDetection": "force",
+
+    /* === JSX (not used, but harmless to keep off) === */
+    "jsx": "preserve"
+  },
+  "include": ["src/**/*"],
+  "ts-node": {
+    "esm": true
+  }
+}
