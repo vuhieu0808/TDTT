@@ -3,6 +3,7 @@ import { auth, provider } from "../config/firebase";
 import { onIdTokenChanged, signInWithPopup, signOut } from "firebase/auth";
 import type { AuthState } from "../types/store";
 import { toast } from "sonner";
+import { authServices } from "@/services/authServices";
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -58,10 +59,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 onIdTokenChanged(auth, async (user) => {
   if (user) {
+    console.log("onIdTokenChanged triggered with user:", user);
     try {
       useAuthStore.setState({ loading: true });
       const token = await user.getIdToken();
-      useAuthStore.setState({ user: user, token: token, loading: false });
+      useAuthStore.setState({ user: user, token: token });
     } catch (error) {
       console.error("Error getting token:", error);
     } finally {

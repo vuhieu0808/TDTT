@@ -11,7 +11,7 @@ const HomePage = () => {
 
   const testAPI = async () => {
     try {
-      const res = await api.get("/test/test");
+      const res = await api.get("/auth/test");
       console.log("API Response:", res.data);
     } catch (error) {
       console.error("Error testing API:", error);

@@ -1,9 +1,10 @@
 import { Toaster } from "sonner";
 import { BrowserRouter, Route, Routes } from "react-router";
-import HomePage from "./pages/HomePage";
-import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import PublicRoute from "./components/auth/PublicRoute";
+import HomePage from "./pages/HomePage";
+import LoginPage from "./pages/LoginPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 function App() {
   return (
@@ -20,6 +21,8 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<HomePage />} />
           </Route>
+          
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </>

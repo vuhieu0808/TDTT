@@ -2,7 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import "./config/firebase.js";
-import testRouter from "./routes/testRoute.js";
+import authRouter from "./routes/authRoute.js";
 import { authMiddleware } from "./middlewares/authMiddleware.js";
 
 dotenv.config();
@@ -18,7 +18,7 @@ app.use(cors({ origin: process.env.CLIENT_URL }));
 
 // Private routes
 app.use(authMiddleware);
-app.use("/api/test", testRouter);
+app.use("/api/auth", authRouter);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
