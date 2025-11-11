@@ -9,5 +9,14 @@ export const authServices = {
       console.error("Error checking user existence:", error);
       throw error;
     }
+  },
+  createUser: async () => {
+    try {
+      const res = await api.post("/auth/createUser");
+      return res.data;
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw error;
+    }
   }
 }

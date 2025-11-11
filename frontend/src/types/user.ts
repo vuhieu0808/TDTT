@@ -2,10 +2,10 @@ export interface UserGallery {
   uid: string;
   imgUrl: string;
   caption?: string;
-  uploadedAt: FirebaseFirestore.Timestamp;
+  uploadedAt: string;
 }
 
-export interface User {
+export interface UserProfile {
   uid: string;
   displayName: string;
   email: string;
@@ -17,8 +17,11 @@ export interface User {
   dateOfBirth?: string; // YYYY-MM-DD
   photoGallery?: UserGallery[];
 
-  createdAt: FirebaseFirestore.Timestamp;
-  updatedAt: FirebaseFirestore.Timestamp;
+  status: "online" | "offline" | "working" | "break";
+  lastActivity: number;
+
+  createdAt: string;
+  updatedAt: string;
 
   location?: {
     lat: number; // vĩ độ
@@ -28,11 +31,3 @@ export interface User {
   interests?: string[]; // sở thích
   job?: string;
 }
-
-export interface UserStatus { // Real time db
-  uid: string;
-  status: "online" | "offline" | "working" | "break";
-  lastActivity: number;
-}
-
-export type FullUserProfile = User & UserStatus;
