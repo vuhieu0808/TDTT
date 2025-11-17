@@ -9,4 +9,5 @@ export interface AuthState {
 
   signInWithGoogle: () => Promise<void>; // Hàm đăng nhập với Google
   logout: () => Promise<void>; // Hàm đăng xuất
+
 }
