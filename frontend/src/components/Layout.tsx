@@ -1,4 +1,6 @@
-import Navbar from '@/components/Navbar.tsx'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+
 import Box from '@mui/joy/Box'
 import { type ReactNode } from 'react'
 
@@ -8,18 +10,12 @@ interface LayoutProps {
 
 function Layout({ children }: LayoutProps) {
     return (<>
-        <Box sx={{ display: 'flex', width: '100%', height: '100vh' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100vh' }} >
             <Navbar />
-            <Box sx={{
-                flexGrow: 1,
-                padding: 3,
-                overflow: 'auto',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-            }}>
+            <Box sx={{ flexGrow: 1 }}>
                 {children}
             </Box>
+            <Footer />
         </Box>
     </>)
 }

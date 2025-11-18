@@ -4,6 +4,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import PublicRoute from "./components/auth/PublicRoute";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
+import SchedulePage from "./pages/SchedulePage";
 import NotFoundPage from "./pages/NotFoundPage";
 
 function App() {
@@ -20,8 +21,9 @@ function App() {
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/SchedulePage" element={<SchedulePage />} />
           </Route>
-          
+
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
