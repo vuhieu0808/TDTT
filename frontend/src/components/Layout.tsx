@@ -10,7 +10,7 @@ interface LayoutProps {
 
 function Layout({ children }: LayoutProps) {
     return (<>
-        <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100vh' }} >
+        <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100vh' }} >
             <Navbar />
             <Box sx={{ flexGrow: 1 }}>
                 {children}
