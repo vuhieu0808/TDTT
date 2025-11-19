@@ -1,14 +1,16 @@
+interface Attchment {
+  url: string;
+  name: string;
+  size?: number;
+}
+
 export interface Message {
+  id: string;
   conversationId: string;
   senderId: string;
   content: string;
-  seenBy: string[]; // uid
-  status: "sending" | "sent" | "failed";
 
-  attachments?: {
-    url: string;
-    name: string;
-  }[];
+  attachments?: Attchment[];
 
   isEdited?: boolean;
   editedAt?: FirebaseFirestore.Timestamp;
@@ -18,4 +20,4 @@ export interface Message {
   createdAt: FirebaseFirestore.Timestamp;
 };
 
-// sort theo conversationId và createdAt giảm dần
+// sort theo conversationId (tăng dần) và createdAt (giảm dần)
