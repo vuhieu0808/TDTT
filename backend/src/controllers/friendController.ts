@@ -5,6 +5,8 @@ import { AuthRequest } from "../middlewares/authMiddleware.js";
 import { FriendRequest } from "../models/FriendRequest.js";
 import { Friend } from "../models/Friend.js";
 import { getDetailsForUserIds } from "../utils/friendHelper.js";
+import { Conversation } from "../models/Conversation.js";
+import { conversationServices } from "../services/conversationServices.js";
 
 export const sendFriendRequest = async (req: AuthRequest, res: Response) => {
   try {
@@ -63,19 +65,22 @@ export const sendFriendRequest = async (req: AuthRequest, res: Response) => {
 
     // Thêm yêu cầu kết bạn mới
 
+    const friendRequestRef = db.collection("friendRequests").doc();
+
     const friendRequest: FriendRequest = {
+      id: friendRequestRef.id,
       senderId,
       receivedId,
       requestMessage,
       requestedAt: admin.firestore.Timestamp.now(),
     };
 
-    const request = await db.collection("friendRequests").add(friendRequest);
+    await friendRequestRef.set(friendRequest);
 
     return res.status(200).json({
       message: "Friend request sent successfully",
-      requestId: request.id,
-      request,
+      requestId: friendRequestRef.id,
+      request: friendRequest,
     });
   } catch (error) {
     console.error("Error sending friend request:", error);
@@ -120,6 +125,12 @@ export const acceptFriendRequest = async (req: AuthRequest, res: Response) => {
       .doc(friendShipId)
       .set(friend);
     await db.collection("friendRequests").doc(requestId).delete();
+
+    // Tạo cuộc trò chuyện trực tiếp giữa hai người bạn
+    await conversationServices.createConversation(
+      [request.data()?.senderId, request.data()?.receivedId],
+      "direct"
+    );
 
     return res
       .status(200)

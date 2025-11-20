@@ -19,15 +19,15 @@ export interface UserProfile {
 
   status: "online" | "offline" | "working" | "break";
   lastActivity: number;
-
-  createdAt: string;
-  updatedAt: string;
-
+  
   location?: {
     lat: number; // vĩ độ
     lng: number; // kinh độ
   }
-
+  
   interests?: string[]; // sở thích
   job?: string;
+
+  createdAt: string;
+  updatedAt: string;
 }

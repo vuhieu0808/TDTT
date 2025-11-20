@@ -18,5 +18,14 @@ export const authServices = {
       console.error("Error creating user:", error);
       throw error;
     }
-  }
-}
+  },
+  fetchMe: async () => {
+    try {
+      const res = await api.get("/users/me");
+      return res.data;
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      throw error;
+    }
+  },
+};

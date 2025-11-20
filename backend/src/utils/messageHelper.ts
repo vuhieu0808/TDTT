@@ -2,6 +2,7 @@ import { DocumentData } from "firebase-admin/firestore";
 import { Conversation } from "../models/Conversation.js";
 import { Message } from "../models/Message.js";
 import { admin } from "../config/firebase.js";
+import { Server } from "socket.io";
 
 export const updateConversationAfterCreateMessage = async (
   conversationRef: admin.firestore.DocumentReference<DocumentData>,
@@ -46,3 +47,18 @@ export const updateConversationAfterCreateMessage = async (
     throw error;
   }
 };
+
+export const emitNewMessage = async (io: Server, message: Message, conversationId: string) => {
+  // Lấy conversation để gửi kèm
+  const conversationRef = admin.firestore().collection("conversations").doc(conversationId);
+  const conversationDoc = await conversationRef.get();
+  io.to(conversationId).emit("new-message", {
+    message,
+    conversation: {
+      id: conversationId,
+      lastMessage: conversationDoc.data()?.lastMessage,
+      lastMessageAt: conversationDoc.data()?.lastMessageAt,
+    },
+    unreadCount: conversationDoc.data()?.unreadCount,
+  });
+}

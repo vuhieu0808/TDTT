@@ -9,20 +9,14 @@ interface LastMessage {
   createdAt: FirebaseFirestore.Timestamp;
 }
 
-interface Group {
-  groupName: string;
-  createdBy: string;
-}
-
 export interface Conversation {
   id: string;
   type: "direct" | "group";
   participants: Participant[];
+  participantIds: string[];
 
-  lastMessageAt: FirebaseFirestore.Timestamp;
+  lastMessageAt?: FirebaseFirestore.Timestamp;
   lastMessage?: LastMessage;
-  
-  group?: Group;
   
   seenBy?: string[]; // uid
   unreadCount: { [uid: string]: number }; // uid -> count

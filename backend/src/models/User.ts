@@ -17,22 +17,17 @@ export interface User {
   dateOfBirth?: string; // YYYY-MM-DD
   photoGallery?: UserGallery[];
 
-  createdAt: FirebaseFirestore.Timestamp;
-  updatedAt: FirebaseFirestore.Timestamp;
-
+  status: "online" | "offline" | "working" | "break";
+  lastActivity: FirebaseFirestore.Timestamp;
+  
   location?: {
     lat: number; // vĩ độ
     lng: number; // kinh độ
   }
-
+  
   interests?: string[]; // sở thích
   job?: string;
-}
 
-export interface UserStatus { // Real time db
-  uid: string;
-  status: "online" | "offline" | "working" | "break";
-  lastActivity: number;
+  createdAt: FirebaseFirestore.Timestamp;
+  updatedAt: FirebaseFirestore.Timestamp;
 }
-
-export type FullUserProfile = User & UserStatus;

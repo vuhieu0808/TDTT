@@ -1,9 +1,8 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
-import { db, rtdb } from "../config/firebase.js";
-import { User, UserStatus, FullUserProfile } from "../models/User.js";
+import { db } from "../config/firebase.js";
+import { User } from "../models/User.js";
 import { Timestamp } from "firebase-admin/firestore";
-import { ServerValue } from "firebase-admin/database";
 
 export const testEndpoint = async (req: AuthRequest, res: Response) => {
   const token = req.headers.authorization?.split(" ")[1];
@@ -45,40 +44,28 @@ export const createUser = async (req: AuthRequest, res: Response) => {
   console.log("Creating user with UID:", uid);
   try {
     const now = Timestamp.now();
-    const rtdbTimestamp = ServerValue.TIMESTAMP;
 
-    const newUserForFirestore: User = {
+    const user: User = {
       uid: uid,
       displayName: name,
       email: email,
       ...(picture && { avatarUrl: picture }),
+      status: "online",
+      lastActivity: now,
       createdAt: now,
       updatedAt: now,
     };
 
-    const newUserStatus: UserStatus = {
-      uid: uid,
-      status: "online",
-      lastActivity: rtdbTimestamp as Object as number,
-    };
-
     const userRef = db.collection("users").doc(uid);
-    const userStatusRef = rtdb.ref(`UserStatus/${uid}`);
-
-    const user: FullUserProfile = {
-      ...newUserForFirestore,
-      ...newUserStatus,
-    };
 
     const userDoc = await userRef.get();
     if (userDoc.exists) {
-      return res.status(200).json({ message: "User already exists", user: user });
+      return res
+        .status(200)
+        .json({ message: "User already exists", user: user });
     }
 
-    await Promise.all([
-      userRef.set(newUserForFirestore),
-      userStatusRef.set(newUserStatus),
-    ]);
+    await userRef.set(user);
 
     return res.status(201).json({
       message: "User created successfully",

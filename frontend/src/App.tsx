@@ -5,8 +5,22 @@ import PublicRoute from "./components/auth/PublicRoute";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import { useAuthStore } from "./stores/useAuthStore";
+import { useSocketStore } from "./stores/useSocketStore";
+import { useEffect } from "react";
 
 function App() {
+
+  const {token} = useAuthStore();
+  const {connectSocket, disconnectSocket} = useSocketStore();
+
+  useEffect(() => {
+    if (token) {
+      connectSocket();
+    }
+    return () => disconnectSocket();
+  }, [token]);
+
   return (
     <>
       <Toaster richColors />

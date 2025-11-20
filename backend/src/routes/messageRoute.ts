@@ -1,10 +1,9 @@
 import express from "express";
-import { sendDirectMessage, sendGroupMessage } from "../controllers/messageControllers.js";
-import { checkFriendShip } from "../middlewares/friendMiddleware.js";
+import { sendMessage } from "../controllers/messageControllers.js";
+import { verifyUserInConversation } from "../middlewares/friendMiddleware.js";
 
 const messageRouter = express.Router();
 
-messageRouter.post("/direct", checkFriendShip, sendDirectMessage);
-messageRouter.post("/group", sendGroupMessage);
+messageRouter.post("/send/:conversationId", verifyUserInConversation, sendMessage);
 
 export default messageRouter;
