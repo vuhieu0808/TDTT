@@ -12,8 +12,13 @@ export interface SeenUser { // Người đã xem tin nhắn
 }
 
 export interface LastMessage { // Tin nhắn cuối cùng trong cuộc trò chuyện
+  id: string; // ID của tin nhắn cuối cùng
   content: string; // Nội dung tin nhắn cuối cùng
-  senderId: string; // ID người gửi tin nhắn cuối cùng
+  sender: {
+    uid: string;
+    displayName: string;
+    avatarUrl?: string | null;
+  } // ID người gửi tin nhắn cuối cùng
   createdAt: number; // Thời gian tạo tin nhắn cuối cùng (dưới dạng timestamp)
 }
 

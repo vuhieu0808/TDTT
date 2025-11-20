@@ -3,6 +3,7 @@ import { io, type Socket } from "socket.io-client";
 import type { SocketState } from "@/types/store";
 import { useAuthStore } from "./useAuthStore";
 import { useChatStore } from "./useChatStore";
+import type { LastMessage } from "@/types/chat";
 
 const baseURL = import.meta.env.VITE_SOCKET_URL as string;
 
@@ -35,7 +36,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     // new message
     socket.on("new-message", ({message, conversation, unreadCount}) => {
       useChatStore.getState().addMessage(message);
-      const lastMessage = {
+      const lastMessage: LastMessage = {
         id: message.id,
         content: conversation.lastMessage.content,
         sender: {
@@ -43,12 +44,13 @@ export const useSocketStore = create<SocketState>((set, get) => ({
           displayName: "",
           avatarUrl: "",
         },
-        createdAt: conversation.lastMessage.createdAt,
+        createdAt: conversation.lastMessage.createdAt?._seconds * 1000,
       }
 
       const updatedConversation = {
         ...conversation,
         lastMessage,
+        lastMessageAt: conversation.lastMessageAt?._seconds * 1000,
         unreadCount,
       }
       
