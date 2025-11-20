@@ -3,7 +3,7 @@ import { io, type Socket } from "socket.io-client";
 import type { SocketState } from "@/types/store";
 import { useAuthStore } from "./useAuthStore";
 import { useChatStore } from "./useChatStore";
-import type { LastMessage } from "@/types/chat";
+import type { LastMessage, Message } from "@/types/chat";
 
 const baseURL = import.meta.env.VITE_SOCKET_URL as string;
 
@@ -18,7 +18,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       return;
     }
     const socket: Socket = io(baseURL, {
-      auth: {token},
+      auth: { token },
       transports: ["websocket"],
     });
     set({ socket });
@@ -34,8 +34,11 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     });
 
     // new message
-    socket.on("new-message", ({message, conversation, unreadCount}) => {
-      useChatStore.getState().addMessage(message);
+    socket.on("new-message", ({ message, conversation, unreadCount }) => {
+      useChatStore.getState().addMessage({
+        ...message,
+        createdAt: message.createdAt?._seconds * 1000,
+      } as Message);
       const lastMessage: LastMessage = {
         id: message.id,
         content: conversation.lastMessage.content,
@@ -45,20 +48,20 @@ export const useSocketStore = create<SocketState>((set, get) => ({
           avatarUrl: "",
         },
         createdAt: conversation.lastMessage.createdAt?._seconds * 1000,
-      }
+      };
 
       const updatedConversation = {
         ...conversation,
         lastMessage,
         lastMessageAt: conversation.lastMessageAt?._seconds * 1000,
         unreadCount,
-      }
-      
+      };
+
       if (useChatStore.getState().activeConversationId === conversation.id) {
         /// Đang ở trong cuộc trò chuyện này, đánh dấu đã xem
       }
       useChatStore.getState().updateConversation(updatedConversation);
-    })
+    });
   },
   disconnectSocket: () => {
     const socket = get().socket;
