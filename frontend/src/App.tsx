@@ -9,17 +9,31 @@ import VenuesFindingPage from "./pages/VenuesFindingPage";
 import PreferencePage from "./pages/PreferencePage";
 import MessagePage from "./pages/MessagePage";
 import NotFoundPage from "./pages/NotFoundPage";
+import { useAuthStore } from "./stores/useAuthStore";
+import { useSocketStore } from "./stores/useSocketStore";
+import { useEffect } from "react";
 
 function App() {
-	return (
-		<>
-			<Toaster richColors />
-			<BrowserRouter>
-				<Routes>
-					{/* Public Routes */}
-					<Route element={<PublicRoute />}>
-						<Route path='/login' element={<LoginPage />} />
-					</Route>
+
+  const {token} = useAuthStore();
+  const {connectSocket, disconnectSocket} = useSocketStore();
+
+  useEffect(() => {
+    if (token) {
+      connectSocket();
+    }
+    return () => disconnectSocket();
+  }, [token]);
+
+  return (
+    <>
+      <Toaster richColors />
+      <BrowserRouter>
+        <Routes>
+          {/* Public Routes */}
+          <Route element={<PublicRoute />}>
+            <Route path="/login" element={<LoginPage />} />
+          </Route>
 
 					{/* Protected Routes */}
 					<Route element={<ProtectedRoute />}>
