@@ -7,9 +7,14 @@ const LoginPage = () => {
   const { signInWithGoogle } = useAuthStore();
   const navigate = useNavigate();
   const onLogin = async () => {
-    await signInWithGoogle();
-    navigate("/");
+    try {
+      await signInWithGoogle();
+      navigate("/");
+    } catch (error) {
+      console.log("Login failed: ", error);
+    }
   };
+
   return (
     <div className="w-full h-screen min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Animated background elements */}
