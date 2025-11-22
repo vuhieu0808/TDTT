@@ -1,4 +1,4 @@
-interface Attchment {
+interface Attachment {
   url: string;
   name: string;
   size?: number;
@@ -10,7 +10,7 @@ export interface Message {
   senderId: string;
   content: string;
 
-  attachments?: Attchment[];
+  attachments?: Attachment[];
 
   isEdited?: boolean;
   editedAt?: FirebaseFirestore.Timestamp;
