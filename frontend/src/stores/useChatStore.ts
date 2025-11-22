@@ -34,7 +34,7 @@ export const useChatStore = create<ChatState>()(
             // đặt groupName cho cuộc trò chuyện nhóm là tên nhóm hoặc tên hiển thị của người dùng khác
             return {
               ...convo,
-              conversations: convo.type === "group"
+              groupName: convo.type === "group"
                 ? convo.groupName || "Nhóm chat"
                 : convo.participants.find((p) => p.uid !== userProfile?.uid)
                     ?.displayName || "Người dùng",
@@ -44,6 +44,7 @@ export const useChatStore = create<ChatState>()(
                     ?.avatarUrl || null,
             };
           });
+          console.log("Fetched conversations:", conversations);
           set({ conversations });
         } catch (error) {
           console.error("Failed to fetch conversations:", error);
