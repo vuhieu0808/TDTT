@@ -27,8 +27,23 @@ export const useChatStore = create<ChatState>()(
 
       fetchConversations: async () => {
         try {
+          const userProfile = useAuthStore.getState().userProfile;
           set({ loadingConversations: true });
-          const { conversations } = await chatServices.fetchConversations();
+          const { conversations: conversationFetched } = await chatServices.fetchConversations();
+          const conversations = conversationFetched.map((convo) => {
+            // đặt groupName cho cuộc trò chuyện nhóm là tên nhóm hoặc tên hiển thị của người dùng khác
+            return {
+              ...convo,
+              conversations: convo.type === "group"
+                ? convo.groupName || "Nhóm chat"
+                : convo.participants.find((p) => p.uid !== userProfile?.uid)
+                    ?.displayName || "Người dùng",
+              groupAvatarUrl: convo.type === "group"
+                ? convo.groupAvatarUrl || null
+                : convo.participants.find((p) => p.uid !== userProfile?.uid)
+                    ?.avatarUrl || null,
+            };
+          });
           set({ conversations });
         } catch (error) {
           console.error("Failed to fetch conversations:", error);

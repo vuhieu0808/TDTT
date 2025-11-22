@@ -30,6 +30,10 @@ export interface Conversation {
 	id: string; // ID của cuộc trò chuyện
 	type: "direct" | "group"; // Loại cuộc trò chuyện: trực tiếp hoặc nhóm
 	participants: Participant[]; // Danh sách người tham gia cuộc trò chuyện
+	
+	groupName?: string | null; // Tên nhóm (nếu là cuộc trò chuyện nhóm)
+	groupAvatarUrl?: string | null; // URL ảnh đại diện nhóm (nếu là cuộc trò chuyện nhóm)
+
 	lastMessage: LastMessage | null; // Tin nhắn cuối cùng trong cuộc trò chuyện
 	lastMessageAt: string; // Thời gian tin nhắn cuối cùng (dưới dạng timestamp)
 
