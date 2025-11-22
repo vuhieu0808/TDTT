@@ -31,3 +31,18 @@ export interface UserProfile {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Friend {
+  uid: string;
+  displayName: string;
+  avatarUrl?: string;
+  status: "online" | "offline" | "working" | "break";
+}
+
+export interface FriendRequest {
+  requestId: string;
+  fromUid: string;
+  toUid: string;
+  status: "pending" | "accepted" | "rejected";
+  createdAt: string;
+}
