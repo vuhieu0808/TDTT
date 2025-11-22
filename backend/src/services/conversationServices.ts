@@ -7,10 +7,36 @@ export const conversationServices = {
   async createConversation(participantIds: string[], type: "direct" | "group") {
     const now = admin.firestore.Timestamp.now();
     const conversationRef = db.collection("conversations").doc();
+    // Lấy avatarUrl và displayName của các participantIds
+    const participantDataPromises = participantIds.map(async (uid) => {
+      const userDoc = await db.collection("users").doc(uid).get();
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        return {  
+          uid,
+          displayName: userData?.displayName || "",
+          avatarUrl: userData?.avatarUrl || "",
+        };
+      } else {
+        return {
+          uid,
+          displayName: "",
+          avatarUrl: "",
+        };
+      }
+    });
+    const participantsDoc = await Promise.all(participantDataPromises);
+    const participants = participantsDoc.map((data) => ({
+      uid: data.uid,
+      displayName: data.displayName,
+      avatarUrl: data.avatarUrl,
+      joinedAt: now,
+    }));
+
     const newConversation: Conversation = {
       id: conversationRef.id,
       type,
-      participants: participantIds.map((uid) => ({ uid, joinedAt: now })),
+      participants,
       participantIds,
       unreadCount: {
         ...participantIds.reduce((acc, uid) => {

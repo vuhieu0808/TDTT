@@ -1,5 +1,7 @@
 interface Participant {
   uid: string;
+  displayName: string;
+  avatarUrl?: string;
   joinedAt: FirebaseFirestore.Timestamp;
 }
 
