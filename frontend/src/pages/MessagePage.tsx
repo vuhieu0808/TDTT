@@ -51,15 +51,21 @@ function MessagePage() {
 	const handleSendMessage = async () => {
 		if (!messageText.trim() || !activeConversationId) return;
 
-		await sendMessage(activeConversationId, messageText, []);
+		const textToSend = messageText;
 		setMessageText("");
+		try {
+			await sendMessage(activeConversationId, textToSend, []);
+		} catch (error) {
+			setMessageText(textToSend);
+			console.log("Failed to send message:", error);
+		}
 	};
 
 	return (
 		<>
 			<Navbar />
 			{/* Main Layout */}
-			<div className='grid grid-cols-[1fr_2fr_1fr] gap-5 h-[calc(100vh-80px)]'>
+			<div className='grid grid-cols-[0.7fr_2fr_0.7fr] gap-5 h-[calc(100vh-80px)]'>
 				{/* Left Side - Conversations List */}
 				<div className='text-left pl-5 overflow-y-auto border-r border-gray-200'>
 					<h1 className='text-xl font-bold mb-4 sticky top-0 bg-white py-2'>
@@ -215,8 +221,12 @@ function MessagePage() {
 										onChange={(e) =>
 											setMessageText(e.target.value)
 										}
-										onKeyPress={(e) => {
-											if (e.key === "Enter") {
+										onKeyDown={(e) => {
+											if (
+												e.key === "Enter" &&
+												!e.shiftKey
+											) {
+												e.preventDefault();
 												handleSendMessage();
 											}
 										}}
