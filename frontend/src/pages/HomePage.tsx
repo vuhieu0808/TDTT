@@ -12,7 +12,7 @@ import {
 } from "@mui/icons-material";
 
 const HomePage = () => {
-	const { authUser } = useAuthStore();
+	const { userProfile } = useAuthStore();
 	const navigate = useNavigate();
 
 	const handleScheduleClick = () => {
@@ -38,7 +38,8 @@ const HomePage = () => {
 				<div className='max-w-7xl mx-auto px-6 py-12'>
 					<div className='text-center mb-5'>
 						<h2 className='text-4xl font-bold text-gray-900 mb-4'>
-							Welcome back, {authUser?.displayName?.split(" ")[0]}
+							Welcome back,{" "}
+							{userProfile?.displayName?.split(" ")[0]}
 							!
 							<WavingHand
 								sx={{

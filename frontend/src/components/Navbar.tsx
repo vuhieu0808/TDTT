@@ -7,7 +7,7 @@ import IconButton from "@mui/joy/IconButton";
 import { ArrowBack, Favorite, Work } from "@mui/icons-material";
 
 function Navbar() {
-	const { authUser, logout } = useAuthStore();
+	const { userProfile, logout } = useAuthStore();
 	const navigate = useNavigate();
 	const location = useLocation();
 
@@ -79,15 +79,15 @@ function Navbar() {
 						<div className='flex justify-end items-center gap-1 sm:gap-2 md:gap-3'>
 							{/* USER INFORMATION */}
 							<div className='hidden md:flex items-center gap-2'>
-								{authUser?.photoURL && (
+								{userProfile?.photoURL && (
 									<img
-										src={authUser.photoURL}
+										src={userProfile.photoURL}
 										alt='Profile'
 										className='w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 rounded-full border-2 border-purple-400'
 									/>
 								)}
 								<span className='hidden lg:block text-xs xl:text-sm font-medium text-gray-700 truncate max-w-[100px] xl:max-w-[150px]'>
-									{authUser?.displayName}
+									{userProfile?.displayName}
 								</span>
 							</div>
 
