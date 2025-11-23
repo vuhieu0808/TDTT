@@ -50,6 +50,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
 
       if (useChatStore.getState().activeConversationId === conversation.id) {
         /// Đang ở trong cuộc trò chuyện này, đánh dấu đã xem
+        useChatStore.getState().markAsRead(conversation.id);
       }
       useChatStore.getState().updateConversation(updatedConversation);
     });
