@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
 import { messageServices } from "../services/messageServices.js";
+import { SendUser } from "../models/Message.js";
 
 export const sendMessage = async (req: AuthRequest, res: Response) => {
   try {
@@ -14,8 +15,17 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
     
-    const newMessage = await messageServices.sendMessage(conversationId, senderId, content);
+    const sender: SendUser = {
+      uid: senderId,
+      displayName: req.user?.name || "Unknown",
+      avatarUrl: req.user?.picture || null,
+    }
 
+    const newMessageFetched = await messageServices.sendMessage(conversationId, sender, content);
+    const newMessage = {
+      ...newMessageFetched,
+      createdAt: newMessageFetched.createdAt.toDate().toISOString(),
+    }
     res.status(201).json({ message: "Message sent successfully", data: newMessage });
   } catch (error) {
     console.error("Error sending direct message:", error);

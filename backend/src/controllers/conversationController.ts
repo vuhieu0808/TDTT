@@ -11,14 +11,26 @@ export const getConversations = async (req: AuthRequest, res: Response) => {
       console.log("User không hợp lệ");
       return res.status(401).json({ error: "Unauthorized" });
     }
-    const conversationsFetched = await conversationServices.getConversations(userId);
+    const conversationsFetched = await conversationServices.getConversations(
+      userId
+    );
     const conversations = conversationsFetched.map((doc: Conversation) => {
       return {
         ...doc,
         createdAt: doc.createdAt.toDate().toISOString(),
         updatedAt: doc.updatedAt.toDate().toISOString(),
-        lastMessageAt: doc.lastMessageAt?.toDate().toISOString()
-      }
+        lastMessage: doc.lastMessage
+          ? {
+              ...doc.lastMessage,
+              createdAt: doc.lastMessage.createdAt.toDate().toISOString(),
+            }
+          : null,
+        lastMessageAt: doc.lastMessageAt?.toDate().toISOString(),
+        participants: doc.participants.map((participant) => ({
+          ...participant,
+          joinedAt: participant.joinedAt.toDate().toISOString(),
+        })),
+      };
     });
     return res.status(200).json({ conversations });
   } catch (error) {
@@ -40,11 +52,8 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
     if (!conversationId) {
       return res.status(400).json({ error: "Missing conversation ID" });
     }
-    const { messages: messagesFetched, nextCursor } = await conversationServices.getMessages(
-      conversationId,
-      limit,
-      cursor
-    );
+    const { messages: messagesFetched, nextCursor } =
+      await conversationServices.getMessages(conversationId, limit, cursor);
     const messages = messagesFetched.map((msg: Message) => ({
       ...msg,
       createdAt: msg.createdAt.toDate().toISOString(),

@@ -13,15 +13,18 @@ export interface SeenUser {
 	avatarUrl: string; // URL ảnh đại diện của người đã xem tin nhắn
 }
 
+export interface SendUser {
+	// Người gửi tin nhắn
+	uid: string; // ID của người gửi tin nhắn
+	displayName: string; // Tên hiển thị của người gửi tin nhắn
+	avatarUrl: string | null; // URL ảnh đại diện của người gửi tin nhắn
+}
+
 export interface LastMessage {
 	// Tin nhắn cuối cùng trong cuộc trò chuyện
 	id: string; // ID của tin nhắn cuối cùng
 	content: string; // Nội dung tin nhắn cuối cùng
-	sender: {
-		uid: string;
-		displayName: string;
-		avatarUrl?: string | null;
-	}; // ID người gửi tin nhắn cuối cùng
+	sender: SendUser; // Thông tin người gửi tin nhắn cuối cùng
 	createdAt: string; // Thời gian tạo tin nhắn cuối cùng (dưới dạng timestamp)
 }
 
@@ -63,9 +66,5 @@ export interface Message {
 	attachments?: Attachment[]; // Các tệp đính kèm trong tin nhắn (nếu có)
 	createdAt?: string; // Thời gian tạo tin nhắn (dưới dạng timestamp)
 	isOwn?: boolean; // Tin nhắn có phải của người dùng hiện tại không
-	sender: {
-		uid: string;
-		displayName: string;
-		avatarUrl: string | null;
-	};
+	sender: SendUser; // Thông tin người gửi tin nhắn
 }

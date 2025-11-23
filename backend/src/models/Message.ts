@@ -4,10 +4,17 @@ interface Attachment {
   size?: number;
 }
 
+export interface SendUser {
+  // Người gửi tin nhắn
+  uid: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
 export interface Message {
   id: string;
   conversationId: string;
-  senderId: string;
+  sender: SendUser;
   content: string;
 
   attachments?: Attachment[];

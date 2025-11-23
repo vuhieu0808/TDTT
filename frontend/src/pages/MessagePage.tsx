@@ -44,7 +44,7 @@ function getTimeSinceLastMessage(timestamp: any): string {
 }
 
 function MessagePage() {
-	const { authUser, userProfile } = useAuthStore();
+	const { userProfile } = useAuthStore();
 	const {
 		conversations,
 		messages,
@@ -74,7 +74,7 @@ function MessagePage() {
 
 	// Fetch messages when active conversation changes
 	useEffect(() => {
-		if (activeConversationId) {
+		if (activeConversationId && !messages[activeConversationId]) {
 			fetchMessages(activeConversationId);
 		}
 	}, [activeConversationId]);
@@ -120,7 +120,7 @@ function MessagePage() {
 			id: `temp-${Date.now()}`,
 			content: textToSend,
 			sender: {
-				uid: authUser?.uid || "",
+				uid: userProfile?.uid || "",
 				displayName: userProfile?.displayName || "",
 				avatarUrl: userProfile?.avatarUrl || "",
 			},
@@ -341,7 +341,7 @@ function MessagePage() {
 																?.lastMessage
 																?.sender
 																?.uid ===
-														  authUser?.uid
+														  userProfile?.uid
 															? `You: ${conversation.lastMessage?.content}`
 															: `${conversation.lastMessage?.content}`
 														: "No message yet!"}
@@ -387,7 +387,7 @@ function MessagePage() {
 									{(() => {
 										const otherUser =
 											activeConversation.participants.find(
-												(p) => p.uid !== authUser?.uid
+												(p) => p.uid !== userProfile?.uid
 											);
 										const isOnline = onlineUsers.includes(
 											otherUser?.uid || ""
@@ -411,7 +411,7 @@ function MessagePage() {
 															"Unknown"}
 													</p>
 													<p
-														className='text-xs'
+														className='text-xs flex items-center gap-1'
 														style={{
 															color: isOnline
 																? "#10b981"
@@ -458,7 +458,7 @@ function MessagePage() {
 							<div className='flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3'>
 								{currentMessages.map((message) => {
 									const isOwnMessage =
-										message?.sender?.uid === authUser?.uid;
+										message?.sender?.uid === userProfile?.uid;
 									return (
 										<div
 											key={message.id}
@@ -551,7 +551,7 @@ function MessagePage() {
 						<div className='flex items-center justify-center h-full text-gray-500'>
 							<div className='text-center'>
 								<p className='text-lg font-semibold mb-2'>
-									Welcome, {authUser?.displayName}!
+									Welcome, {userProfile?.displayName}!
 								</p>
 								<p className='text-sm'>
 									Select a chat to start messaging
@@ -583,7 +583,7 @@ function MessagePage() {
 									{(() => {
 										const otherUser =
 											activeConversation.participants.find(
-												(p) => p.uid !== authUser?.uid
+												(p) => p.uid !== userProfile?.uid
 											);
 										return (
 											<>
