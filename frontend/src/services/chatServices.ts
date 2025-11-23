@@ -35,4 +35,7 @@ export const chatServices = {
 		});
 		return res.data.data as Message;
 	},
+	async markAsRead(conversationId: string): Promise<void> {
+		await api.put(`/conversations/${conversationId}/mark-as-read`);
+	},
 };

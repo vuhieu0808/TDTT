@@ -54,6 +54,7 @@ function MessagePage() {
 		fetchMessages,
 		sendMessage,
 		updateConversation,
+		markAsRead,
 	} = useChatStore();
 
 	const { onlineUsers } = useSocketStore();
@@ -76,6 +77,14 @@ function MessagePage() {
 	useEffect(() => {
 		if (activeConversationId && !messages[activeConversationId]) {
 			fetchMessages(activeConversationId);
+			// Mark as read when opening the conversation
+			const conversation = conversations.find(
+				(convo) => convo.id === activeConversationId
+			);
+			if (conversation && conversation.unreadCount?.[userProfile?.uid || ""] > 0) {
+				markAsRead(activeConversationId);
+				console.log("Marked as read:", activeConversationId);
+			}
 		}
 	}, [activeConversationId]);
 

@@ -13,7 +13,7 @@ interface LastMessage {
   createdAt: FirebaseFirestore.Timestamp;
 }
 
-interface SeenUser {
+export interface SeenUser {
   uid: string;
   displayName: string;
   avatarUrl: string | null;

@@ -53,6 +53,15 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       }
       useChatStore.getState().updateConversation(updatedConversation);
     });
+
+    socket.on("mark-as-read", ({ conversationId, seenBy, unreadCount }) => {
+      const updatedConversation = {
+        id: conversationId,
+        seenBy,
+        unreadCount,
+      };
+      useChatStore.getState().updateConversation(updatedConversation);
+    });
   },
   disconnectSocket: () => {
     const socket = get().socket;
