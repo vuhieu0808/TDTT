@@ -53,11 +53,17 @@ export const emitNewMessage = async (io: Server, message: Message, conversationI
   const conversationRef = admin.firestore().collection("conversations").doc(conversationId);
   const conversationDoc = await conversationRef.get();
   io.to(conversationId).emit("new-message", {
-    message,
+    message: {
+      ...message,
+      createdAt: message.createdAt.toDate().toISOString(),
+    },
     conversation: {
       id: conversationId,
-      lastMessage: conversationDoc.data()?.lastMessage,
-      lastMessageAt: conversationDoc.data()?.lastMessageAt,
+      lastMessage: {
+        ...conversationDoc.data()?.lastMessage,
+        createdAt: conversationDoc.data()?.lastMessage?.createdAt.toDate().toISOString(),
+      },
+      lastMessageAt: conversationDoc.data()?.lastMessageAt.toDate().toISOString(),
     },
     unreadCount: conversationDoc.data()?.unreadCount,
   });

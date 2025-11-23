@@ -8,69 +8,58 @@ import type { LastMessage, Message } from "@/types/chat";
 const baseURL = import.meta.env.VITE_SOCKET_URL as string;
 
 export const useSocketStore = create<SocketState>((set, get) => ({
-	socket: null,
-	onlineUsers: [],
+  socket: null,
+  onlineUsers: [],
 
-	connectSocket: () => {
-		const token = useAuthStore.getState().token;
-		const existingSocket = get().socket;
-		if (existingSocket) {
-			return;
-		}
-		const socket: Socket = io(baseURL, {
-			auth: { token },
-			transports: ["websocket"],
-		});
-		set({ socket });
+  connectSocket: () => {
+    const token = useAuthStore.getState().token;
+    const existingSocket = get().socket;
+    if (existingSocket) {
+      return;
+    }
+    const socket: Socket = io(baseURL, {
+      auth: { token },
+      transports: ["websocket"],
+    });
+    set({ socket });
 
-		socket.on("connect", () => {
-			console.log("Connected to socket server:", socket.id);
-		});
+    socket.on("connect", () => {
+      console.log("Connected to socket server:", socket.id);
+    });
 
-		// online users
-		socket.on("online-users", (users: string[]) => {
-			set({ onlineUsers: users });
-			console.log("Online users updated:", users);
-		});
+    // online users
+    socket.on("online-users", (users: string[]) => {
+      set({ onlineUsers: users });
+      console.log("Online users updated:", users);
+    });
 
-		// new message
-		socket.on("new-message", ({ message, conversation, unreadCount }) => {
-			useChatStore.getState().addMessage({
-				...message,
-				createdAt: message.createdAt?._seconds * 1000,
-			} as Message);
-			const lastMessage: LastMessage = {
-				id: message.id,
-				content: conversation.lastMessage.content,
-				sender: {
-					uid: conversation.lastMessage.senderId,
-					displayName: "",
-					avatarUrl: "",
-				},
-				createdAt: conversation.lastMessage.createdAt,
-			};
+    // new message
+    socket.on("new-message", ({ message, conversation, unreadCount }) => {
+      useChatStore.getState().addMessage(message as Message);
+      const lastMessage: LastMessage = {
+        id: message.id,
+        ...conversation.lastMessage,
+      };
 
-			const updatedConversation = {
-				...conversation,
-				lastMessage,
-				lastMessageAt: conversation.lastMessageAt,
-				unreadCount,
-			};
+      const updatedConversation = {
+        ...conversation,
+        lastMessage,
+        lastMessageAt: conversation.lastMessageAt,
+        unreadCount,
+      };
 
-			if (
-				useChatStore.getState().activeConversationId === conversation.id
-			) {
-				/// Đang ở trong cuộc trò chuyện này, đánh dấu đã xem
-			}
-			useChatStore.getState().updateConversation(updatedConversation);
-		});
-	},
-	disconnectSocket: () => {
-		const socket = get().socket;
-		if (socket) {
-			socket.disconnect();
-			set({ socket: null });
-			console.log("Disconnected from socket server");
-		}
-	},
+      if (useChatStore.getState().activeConversationId === conversation.id) {
+        /// Đang ở trong cuộc trò chuyện này, đánh dấu đã xem
+      }
+      useChatStore.getState().updateConversation(updatedConversation);
+    });
+  },
+  disconnectSocket: () => {
+    const socket = get().socket;
+    if (socket) {
+      socket.disconnect();
+      set({ socket: null });
+      console.log("Disconnected from socket server");
+    }
+  },
 }));
