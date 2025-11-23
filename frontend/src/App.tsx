@@ -14,26 +14,25 @@ import { useSocketStore } from "./stores/useSocketStore";
 import { useEffect } from "react";
 
 function App() {
+	const { token } = useAuthStore();
+	const { connectSocket, disconnectSocket } = useSocketStore();
 
-  const {token} = useAuthStore();
-  const {connectSocket, disconnectSocket} = useSocketStore();
+	useEffect(() => {
+		if (token) {
+			connectSocket();
+		}
+		return () => disconnectSocket();
+	}, [token]);
 
-  useEffect(() => {
-    if (token) {
-      connectSocket();
-    }
-    return () => disconnectSocket();
-  }, [token]);
-
-  return (
-    <>
-      <Toaster richColors />
-      <BrowserRouter>
-        <Routes>
-          {/* Public Routes */}
-          <Route element={<PublicRoute />}>
-            <Route path="/login" element={<LoginPage />} />
-          </Route>
+	return (
+		<>
+			<Toaster richColors />
+			<BrowserRouter>
+				<Routes>
+					{/* Public Routes */}
+					<Route element={<PublicRoute />}>
+						<Route path='/login' element={<LoginPage />} />
+					</Route>
 
 					{/* Protected Routes */}
 					<Route element={<ProtectedRoute />}>

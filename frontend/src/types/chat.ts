@@ -30,12 +30,11 @@ export interface Conversation {
 	id: string; // ID của cuộc trò chuyện
 	type: "direct" | "group"; // Loại cuộc trò chuyện: trực tiếp hoặc nhóm
 	participants: Participant[]; // Danh sách người tham gia cuộc trò chuyện
-	
-	groupName?: string | null; // Tên nhóm (nếu là cuộc trò chuyện nhóm)
-	groupAvatarUrl?: string | null; // URL ảnh đại diện nhóm (nếu là cuộc trò chuyện nhóm)
-
 	lastMessage: LastMessage | null; // Tin nhắn cuối cùng trong cuộc trò chuyện
 	lastMessageAt: string; // Thời gian tin nhắn cuối cùng (dưới dạng timestamp)
+
+	groupName?: string | null; // Tên nhóm (nếu là cuộc trò chuyện nhóm)
+	groupAvatarUrl?: string | null; // URL ảnh đại diện nhóm (nếu là cuộc trò chuyện nhóm)
 
 	seenBy: SeenUser[]; // Danh sách người đã xem tin nhắn
 	unreadCount: { [uid: string]: number }; // Số tin nhắn chưa đọc cho mỗi người dùng (uid -> count)
@@ -63,6 +62,6 @@ export interface Message {
 	senderId: string; // ID người gửi tin nhắn
 	content: string | null; // Nội dung tin nhắn
 	attachments?: Attachment[]; // Các tệp đính kèm trong tin nhắn (nếu có)
-	createdAt?: number; // Thời gian tạo tin nhắn (dưới dạng timestamp)
+	createdAt?: string; // Thời gian tạo tin nhắn (dưới dạng timestamp)
 	isOwn?: boolean; // Tin nhắn có phải của người dùng hiện tại không
 }
