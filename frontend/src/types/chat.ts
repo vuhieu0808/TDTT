@@ -59,9 +59,13 @@ export interface Message {
 	// Tin nhắn trong cuộc trò chuyện
 	id: string; // ID của tin nhắn
 	conversationId: string; // ID của cuộc trò chuyện mà tin nhắn thuộc về
-	senderId: string; // ID người gửi tin nhắn
 	content: string | null; // Nội dung tin nhắn
 	attachments?: Attachment[]; // Các tệp đính kèm trong tin nhắn (nếu có)
 	createdAt?: string; // Thời gian tạo tin nhắn (dưới dạng timestamp)
 	isOwn?: boolean; // Tin nhắn có phải của người dùng hiện tại không
+	sender: {
+		uid: string;
+		displayName: string;
+		avatarUrl: string | null;
+	};
 }

@@ -458,7 +458,7 @@ function MessagePage() {
 							<div className='flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3'>
 								{currentMessages.map((message) => {
 									const isOwnMessage =
-										message?.senderId === authUser?.uid;
+										message?.sender?.uid === authUser?.uid;
 									return (
 										<div
 											key={message.id}
