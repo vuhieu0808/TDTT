@@ -1,3 +1,4 @@
+import mime from "mime-types";
 import { drive_v3 } from "googleapis";
 import { Readable } from "stream";
 import { drive } from "../config/ggdrive.js";
@@ -6,6 +7,7 @@ import { Attachment } from "../models/Message.js";
 
 type DriveFileMetadata = drive_v3.Schema$File;
 
+export const WORKER_DOMAIN = "minhhieuvutran046.workers.dev";
 const WORKER_URL = "https://still-night-9727.minhhieuvutran046.workers.dev";
 
 export const driveServices = {
@@ -122,7 +124,7 @@ export const driveServices = {
     }
   },
 
-  // upload ảnh cho từng users (như avatar, cover, library ảnh cá nhân)
+  // upload file cho từng users (như avatar, cover, library ảnh cá nhân)
   uploadFileToUserFolder: async (
     fileStream: Readable,
     fileName: string,
@@ -180,6 +182,72 @@ export const driveServices = {
       return fileAttachment;
     } catch (error) {
       console.error(`Error uploading file to user folder:`, error);
+      throw error;
+    }
+  },
+
+  uploadFileToUserFolderFromUrl: async (
+    fileUrl: string,
+    userId: string
+  ): Promise<Attachment> => {
+    try {
+      console.log(`Fetching file from URL: ${fileUrl}`);
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch file from URL: ${response.status} ${response.statusText}`
+        );
+      }
+      const mineType =
+        response.headers.get("content-type") || "application/octet-stream";
+
+      const extension = mime.extension(mineType) || "bin";
+      const fileName = `user_${userId}_file.${extension}`;
+
+      const buffer = await response.arrayBuffer();
+      const stream = Readable.from(Buffer.from(buffer));
+      const fileAttachment = await driveServices.uploadFileToUserFolder(
+        stream,
+        fileName,
+        userId,
+        mineType
+      );
+      return fileAttachment;
+    } catch (error) {
+      console.error(`Error uploading file to user folder from URL:`, error);
+      throw error;
+    }
+  },
+
+  uploadFileToConversationFolderFromUrl: async (
+    fileUrl: string,
+    conversationId: string
+  ): Promise<Attachment> => {
+    try {
+      console.log(`Fetching file from URL: ${fileUrl}`);
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch file from URL: ${response.status} ${response.statusText}`
+        );
+      }
+      const mineType =
+        response.headers.get("content-type") || "application/octet-stream";
+
+      const extension = mime.extension(mineType) || "bin";
+      const fileName = `conversation_${conversationId}_file.${extension}`;
+
+      const buffer = await response.arrayBuffer();
+      const stream = Readable.from(Buffer.from(buffer));
+      const fileAttachment = await driveServices.uploadFileToConversationFolder(
+        stream,
+        fileName,
+        conversationId,
+        mineType
+      );
+      return fileAttachment;
+    } catch (error) {
+      console.error(`Error uploading file to conversation folder from URL:`, error);
       throw error;
     }
   },
