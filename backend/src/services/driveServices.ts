@@ -6,6 +6,8 @@ import { Attachment } from "../models/Message.js";
 
 type DriveFileMetadata = drive_v3.Schema$File;
 
+const WORKER_URL = "https://still-night-9727.minhhieuvutran046.workers.dev";
+
 export const driveServices = {
   findOrCreateFolder: async (folderName: string, parentId?: string) => {
     let query = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
@@ -105,7 +107,8 @@ export const driveServices = {
       const fileAttachment: Attachment = {
         id: fileId,
         // urlView: file.data.webViewLink || "",
-        urlView: `https://lh3.googleusercontent.com/d/${fileId}`,
+        // urlView: `https://lh3.googleusercontent.com/d/${fileId}`,
+        urlView: `${WORKER_URL}/${fileId}`,
         urlDownload: file.data.webContentLink || "",
         size: file.data.size ? parseInt(file.data.size) : 0,
         originalName: fileName,
@@ -167,7 +170,8 @@ export const driveServices = {
       const fileAttachment: Attachment = {
         id: fileId,
         // urlView: file.data.webViewLink || "",
-        urlView: `https://lh3.googleusercontent.com/d/${fileId}`,
+        // urlView: `https://lh3.googleusercontent.com/d/${fileId}`,
+        urlView: `${WORKER_URL}/${fileId}`,
         urlDownload: file.data.webContentLink || "",
         size: file.data.size ? parseInt(file.data.size) : 0,
         originalName: fileName,
