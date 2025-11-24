@@ -28,11 +28,16 @@ export const updateConversationAfterCreateMessage = async (
         currentUnreadCount[memberId] = isSender ? 0 : prevCount + 1;
       });
 
+      let lastMessageContent = message.content;
+      if ((!lastMessageContent || lastMessageContent.trim() === "") && (message.attachments && message.attachments.length > 0)) {
+        lastMessageContent = "Sent an attachment";
+      }
+      
       const updateData: Partial<Conversation> = {
         seenBy: [sender],
         lastMessageAt: message.createdAt,
         lastMessage: {
-          content: message.content,
+          content: message.content ,
           sender: message.sender,
           createdAt: message.createdAt,
         },

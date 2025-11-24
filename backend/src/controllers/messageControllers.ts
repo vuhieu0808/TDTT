@@ -1,18 +1,20 @@
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
 import { messageServices } from "../services/messageServices.js";
-import { SendUser } from "../models/Message.js";
+import { Attachment, SendUser } from "../models/Message.js";
+import { driveServices } from "../services/driveServices.js";
 
 export const sendMessage = async (req: AuthRequest, res: Response) => {
   try {
     const senderId = req.user?.uid;
     const { conversationId } = req.params;
     const { content } = req.body;
+    const attachments = req.files as Express.Multer.File[];
     if (!senderId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    if (!conversationId || !content) {
-      return res.status(400).json({ message: "Missing required fields" });
+    if (!conversationId || (!content && (!attachments || attachments.length === 0))) {
+      return res.status(400).json({ message: "Message must have content or attachments" });
     }
     
     const sender: SendUser = {
@@ -21,7 +23,20 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       avatarUrl: req.user?.picture || null,
     }
 
-    const newMessageFetched = await messageServices.sendMessage(conversationId, sender, content);
+    let uploadedAttachments: Attachment[] = [];
+    if (attachments && attachments.length > 0) {
+      const uploadPromises = attachments.map(async (file) => {
+        const uploadedFile = await driveServices.uploadFileToConversationFolder(
+          file.stream,
+          file.originalname,
+          conversationId
+        );
+        return uploadedFile;
+      });
+      uploadedAttachments = await Promise.all(uploadPromises);
+    }
+
+    const newMessageFetched = await messageServices.sendMessage(conversationId, sender, content, uploadedAttachments);
     const newMessage = {
       ...newMessageFetched,
       createdAt: newMessageFetched.createdAt.toDate().toISOString(),

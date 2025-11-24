@@ -1,7 +1,10 @@
-interface Attachment {
-  url: string;
-  name: string;
-  size?: number;
+export interface Attachment {
+  id: string;
+  urlView: string;
+  urlDownload: string;
+  size: number;
+  originalName: string;
+  storedName: string;
 }
 
 export interface SendUser {
