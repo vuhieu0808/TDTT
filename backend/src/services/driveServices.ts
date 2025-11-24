@@ -105,7 +105,7 @@ export const driveServices = {
       const fileAttachment: Attachment = {
         id: fileId,
         // urlView: file.data.webViewLink || "",
-        urlView: `https://drive.google.com/uc?export=view&id=${fileId}`,
+        urlView: `https://lh3.googleusercontent.com/d/${fileId}`,
         urlDownload: file.data.webContentLink || "",
         size: file.data.size ? parseInt(file.data.size) : 0,
         originalName: fileName,
@@ -167,7 +167,7 @@ export const driveServices = {
       const fileAttachment: Attachment = {
         id: fileId,
         // urlView: file.data.webViewLink || "",
-        urlView: `https://drive.google.com/uc?export=view&id=${fileId}`,
+        urlView: `https://lh3.googleusercontent.com/d/${fileId}`,
         urlDownload: file.data.webContentLink || "",
         size: file.data.size ? parseInt(file.data.size) : 0,
         originalName: fileName,
