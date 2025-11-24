@@ -53,9 +53,12 @@ export interface ConversationResponse {
 
 export interface Attachment {
 	// Tệp đính kèm trong tin nhắn
-	url: string; // URL của tệp đính kèm
-	name: string; // Tên của tệp đính kèm
-	size?: number; // Kích thước của tệp đính kèm (tùy chọn)
+	id: string; // ID của tệp đính kèm
+	urlView: string; // URL để xem tệp đính kèm
+	urlDownload: string; // URL để tải xuống tệp đính kèm
+	size: number; // Kích thước của tệp đính kèm (tính bằng byte)
+	originalName: string; // Tên gốc của tệp đính kèm
+	storedName: string; // Tên lưu trữ của tệp đính kèm trên server
 }
 
 export interface Message {

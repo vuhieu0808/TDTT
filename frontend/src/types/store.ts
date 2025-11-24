@@ -37,7 +37,7 @@ export interface ChatState {
 	sendMessage: (
 		conversationId: string,
 		content: string,
-		attachments?: Attachment[]
+		attachments?: File[]
 	) => Promise<void>; // Hàm gửi tin nhắn trong cuộc trò chuyện
 	markAsRead: (conversationId: string) => Promise<void>; // Hàm đánh dấu cuộc trò chuyện là đã đọc
 

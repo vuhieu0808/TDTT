@@ -1,7 +1,6 @@
 import { drive_v3 } from "googleapis";
-import { Stream } from "stream";
+import { Readable } from "stream";
 import { drive } from "../config/ggdrive.js";
-import { GaxiosResponse } from "gaxios";
 import { generateUniqueFileName } from "../utils/driveHelper.js";
 import { Attachment } from "../models/Message.js";
 
@@ -27,7 +26,7 @@ export const driveServices = {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return res.data.files[0].id!;
       }
-
+      console.log(`Folder ${folderName} not found, creating new one.`);
       // 2. Nếu không thấy thì tạo mới
       const folderMetadata: DriveFileMetadata = {
         name: folderName,
@@ -55,9 +54,10 @@ export const driveServices = {
   },
 
   uploadFileToConversationFolder: async (
-    fileStream: Stream,
+    fileStream: Readable,
     fileName: string,
-    conversationId: string
+    conversationId: string,
+    mimeType: string
   ): Promise<Attachment> => {
     try {
       const rootFolderId = await driveServices.findOrCreateFolder("TDTT-Data");
@@ -79,7 +79,7 @@ export const driveServices = {
       };
       const media = {
         body: fileStream,
-        mimeType: "application/octet-stream",
+        mimeType: mimeType || "application/octet-stream",
       };
 
       const file = await drive.files.create({
@@ -99,15 +99,19 @@ export const driveServices = {
         },
       });
 
-      console.log(`File ${storedFileName} uploaded to conversation ${conversationId}`);
+      console.log(
+        `File ${storedFileName} uploaded to conversation ${conversationId}`
+      );
       const fileAttachment: Attachment = {
         id: fileId,
-        urlView: file.data.webViewLink || "",
+        // urlView: file.data.webViewLink || "",
+        urlView: `https://drive.google.com/uc?export=view&id=${fileId}`,
         urlDownload: file.data.webContentLink || "",
         size: file.data.size ? parseInt(file.data.size) : 0,
         originalName: fileName,
         storedName: storedFileName,
-      }
+      };
+      console.log(`File attachment created:`, fileAttachment);
       return fileAttachment;
     } catch (error) {
       console.error(`Error uploading file to conversation folder:`, error);
@@ -117,9 +121,10 @@ export const driveServices = {
 
   // upload ảnh cho từng users (như avatar, cover, library ảnh cá nhân)
   uploadFileToUserFolder: async (
-    fileStream: Stream,
+    fileStream: Readable,
     fileName: string,
-    userId: string
+    userId: string,
+    mimeType: string
   ): Promise<Attachment> => {
     try {
       const rootFolderId = await driveServices.findOrCreateFolder("TDTT-Data");
@@ -139,7 +144,7 @@ export const driveServices = {
       };
       const media = {
         body: fileStream,
-        mimeType: "application/octet-stream",
+        mimeType: mimeType || "application/octet-stream",
       };
       const file = await drive.files.create({
         requestBody: fileMetadata,
@@ -161,16 +166,17 @@ export const driveServices = {
       console.log(`File ${storedFileName} uploaded to user ${userId}`);
       const fileAttachment: Attachment = {
         id: fileId,
-        urlView: file.data.webViewLink || "",
+        // urlView: file.data.webViewLink || "",
+        urlView: `https://drive.google.com/uc?export=view&id=${fileId}`,
         urlDownload: file.data.webContentLink || "",
         size: file.data.size ? parseInt(file.data.size) : 0,
         originalName: fileName,
         storedName: storedFileName,
-      }
+      };
       return fileAttachment;
     } catch (error) {
       console.error(`Error uploading file to user folder:`, error);
       throw error;
     }
-  }
+  },
 };

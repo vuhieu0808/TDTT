@@ -3,6 +3,7 @@ import { AuthRequest } from "../middlewares/authMiddleware.js";
 import { messageServices } from "../services/messageServices.js";
 import { Attachment, SendUser } from "../models/Message.js";
 import { driveServices } from "../services/driveServices.js";
+import { Readable } from "stream";
 
 export const sendMessage = async (req: AuthRequest, res: Response) => {
   try {
@@ -26,10 +27,12 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     let uploadedAttachments: Attachment[] = [];
     if (attachments && attachments.length > 0) {
       const uploadPromises = attachments.map(async (file) => {
+        const originalNameFixed = Buffer.from(file.originalname, "latin1").toString("utf8");
         const uploadedFile = await driveServices.uploadFileToConversationFolder(
-          file.stream,
-          file.originalname,
-          conversationId
+          Readable.from(file.buffer),
+          originalNameFixed,
+          conversationId,
+          file.mimetype
         );
         return uploadedFile;
       });

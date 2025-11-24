@@ -37,7 +37,7 @@ export const updateConversationAfterCreateMessage = async (
         seenBy: [sender],
         lastMessageAt: message.createdAt,
         lastMessage: {
-          content: message.content ,
+          content: lastMessageContent,
           sender: message.sender,
           createdAt: message.createdAt,
         },
