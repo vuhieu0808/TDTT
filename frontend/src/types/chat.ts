@@ -63,9 +63,10 @@ export interface Message {
 	attachments?: Attachment[]; // Các tệp đính kèm trong tin nhắn (nếu có)
 	createdAt?: string; // Thời gian tạo tin nhắn (dưới dạng timestamp)
 	isOwn?: boolean; // Tin nhắn có phải của người dùng hiện tại không
-	sender: {
-		uid: string;
-		displayName: string;
-		avatarUrl: string | null;
-	};
+	// sender: {
+	// 	uid: string;
+	// 	displayName: string;
+	// 	avatarUrl: string | null;
+	// };
+	senderId: string;
 }

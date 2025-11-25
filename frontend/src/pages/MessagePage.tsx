@@ -336,15 +336,31 @@ function MessagePage() {
 															: "font-normal"
 													}`}
 												>
-													{conversation?.lastMessage
-														? conversation
-																?.lastMessage
-																?.sender
-																?.uid ===
-														  authUser?.uid
-															? `You: ${conversation.lastMessage?.content}`
-															: `${conversation.lastMessage?.content}`
-														: "No message yet!"}
+													{(() => {
+														if (
+															!conversation?.lastMessage
+														) {
+															return "No message yet!";
+														}
+
+														const senderId =
+															conversation
+																.lastMessage
+																.sender?.uid ||
+															(
+																conversation.lastMessage as any
+															).senderId;
+
+														const isMyMessage =
+															senderId ===
+															authUser?.uid;
+
+														return isMyMessage
+															? `You: ${conversation.lastMessage.content}`
+															: conversation
+																	.lastMessage
+																	.content;
+													})()}
 												</p>
 												<Circle
 													sx={{
@@ -458,7 +474,7 @@ function MessagePage() {
 							<div className='flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3'>
 								{currentMessages.map((message) => {
 									const isOwnMessage =
-										message?.sender?.uid === authUser?.uid;
+										message?.senderId === authUser?.uid;
 									return (
 										<div
 											key={message.id}

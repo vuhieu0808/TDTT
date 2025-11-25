@@ -78,7 +78,7 @@ export const useChatStore = create<ChatState>()(
 
 					const processed = fetched.map((msg) => ({
 						...msg,
-						isOwn: msg?.sender?.uid === userProfile.uid,
+						isOwn: msg?.senderId === userProfile.uid,
 					}));
 
 					set((state) => {
@@ -134,7 +134,7 @@ export const useChatStore = create<ChatState>()(
 				try {
 					const { userProfile } = useAuthStore.getState();
 					const { fetchMessages } = get();
-					message.isOwn = message?.sender?.uid === userProfile?.uid;
+					message.isOwn = message?.senderId === userProfile?.uid;
 					const convoId = message.conversationId;
 					let prevItems = get().messages[convoId]?.items || [];
 					if (prevItems.length === 0) {
