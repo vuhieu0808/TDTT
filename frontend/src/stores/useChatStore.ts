@@ -3,6 +3,7 @@ import type { ChatState } from "@/types/store";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useAuthStore } from "./useAuthStore";
+import type { Message } from "@/types/chat";
 
 export const useChatStore = create<ChatState>()(
   persist(
@@ -100,21 +101,103 @@ export const useChatStore = create<ChatState>()(
       },
 
       sendMessage: async (conversationId, content, attachments) => {
-        try {
-          const { activeConversationId } = get();
-          // const { userProfile } = useAuthStore.getState();
-          // if (!userProfile) return;
-          const convoId = conversationId ?? activeConversationId;
-          if (!convoId) return;
-          await chatServices.sendMessage(convoId, content, attachments);
+        const { activeConversationId } = get();
+        const { userProfile } = useAuthStore.getState();
 
-          set((state) => ({
-            conversations: state.conversations.map((convo) => {
-              return convo.id === convoId ? { ...convo, seenBy: [] } : convo;
-            }),
-          }));
+        const convoId = conversationId ?? activeConversationId;
+        if (!convoId || !userProfile) return;
+
+        // tạo tin nhắn tạm
+        const tempId = `temp-${Date.now()}`;
+        const tempMessage: Message = {
+          id: tempId,
+          conversationId: convoId,
+          content: content,
+          attachments: [],
+          sender: {
+            uid: userProfile.uid,
+            displayName: userProfile.displayName,
+            avatarUrl: userProfile.avatarUrl || "",
+          },
+          createdAt: new Date().toISOString(),
+          isOwn: true,
+        };
+
+        // Hiển thị tin tạm
+        set((state) => {
+          const prevItems = state.messages[convoId]?.items || [];
+          return {
+            messages: {
+              ...state.messages,
+              [convoId]: {
+                ...state.messages[convoId],
+                items: [...prevItems, tempMessage],
+              },
+            },
+          };
+        });
+
+        try {
+          // Gọi API gửi tin nhắn
+          const realMessage = await chatServices.sendMessage(
+            convoId,
+            content,
+            attachments
+          );
+          realMessage.isOwn = true; 
+
+          // XỬ LÝ ĐỒNG BỘ VỚI SOCKET (Quan trọng)
+          set((state) => {
+            const currentItems = state.messages[convoId]?.items || [];
+
+            // Kiểm tra xem Socket (hàm addMessage) đã chèn tin nhắn thật này vào chưa?
+            const isSocketAlreadyAdded = currentItems.some(
+              (msg) => msg.id === realMessage.id
+            );
+
+            let updatedItems;
+
+            if (isSocketAlreadyAdded) {
+              // CASE A: Socket đã nhanh tay thêm tin thật rồi.
+              // -> Nhiệm vụ bây giờ chỉ là XÓA tin nhắn tạm đi để tránh bị trùng (duplicate).
+              updatedItems = currentItems.filter((msg) => msg.id !== tempId);
+            } else {
+              // CASE B: API phản hồi trước hoặc Socket chưa kịp thêm.
+              // -> Tìm tin nhắn tạm và THAY THẾ nó bằng tin nhắn thật.
+              updatedItems = currentItems.map((msg) =>
+                msg.id === tempId ? realMessage : msg
+              );
+            }
+
+            return {
+              messages: {
+                ...state.messages,
+                [convoId]: {
+                  ...state.messages[convoId],
+                  items: updatedItems,
+                },
+              },
+              // Cập nhật lại danh sách cuộc hội thoại để đẩy lên đầu
+              conversations: state.conversations.map((convo) => {
+                return convo.id === convoId ? { ...convo, seenBy: [] } : convo;
+              }),
+            };
+          });
         } catch (error) {
           console.error("Failed to send message:", error);
+          // ROLLBACK: Nếu lỗi, xóa tin nhắn tạm đi
+          set((state) => {
+            const currentItems = state.messages[convoId]?.items || [];
+            return {
+              messages: {
+                ...state.messages,
+                [convoId]: {
+                  ...state.messages[convoId],
+                  items: currentItems.filter((msg) => msg.id !== tempId),
+                },
+              },
+            };
+          });
         }
       },
 
