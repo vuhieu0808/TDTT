@@ -1,4 +1,3 @@
-import { markAsRead } from './../../../backend/src/controllers/conversationController';
 import type { User as FirebaseuserProfile } from "firebase/auth";
 import type { UserProfile } from "../types/user";
 import type { Attachment, Conversation, Message } from "./chat";

@@ -3,6 +3,8 @@ import { AuthRequest } from "../middlewares/authMiddleware.js";
 import { conversationServices } from "../services/conversationServices.js";
 import { Message } from "../models/Message.js";
 import { Conversation, SeenUser } from "../models/Conversation.js";
+import { db } from "../config/firebase.js";
+import { User } from "../models/User.js";
 
 export const getConversations = async (req: AuthRequest, res: Response) => {
   try {
@@ -77,10 +79,11 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
     if (!conversationId) {
       return res.status(400).json({ error: "Missing conversation ID" });
     }
+    const senderDoc = (await db.collection("users").doc(userId).get()).data() as User;
     const seenUser: SeenUser = {
       uid: userId,
-      displayName: req.user?.name || "Unknown",
-      avatarUrl: req.user?.picture || null,
+      displayName: senderDoc.displayName || "Unknown",
+      avatarUrl: senderDoc.avatarUrl || "",
     }
     await conversationServices.markAsRead(conversationId, seenUser);
     return res.status(200).json({ message: "Marked as read" });

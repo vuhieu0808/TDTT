@@ -44,10 +44,19 @@ button {
   transition: border-color 0.25s;
 }
 
+/* Ẩn thanh cuộn nhưng vẫn cho phép cuộn */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 #root {
   min-height: 100vh;
 }
 
-.MuiTooltip-tooltip{
+.MuiTooltip-tooltip {
   transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out !important;
 }
