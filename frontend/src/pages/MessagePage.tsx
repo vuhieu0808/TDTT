@@ -61,6 +61,7 @@ function MessagePage() {
 
   const { onlineUsers } = useSocketStore();
 
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [messageText, setMessageText] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -245,31 +246,6 @@ function MessagePage() {
     setMessageText("");
     setSelectedFiles([]);
 
-    // const temporaryLastMessage = {
-    //   id: `temp-${Date.now()}`,
-    //   content: textToSend,
-    //   sender: {
-    //     uid: userProfile?.uid || "",
-    //     displayName: userProfile?.displayName || "",
-    //     avatarUrl: userProfile?.avatarUrl || "",
-    //   },
-    //   createdAt: new Date().toISOString(),
-    // };
-
-    // const originalConversation = conversations.find(
-    //   (convo) => convo.id === activeConversationId
-    // );
-
-    // if (originalConversation) {
-    //   const updatedConversation: Conversation = {
-    //     ...originalConversation,
-    //     lastMessage: temporaryLastMessage,
-    //     updatedAt: new Date().toISOString(),
-    //   };
-
-    //   updateConversation(updatedConversation);
-    // }
-
     try {
       await sendMessage(activeConversationId, textToSend, filesToSend);
     } catch (error) {
@@ -278,6 +254,19 @@ function MessagePage() {
       console.log("Failed to send message:", error);
     }
   };
+
+  // Thêm đoạn này vào bên trong component MessagePage
+  useEffect(() => {
+    if (textareaRef.current) {
+      // Reset chiều cao về auto để tính toán chính xác scrollHeight khi xóa bớt text
+      textareaRef.current.style.height = "auto";
+      // Đặt chiều cao mới bằng scrollHeight (tối đa ví dụ 150px)
+      textareaRef.current.style.height = `${Math.min(
+        textareaRef.current.scrollHeight,
+        150
+      )}px`;
+    }
+  }, [messageText]);
 
   // Handle chat searching
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -730,7 +719,7 @@ function MessagePage() {
                 )}
 
                 {/* KHU VỰC NHẬP LIỆU */}
-                <div className="p-4 flex gap-2">
+                <div className="p-4 flex gap-2 items-end">
                   {/* Nút Ghim (Chọn file) */}
                   <button
                     onClick={() => fileInputRef.current?.click()}
@@ -763,18 +752,22 @@ function MessagePage() {
                   />
 
                   {/* Input Text */}
-                  <input
-                    type="text"
+                  {/* Thay thế đoạn Input Text cũ bằng đoạn này */}
+                  <textarea
+                    ref={textareaRef}
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                     onKeyDown={(e) => {
+                      // Logic: Nếu bấm Enter mà KHÔNG giữ Shift -> Gửi tin nhắn
                       if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
+                        e.preventDefault(); // Chặn xuống dòng mặc định
                         handleSendMessage();
                       }
+                      // Nếu bấm Shift + Enter -> Để mặc định (sẽ xuống dòng)
                     }}
                     placeholder="Type a message..."
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
+                    rows={1} // Mặc định hiển thị 1 dòng
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 resize-none overflow-y-auto min-h-[44px] max-h-[150px] no-scrollbar"
                   />
 
                   {/* Nút Gửi */}
