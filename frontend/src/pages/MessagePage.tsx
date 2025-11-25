@@ -127,6 +127,19 @@ function MessagePage() {
       );
     }
 
+    result.sort((a, b) => {
+      // Lấy thời gian, ưu tiên lastMessageAt, nếu không có thì dùng createdAt
+      const timeA = new Date(
+        a.lastMessageAt || a.updatedAt || a.createdAt
+      ).getTime();
+      const timeB = new Date(
+        b.lastMessageAt || b.updatedAt || b.createdAt
+      ).getTime();
+
+      // Sắp xếp giảm dần (Mới nhất lên đầu)
+      return timeB - timeA;
+    });
+
     // 3. Cập nhật danh sách hiển thị
     setConversationsList(result);
   }, [conversations, activeFilter, searchText, userProfile]);
