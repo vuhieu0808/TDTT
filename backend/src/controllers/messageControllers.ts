@@ -4,6 +4,9 @@ import { messageServices } from "../services/messageServices.js";
 import { Attachment, SendUser } from "../models/Message.js";
 import { driveServices } from "../services/driveServices.js";
 import { Readable } from "stream";
+import { getLinkFileFromUser } from "../utils/userHelper.js";
+import { db } from "../config/firebase.js";
+import { User } from "../models/User.js";
 
 export const sendMessage = async (req: AuthRequest, res: Response) => {
   try {
@@ -18,10 +21,11 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "Message must have content or attachments" });
     }
     
+    const senderDoc = (await db.collection("users").doc(senderId).get()).data() as User;
     const sender: SendUser = {
       uid: senderId,
-      displayName: req.user?.name || "Unknown",
-      avatarUrl: req.user?.picture || null,
+      displayName: senderDoc.displayName || "Unknown",
+      avatarUrl: senderDoc.avatarUrl || "",
     }
 
     let uploadedAttachments: Attachment[] = [];

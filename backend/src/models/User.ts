@@ -1,6 +1,8 @@
+import { Attachment } from "./Message.js";
+
 export interface UserGallery {
   uid: string;
-  imgUrl: string;
+  img: Attachment;
   caption?: string;
   uploadedAt: FirebaseFirestore.Timestamp;
 }
