@@ -256,6 +256,9 @@ export const useChatStore = create<ChatState>()(
       partialize: (state) => ({
         conversations: state.conversations,
       }),
+      onRehydrateStorage: () => (state) => {
+        console.log('Hydration finished. Loaded conversations:', state?.conversations?.length);
+      },
     }
   )
 );

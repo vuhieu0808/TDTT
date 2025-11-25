@@ -312,6 +312,12 @@ function MessagePage() {
               sx={{
                 borderRadius: "8px",
                 height: "3rem",
+                "&::before": {
+                  display: "none",
+                },
+                "&:focus-within": {
+                  outline: "solid #a855f7",
+                },
               }}
             ></Input>
           </div>
