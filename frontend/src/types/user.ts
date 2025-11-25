@@ -18,7 +18,7 @@ export interface UserProfile {
   photoGallery?: UserGallery[];
 
   status: "online" | "offline" | "working" | "break";
-  lastActivity: number;
+  lastActivity: string;
   
   location?: {
     lat: number; // vĩ độ

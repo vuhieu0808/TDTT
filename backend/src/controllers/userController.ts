@@ -2,6 +2,7 @@ import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
 import { admin, db, rtdb } from "../config/firebase.js";
 import { User } from "../models/User.js";
+import { getLinkFileFromUser } from "../utils/userHelper.js";
 
 export const fetchMe = async (req: AuthRequest, res: Response) => {
   try {
@@ -10,11 +11,27 @@ export const fetchMe = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: "Unauthorized. No token provided" });
     }
     const { uid } = dataUser;
-    const userDataRef = await db.collection("users").doc(uid).get();
+    const userDataDoc = db.collection("users").doc(uid);
+    const userDataRef = await userDataDoc.get();
     if (!userDataRef.exists) {
       return res.status(404).json({ error: "User not found" });
     }
-    const userData = userDataRef.data() as User;
+    const userDataFetched = userDataRef.data() as User;
+    const avatarUrl = await getLinkFileFromUser(uid, userDataFetched.avatarUrl || "");
+    
+    if (avatarUrl !== userDataFetched.avatarUrl) {
+      // Cập nhật lại avatarUrl trong Firestore nếu nó đã thay đổi
+      await userDataDoc.update({ avatarUrl });
+    }
+
+    // Chuyển đổi các trường Timestamp sang chuỗi ISO
+    const userData = {
+      ...userDataFetched,
+      avatarUrl,
+      createdAt: userDataFetched.createdAt.toDate().toISOString(),
+      updatedAt: userDataFetched.updatedAt.toDate().toISOString(),
+      lastActivity: userDataFetched.lastActivity.toDate().toISOString(),
+    }
     return res.status(200).json({ data: userData });
   } catch (error) {
     console.error("Error fetching user profile:", error);
@@ -48,11 +65,15 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
       updatedAt: admin.firestore.Timestamp.now(),
     };
     await db.collection("users").doc(uid).set(currentData);
+    const updatedUserData = {
+      ...currentData,
+      updatedAt: currentData.updatedAt.toDate().toISOString(),
+    };
     return res
       .status(200)
       .json({
         message: "User profile updated successfully",
-        data: currentData,
+        data: updatedUserData,
       });
   } catch (error) {
     console.error("Error updating user profile:", error);

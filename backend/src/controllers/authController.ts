@@ -3,6 +3,7 @@ import { AuthRequest } from "../middlewares/authMiddleware.js";
 import { db } from "../config/firebase.js";
 import { User } from "../models/User.js";
 import { Timestamp } from "firebase-admin/firestore";
+import { getLinkFileFromUser } from "../utils/userHelper.js";
 
 export const testEndpoint = async (req: AuthRequest, res: Response) => {
   const token = req.headers.authorization?.split(" ")[1];
@@ -45,11 +46,13 @@ export const createUser = async (req: AuthRequest, res: Response) => {
   try {
     const now = Timestamp.now();
 
+    const avatarUrl = await getLinkFileFromUser(uid, picture);
+
     const user: User = {
       uid: uid,
       displayName: name,
       email: email,
-      ...(picture && { avatarUrl: picture }),
+      ...(avatarUrl && { avatarUrl }),
       status: "online",
       lastActivity: now,
       createdAt: now,

@@ -22,3 +22,18 @@ export const formatChatTime = (timestamp: {
     timeZone: "Asia/Ho_Chi_Minh",
   }).format(date);
 };
+
+export const isImageFile = (fileName: string): boolean => {
+  const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".svg"];
+  const lowerCaseFileName = fileName.toLowerCase();
+  return imageExtensions.some((ext) => lowerCaseFileName.endsWith(ext));
+}
+
+export const formatFileSize = (sizeInBytes: number): string => {
+  if (sizeInBytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(sizeInBytes) / Math.log(k));
+  const size = parseFloat((sizeInBytes / Math.pow(k, i)).toFixed(2));
+  return `${size} ${sizes[i]}`;
+}

@@ -35,31 +35,32 @@ export const useSocketStore = create<SocketState>((set, get) => ({
 
     // new message
     socket.on("new-message", ({ message, conversation, unreadCount }) => {
-      useChatStore.getState().addMessage({
-        ...message,
-        createdAt: message.createdAt?._seconds * 1000,
-      } as Message);
+      useChatStore.getState().addMessage(message as Message);
       const lastMessage: LastMessage = {
         id: message.id,
-        content: conversation.lastMessage.content,
-        sender: {
-          uid: conversation.lastMessage.senderId,
-          displayName: "",
-          avatarUrl: "",
-        },
-        createdAt: conversation.lastMessage.createdAt?._seconds * 1000,
+        ...conversation.lastMessage,
       };
 
       const updatedConversation = {
         ...conversation,
         lastMessage,
-        lastMessageAt: conversation.lastMessageAt?._seconds * 1000,
+        lastMessageAt: conversation.lastMessageAt,
         unreadCount,
       };
 
       if (useChatStore.getState().activeConversationId === conversation.id) {
         /// Đang ở trong cuộc trò chuyện này, đánh dấu đã xem
+        useChatStore.getState().markAsRead(conversation.id);
       }
+      useChatStore.getState().updateConversation(updatedConversation);
+    });
+
+    socket.on("mark-as-read", ({ conversationId, seenBy, unreadCount }) => {
+      const updatedConversation = {
+        id: conversationId,
+        seenBy,
+        unreadCount,
+      };
       useChatStore.getState().updateConversation(updatedConversation);
     });
   },

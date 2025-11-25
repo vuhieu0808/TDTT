@@ -27,8 +27,27 @@ export const useChatStore = create<ChatState>()(
 
       fetchConversations: async () => {
         try {
+          const userProfile = useAuthStore.getState().userProfile;
           set({ loadingConversations: true });
-          const { conversations } = await chatServices.fetchConversations();
+          const { conversations: conversationFetched } =
+            await chatServices.fetchConversations();
+          const conversations = conversationFetched.map((convo) => {
+            // đặt groupName cho cuộc trò chuyện nhóm là tên nhóm hoặc tên hiển thị của người dùng khác
+            return {
+              ...convo,
+              groupName:
+                convo.type === "group"
+                  ? convo.groupName || "Nhóm chat"
+                  : convo.participants.find((p) => p.uid !== userProfile?.uid)
+                      ?.displayName || "Người dùng",
+              groupAvatarUrl:
+                convo.type === "group"
+                  ? convo.groupAvatarUrl || null
+                  : convo.participants.find((p) => p.uid !== userProfile?.uid)
+                      ?.avatarUrl || null,
+            };
+          });
+          console.log("Fetched conversations:", conversations);
           set({ conversations });
         } catch (error) {
           console.error("Failed to fetch conversations:", error);
@@ -55,7 +74,7 @@ export const useChatStore = create<ChatState>()(
 
           const processed = fetched.map((msg) => ({
             ...msg,
-            isOwn: msg.senderId === userProfile.uid,
+            isOwn: msg?.sender?.uid === userProfile.uid,
           }));
 
           set((state) => {
@@ -99,11 +118,22 @@ export const useChatStore = create<ChatState>()(
         }
       },
 
+      markAsRead: async (conversationId) => {
+        try {
+          const { activeConversationId } = get();
+          const convoId = conversationId ?? activeConversationId;
+          if (!convoId) return;
+          await chatServices.markAsRead(convoId);
+        } catch (error) {
+          console.error("Failed to mark as read:", error);
+        }
+      },
+
       addMessage: async (message) => {
         try {
           const { userProfile } = useAuthStore.getState();
           const { fetchMessages } = get();
-          message.isOwn = message.senderId === userProfile?.uid;
+          message.isOwn = message?.sender?.uid === userProfile?.uid;
           const convoId = message.conversationId;
           let prevItems = get().messages[convoId]?.items || [];
           if (prevItems.length === 0) {

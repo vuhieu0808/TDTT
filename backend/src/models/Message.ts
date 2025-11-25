@@ -1,13 +1,23 @@
-interface Attachment {
-  url: string;
-  name: string;
-  size?: number;
+export interface Attachment {
+  id: string;
+  urlView: string;
+  urlDownload: string;
+  size: number;
+  originalName: string;
+  storedName: string;
+}
+
+export interface SendUser {
+  // Người gửi tin nhắn
+  uid: string;
+  displayName: string;
+  avatarUrl: string | null;
 }
 
 export interface Message {
   id: string;
   conversationId: string;
-  senderId: string;
+  sender: SendUser;
   content: string;
 
   attachments?: Attachment[];
