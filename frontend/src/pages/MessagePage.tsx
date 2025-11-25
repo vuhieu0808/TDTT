@@ -68,7 +68,6 @@ function MessagePage() {
 		useState<Conversation[]>(conversations);
 	const [activeFilter, setActiveFilter] = useState<"all" | "unread">("all");
 	const [isDetailOpen, setIsDetailOpen] = useState(false);
-	const [isSeen, setIsSeen] = useState<boolean>(false);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 
 	// Fetch conversations on component mount
@@ -94,9 +93,34 @@ function MessagePage() {
 		}
 	}, [activeConversationId]);
 
+	const sortConversationsByLastMessage = (conversations: Conversation[]) => {
+		return [...conversations].sort((a, b) => {
+			const getTime = (createdAt: any): number => {
+				if (!createdAt) return 0;
+
+				if (typeof createdAt === "object" && "_seconds" in createdAt) {
+					return (createdAt._seconds as number) * 1000;
+				}
+
+				if (typeof createdAt === "string") {
+					return new Date(createdAt).getTime();
+				}
+
+				return 0;
+			};
+
+			const timeA = getTime(a.lastMessage?.createdAt);
+			const timeB = getTime(b.lastMessage?.createdAt);
+
+			return timeB - timeA;
+		});
+	};
+
 	// Update conversationsList when conversations change
 	useEffect(() => {
-		setConversationsList(conversations);
+		const sortedConversations =
+			sortConversationsByLastMessage(conversations);
+		setConversationsList(sortedConversations);
 	}, [conversations]);
 
 	// Get the active conversation details
@@ -152,31 +176,6 @@ function MessagePage() {
 		setMessageText("");
 		setSelectedFiles([]);
 
-		// const temporaryLastMessage = {
-		// 	id: `temp-${Date.now()}`,
-		// 	content: textToSend,
-		// 	sender: {
-		// 		uid: userProfile?.uid || "",
-		// 		displayName: userProfile?.displayName || "",
-		// 		avatarUrl: userProfile?.avatarUrl || "",
-		// 	},
-		// 	createdAt: new Date().toISOString(),
-		// };
-
-		// const originalConversation = conversations.find(
-		// 	(convo) => convo.id === activeConversationId
-		// );
-
-		// if (originalConversation) {
-		// 	const updatedConversation: Conversation = {
-		// 		...originalConversation,
-		// 		lastMessage: temporaryLastMessage,
-		// 		updatedAt: new Date().toISOString(),
-		// 	};
-
-		// updateConversation(updatedConversation);
-		// }
-
 		try {
 			await sendMessage(activeConversationId, textToSend, filesToSend);
 		} catch (error) {
@@ -197,18 +196,35 @@ function MessagePage() {
 					.includes(searchGroupName.toLowerCase())
 			);
 
-			setConversationsList(filteredConversations);
+			const sortedFilteredConversations = sortConversationsByLastMessage(
+				filteredConversations
+			);
+
+			setConversationsList(sortedFilteredConversations);
 		}
 	};
 
+	// Display all the conversations
 	const handleAllClick = () => {
 		setActiveFilter("all");
-	};
-	const handleUnreadClick = () => {
-		setActiveFilter("unread");
+		const sortedConversations =
+			sortConversationsByLastMessage(conversations);
+		setConversationsList(sortedConversations);
 	};
 
-	const handleSeen = () => {};
+	// Display the unread conversations
+	const handleUnreadClick = () => {
+		setActiveFilter("unread");
+		const unreadConversations = conversations.filter(
+			(conversation) =>
+				conversation.unreadCount?.[userProfile?.uid || ""] > 0
+		);
+
+		const sortedUnreadConversations =
+			sortConversationsByLastMessage(unreadConversations);
+
+		setConversationsList(sortedUnreadConversations);
+	};
 
 	return (
 		<>
@@ -254,6 +270,7 @@ function MessagePage() {
 
 					{/* Navigation Buttons */}
 					<div className='flex flex-row justify-center p-3 gap-5'>
+						{/* View All Conversations */}
 						<Button
 							onClick={handleAllClick}
 							variant='plain'
@@ -281,6 +298,7 @@ function MessagePage() {
 						>
 							All
 						</Button>
+						{/* View Unread Conversations */}
 						<Button
 							onClick={handleUnreadClick}
 							variant='plain'
@@ -330,7 +348,6 @@ function MessagePage() {
 									key={conversation.id}
 									onClick={() => {
 										setActiveConversation(conversation.id);
-										handleSeen();
 									}}
 									className={`flex flex-row justify-between p-3 rounded-lg cursor-pointer transition-colors ${
 										activeConversationId === conversation.id
@@ -506,7 +523,7 @@ function MessagePage() {
 										>
 											<div
 												className={`max-w-[70%] rounded-lg p-3 overflow-hidden ${
-													message.isOwn
+													isOwnMessage
 														? "bg-purple-500 text-white"
 														: "bg-gray-200 text-gray-900"
 												}`}
@@ -604,7 +621,7 @@ function MessagePage() {
 																			{/* Icon File generic */}
 																			<div
 																				className={`p-2 rounded-full ${
-																					message.isOwn
+																					isOwnMessage
 																						? "bg-purple-500"
 																						: "bg-gray-100"
 																				}`}
@@ -612,7 +629,7 @@ function MessagePage() {
 																				<svg
 																					xmlns='http://www.w3.org/2000/svg'
 																					className={`w-6 h-6 ${
-																						message.isOwn
+																						isOwnMessage
 																							? "text-white"
 																							: "text-gray-500"
 																					}`}
@@ -745,13 +762,13 @@ function MessagePage() {
 								)}
 
 								{/* KHU VỰC NHẬP LIỆU */}
-								<div className='p-4 flex gap-2'>
+								<div className='p-4 flex gap-2 items-end'>
 									{/* Nút Ghim (Chọn file) */}
 									<button
 										onClick={() =>
 											fileInputRef.current?.click()
 										}
-										className='p-2 text-gray-500 transition-colors rounded-lg hover:bg-gray-100 hover:text-purple-500'
+										className='p-2 text-gray-500 transition-colors rounded-lg hover:bg-gray-100 hover:text-purple-500 flex-shrink-0'
 										title='Attach file'
 									>
 										<svg
@@ -780,12 +797,16 @@ function MessagePage() {
 									/>
 
 									{/* Input Text */}
-									<input
-										type='text'
+									<textarea
 										value={messageText}
-										onChange={(e) =>
-											setMessageText(e.target.value)
-										}
+										onChange={(e) => {
+											setMessageText(e.target.value);
+											e.target.style.height = "auto";
+											e.target.style.height = `${Math.min(
+												e.target.scrollHeight,
+												200
+											)}px`;
+										}}
 										onKeyDown={(e) => {
 											if (
 												e.key === "Enter" &&
@@ -793,10 +814,18 @@ function MessagePage() {
 											) {
 												e.preventDefault();
 												handleSendMessage();
+
+												e.currentTarget.style.height =
+													"auto";
 											}
 										}}
 										placeholder='Type a message...'
-										className='flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500'
+										rows={1}
+										className='flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 resize-none overflow-y-auto'
+										style={{
+											minHeight: "42px",
+											maxHeight: "200px",
+										}}
 									/>
 
 									{/* Nút Gửi */}
@@ -806,7 +835,7 @@ function MessagePage() {
 											!messageText.trim() &&
 											selectedFiles.length === 0
 										}
-										className={`px-4 py-2 text-white rounded-lg transition-colors ${
+										className={`px-4 py-2 text-white rounded-lg transition-colors flex-shrink-0 ${
 											!messageText.trim() &&
 											selectedFiles.length === 0
 												? "bg-purple-300 cursor-not-allowed"

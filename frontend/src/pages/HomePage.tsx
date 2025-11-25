@@ -1,6 +1,8 @@
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useNavigate } from "react-router";
 
+import ChatButton from "@/components/ChatButton";
+
 import Layout from "@/components/Layout";
 import Button from "@mui/joy/Button";
 
@@ -240,6 +242,7 @@ const HomePage = () => {
 						</div>
 					</div>
 				</div>
+				<ChatButton />
 			</Layout>
 		</div>
 	);
