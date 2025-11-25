@@ -1,3 +1,4 @@
+import { markAsRead } from './../../../backend/src/controllers/conversationController';
 import type { User as FirebaseuserProfile } from "firebase/auth";
 import type { UserProfile } from "../types/user";
 import type { Attachment, Conversation, Message } from "./chat";
@@ -36,11 +37,12 @@ export interface ChatState {
 	sendMessage: (
 		conversationId: string,
 		content: string,
-		attachments?: Attachment[]
+		attachments?: File[]
 	) => Promise<void>; // Hàm gửi tin nhắn trong cuộc trò chuyện
+	markAsRead: (conversationId: string) => Promise<void>; // Hàm đánh dấu cuộc trò chuyện là đã đọc
 
 	addMessage: (message: Message) => Promise<void>;
-	updateConversation: (conversation: Conversation) => void; // Hàm cập nhật cuộc trò chuyện trong danh sách
+	updateConversation: (conversation: Partial<Conversation> & { id: string }) => void; // Hàm cập nhật cuộc trò chuyện trong danh sách
 }
 
 export interface SocketState {

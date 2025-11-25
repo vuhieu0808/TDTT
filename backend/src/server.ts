@@ -2,6 +2,7 @@ import "dotenv/config";
 import { app, io, server } from "./socket/index.js";
 import express from "express";
 import "./config/firebase.js";
+import "./config/ggdrive.js";
 import cors from "cors";
 import authRouter from "./routes/authRoute.js";
 import { authMiddleware } from "./middlewares/authMiddleware.js";

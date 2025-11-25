@@ -12,6 +12,7 @@ import Button from "@mui/joy/Button";
 import IconButton from "@mui/joy/IconButton";
 
 import { Search, Info, Close, Circle } from "@mui/icons-material";
+import { formatFileSize, isImageFile } from "@/lib/utils";
 
 function getTimeSinceLastMessage(timestamp: any): string {
 	if (!timestamp) return "";
@@ -44,7 +45,7 @@ function getTimeSinceLastMessage(timestamp: any): string {
 }
 
 function MessagePage() {
-	const { authUser, userProfile } = useAuthStore();
+	const { userProfile } = useAuthStore();
 	const {
 		conversations,
 		messages,
@@ -54,11 +55,14 @@ function MessagePage() {
 		fetchMessages,
 		sendMessage,
 		updateConversation,
+		markAsRead,
 	} = useChatStore();
 
 	const { onlineUsers } = useSocketStore();
 
 	const [messageText, setMessageText] = useState("");
+	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [searchText, setSearchText] = useState("");
 	const [conversationsList, setConversationsList] =
 		useState<Conversation[]>(conversations);
@@ -74,8 +78,19 @@ function MessagePage() {
 
 	// Fetch messages when active conversation changes
 	useEffect(() => {
-		if (activeConversationId) {
+		if (activeConversationId && !messages[activeConversationId]) {
 			fetchMessages(activeConversationId);
+		}
+		// Mark as read when opening the conversation
+		const conversation = conversations.find(
+			(convo) => convo.id === activeConversationId
+		);
+		if (
+			conversation &&
+			conversation.unreadCount?.[userProfile?.uid || ""] > 0
+		) {
+			markAsRead(activeConversationId || "");
+			console.log("Marked as read:", activeConversationId);
 		}
 	}, [activeConversationId]);
 
@@ -108,47 +123,65 @@ function MessagePage() {
 		return () => clearInterval(interval);
 	}, [conversations]);
 
+	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (e.target.files && e.target.files.length > 0) {
+			const filesArray = Array.from(e.target.files);
+			setSelectedFiles((prev) => [...prev, ...filesArray]);
+			console.log("Selected files:", filesArray);
+		}
+		if (fileInputRef.current) {
+			fileInputRef.current.value = "";
+		}
+	};
+
+	const handleRemoveFile = (index: number) => {
+		setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+	};
+
 	// Handle message sending
 	const handleSendMessage = async () => {
-		if (!messageText.trim() || !activeConversationId) return;
+		if (
+			(!messageText.trim() && selectedFiles.length === 0) ||
+			!activeConversationId
+		)
+			return;
 
 		const textToSend = messageText;
+		const filesToSend = selectedFiles;
 
 		setMessageText("");
+		setSelectedFiles([]);
 
-		const temporaryLastMessage = {
-			id: `temp-${Date.now()}`,
-			content: textToSend,
-			sender: {
-				uid: authUser?.uid || "",
-				displayName: userProfile?.displayName || "",
-				avatarUrl: userProfile?.avatarUrl || "",
-			},
-			createdAt: new Date().toISOString(),
-		};
+		// const temporaryLastMessage = {
+		// 	id: `temp-${Date.now()}`,
+		// 	content: textToSend,
+		// 	sender: {
+		// 		uid: userProfile?.uid || "",
+		// 		displayName: userProfile?.displayName || "",
+		// 		avatarUrl: userProfile?.avatarUrl || "",
+		// 	},
+		// 	createdAt: new Date().toISOString(),
+		// };
 
-		const originalConversation = conversations.find(
-			(convo) => convo.id === activeConversationId
-		);
+		// const originalConversation = conversations.find(
+		// 	(convo) => convo.id === activeConversationId
+		// );
 
-		if (originalConversation) {
-			const updatedConversation: Conversation = {
-				...originalConversation,
-				lastMessage: temporaryLastMessage,
-				updatedAt: new Date().toISOString(),
-			};
+		// if (originalConversation) {
+		// 	const updatedConversation: Conversation = {
+		// 		...originalConversation,
+		// 		lastMessage: temporaryLastMessage,
+		// 		updatedAt: new Date().toISOString(),
+		// 	};
 
-			updateConversation(updatedConversation);
-		}
+		// updateConversation(updatedConversation);
+		// }
 
 		try {
-			await sendMessage(activeConversationId, textToSend, []);
+			await sendMessage(activeConversationId, textToSend, filesToSend);
 		} catch (error) {
 			setMessageText(textToSend);
-			if (originalConversation) {
-				const { updateConversation } = useChatStore.getState();
-				updateConversation(originalConversation);
-			}
+			setSelectedFiles(filesToSend);
 			console.log("Failed to send message:", error);
 		}
 	};
@@ -167,6 +200,7 @@ function MessagePage() {
 			setConversationsList(filteredConversations);
 		}
 	};
+
 	const handleAllClick = () => {
 		setActiveFilter("all");
 	};
@@ -336,31 +370,15 @@ function MessagePage() {
 															: "font-normal"
 													}`}
 												>
-													{(() => {
-														if (
-															!conversation?.lastMessage
-														) {
-															return "No message yet!";
-														}
-
-														const senderId =
-															conversation
-																.lastMessage
-																.sender?.uid ||
-															(
-																conversation.lastMessage as any
-															).senderId;
-
-														const isMyMessage =
-															senderId ===
-															authUser?.uid;
-
-														return isMyMessage
-															? `You: ${conversation.lastMessage.content}`
-															: conversation
-																	.lastMessage
-																	.content;
-													})()}
+													{conversation?.lastMessage
+														? conversation
+																?.lastMessage
+																?.sender
+																?.uid ===
+														  userProfile?.uid
+															? `You: ${conversation.lastMessage?.content}`
+															: `${conversation.lastMessage?.content}`
+														: "No message yet!"}
 												</p>
 												<Circle
 													sx={{
@@ -403,7 +421,8 @@ function MessagePage() {
 									{(() => {
 										const otherUser =
 											activeConversation.participants.find(
-												(p) => p.uid !== authUser?.uid
+												(p) =>
+													p.uid !== userProfile?.uid
 											);
 										const isOnline = onlineUsers.includes(
 											otherUser?.uid || ""
@@ -427,7 +446,7 @@ function MessagePage() {
 															"Unknown"}
 													</p>
 													<p
-														className='text-xs'
+														className='text-xs flex items-center gap-1'
 														style={{
 															color: isOnline
 																? "#10b981"
@@ -474,7 +493,8 @@ function MessagePage() {
 							<div className='flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3'>
 								{currentMessages.map((message) => {
 									const isOwnMessage =
-										message?.senderId === authUser?.uid;
+										message?.sender?.uid ===
+										userProfile?.uid;
 									return (
 										<div
 											key={message.id}
@@ -486,24 +506,189 @@ function MessagePage() {
 										>
 											<div
 												className={`max-w-[70%] rounded-lg p-3 overflow-hidden ${
-													isOwnMessage
+													message.isOwn
 														? "bg-purple-500 text-white"
 														: "bg-gray-200 text-gray-900"
 												}`}
 											>
+												{/* --- PHẦN XỬ LÝ ATTACHMENTS MỚI --- */}
 												{message.attachments &&
 													message.attachments.length >
 														0 && (
-														<img
-															src={
-																message
-																	.attachments[0]
-																	.url
-															}
-															alt='attachment'
-															className='rounded mb-2 max-w-full'
-														/>
+														<div className='flex flex-col gap-2 mb-2'>
+															{message.attachments.map(
+																(att) => {
+																	// CASE 1: NẾU LÀ ẢNH
+																	if (
+																		isImageFile(
+																			att.originalName
+																		)
+																	) {
+																		return (
+																			<div
+																				key={
+																					att.id
+																				}
+																				className='relative group cursor-pointer'
+																			>
+																				{/* Bấm vào ảnh mở tab mới để xem full (Preview) */}
+																				<img
+																					src={
+																						att.urlView
+																					}
+																					alt={
+																						att.originalName
+																					}
+																					referrerPolicy='no-referrer'
+																					onClick={() =>
+																						window.open(
+																							att.urlView,
+																							"_blank"
+																						)
+																					}
+																					className='rounded-lg max-w-full max-h-[300px] object-cover hover:opacity-90 transition-opacity'
+																				/>
+																				{/* Nút tải xuống nhỏ hiện khi hover vào ảnh (Tùy chọn) */}
+																				<a
+																					href={
+																						att.urlDownload
+																					}
+																					target='_blank'
+																					rel='noopener noreferrer'
+																					className='absolute bottom-2 right-2 bg-black/50 p-1.5 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity'
+																					title='Download'
+																					onClick={(
+																						e
+																					) =>
+																						e.stopPropagation()
+																					} // Ngăn click ảnh
+																				>
+																					<svg
+																						xmlns='http://www.w3.org/2000/svg'
+																						className='w-4 h-4'
+																						fill='none'
+																						viewBox='0 0 24 24'
+																						stroke='currentColor'
+																					>
+																						<path
+																							strokeLinecap='round'
+																							strokeLinejoin='round'
+																							strokeWidth={
+																								2
+																							}
+																							d='M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4'
+																						/>
+																					</svg>
+																				</a>
+																			</div>
+																		);
+																	}
+
+																	// CASE 2: NẾU LÀ FILE KHÁC (PDF, DOC, ZIP...)
+																	return (
+																		<a
+																			key={
+																				att.id
+																			}
+																			href={
+																				att.urlDownload
+																			} // Link tải xuống trực tiếp
+																			target='_blank' // Mở tab mới để tải (tránh block luồng chat)
+																			rel='noopener noreferrer'
+																			className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+																				message.isOwn
+																					? "bg-purple-600 border-purple-400 hover:bg-purple-700"
+																					: "bg-white border-gray-300 hover:bg-gray-50"
+																			}`}
+																		>
+																			{/* Icon File generic */}
+																			<div
+																				className={`p-2 rounded-full ${
+																					message.isOwn
+																						? "bg-purple-500"
+																						: "bg-gray-100"
+																				}`}
+																			>
+																				<svg
+																					xmlns='http://www.w3.org/2000/svg'
+																					className={`w-6 h-6 ${
+																						message.isOwn
+																							? "text-white"
+																							: "text-gray-500"
+																					}`}
+																					fill='none'
+																					viewBox='0 0 24 24'
+																					stroke='currentColor'
+																				>
+																					<path
+																						strokeLinecap='round'
+																						strokeLinejoin='round'
+																						strokeWidth={
+																							2
+																						}
+																						d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+																					/>
+																				</svg>
+																			</div>
+
+																			<div className='flex-1 min-w-0'>
+																				<p
+																					className={`text-sm font-medium truncate ${
+																						message.isOwn
+																							? "text-white"
+																							: "text-gray-900"
+																					}`}
+																				>
+																					{
+																						att.originalName
+																					}
+																				</p>
+																				<p
+																					className={`text-xs ${
+																						message.isOwn
+																							? "text-purple-200"
+																							: "text-gray-500"
+																					}`}
+																				>
+																					{formatFileSize(
+																						att.size
+																					)}
+																				</p>
+																			</div>
+
+																			{/* Icon Download */}
+																			<div
+																				className={
+																					message.isOwn
+																						? "text-purple-200"
+																						: "text-gray-400"
+																				}
+																			>
+																				<svg
+																					xmlns='http://www.w3.org/2000/svg'
+																					className='w-5 h-5'
+																					fill='none'
+																					viewBox='0 0 24 24'
+																					stroke='currentColor'
+																				>
+																					<path
+																						strokeLinecap='round'
+																						strokeLinejoin='round'
+																						strokeWidth={
+																							2
+																						}
+																						d='M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4'
+																					/>
+																				</svg>
+																			</div>
+																		</a>
+																	);
+																}
+															)}
+														</div>
 													)}
+												{/* ------------------------------------- */}
+
 												<p
 													className='text-sm whitespace-pre-wrap break-words'
 													style={{
@@ -534,8 +719,67 @@ function MessagePage() {
 							</div>
 
 							{/* Message Input */}
-							<div className='p-4 border-t border-gray-200 bg-white flex-shrink-0'>
-								<div className='flex gap-2'>
+							<div className='flex-shrink-0 bg-white border-t border-gray-200'>
+								{/* KHU VỰC PREVIEW FILE (Hiển thị khi có file được chọn) */}
+								{selectedFiles.length > 0 && (
+									<div className='flex gap-2 px-4 py-2 overflow-x-auto border-b border-gray-100 scrollbar-thin'>
+										{selectedFiles.map((file, index) => (
+											<div
+												key={index}
+												className='relative flex items-center px-3 py-1 text-sm bg-gray-100 rounded-full group flex-shrink-0'
+											>
+												<span className='max-w-[150px] truncate text-xs'>
+													{file.name}
+												</span>
+												<button
+													onClick={() =>
+														handleRemoveFile(index)
+													}
+													className='ml-2 text-gray-500 hover:text-red-500 focus:outline-none'
+												>
+													✕
+												</button>
+											</div>
+										))}
+									</div>
+								)}
+
+								{/* KHU VỰC NHẬP LIỆU */}
+								<div className='p-4 flex gap-2'>
+									{/* Nút Ghim (Chọn file) */}
+									<button
+										onClick={() =>
+											fileInputRef.current?.click()
+										}
+										className='p-2 text-gray-500 transition-colors rounded-lg hover:bg-gray-100 hover:text-purple-500'
+										title='Attach file'
+									>
+										<svg
+											xmlns='http://www.w3.org/2000/svg'
+											className='w-6 h-6'
+											fill='none'
+											viewBox='0 0 24 24'
+											stroke='currentColor'
+										>
+											<path
+												strokeLinecap='round'
+												strokeLinejoin='round'
+												strokeWidth={2}
+												d='M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13'
+											/>
+										</svg>
+									</button>
+
+									{/* Input File Ẩn */}
+									<input
+										type='file'
+										multiple
+										ref={fileInputRef}
+										className='hidden'
+										onChange={handleFileSelect}
+									/>
+
+									{/* Input Text */}
 									<input
 										type='text'
 										value={messageText}
@@ -554,9 +798,20 @@ function MessagePage() {
 										placeholder='Type a message...'
 										className='flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500'
 									/>
+
+									{/* Nút Gửi */}
 									<button
 										onClick={handleSendMessage}
-										className='px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors'
+										disabled={
+											!messageText.trim() &&
+											selectedFiles.length === 0
+										}
+										className={`px-4 py-2 text-white rounded-lg transition-colors ${
+											!messageText.trim() &&
+											selectedFiles.length === 0
+												? "bg-purple-300 cursor-not-allowed"
+												: "bg-purple-500 hover:bg-purple-600"
+										}`}
 									>
 										Send
 									</button>
@@ -567,7 +822,7 @@ function MessagePage() {
 						<div className='flex items-center justify-center h-full text-gray-500'>
 							<div className='text-center'>
 								<p className='text-lg font-semibold mb-2'>
-									Welcome, {authUser?.displayName}!
+									Welcome, {userProfile?.displayName}!
 								</p>
 								<p className='text-sm'>
 									Select a chat to start messaging
@@ -599,7 +854,8 @@ function MessagePage() {
 									{(() => {
 										const otherUser =
 											activeConversation.participants.find(
-												(p) => p.uid !== authUser?.uid
+												(p) =>
+													p.uid !== userProfile?.uid
 											);
 										return (
 											<>

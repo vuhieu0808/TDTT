@@ -78,7 +78,7 @@ export const useChatStore = create<ChatState>()(
 
 					const processed = fetched.map((msg) => ({
 						...msg,
-						isOwn: msg?.senderId === userProfile.uid,
+						isOwn: msg?.sender?.uid === userProfile.uid,
 					}));
 
 					set((state) => {
@@ -130,11 +130,22 @@ export const useChatStore = create<ChatState>()(
 				}
 			},
 
+			markAsRead: async (conversationId) => {
+				try {
+					const { activeConversationId } = get();
+					const convoId = conversationId ?? activeConversationId;
+					if (!convoId) return;
+					await chatServices.markAsRead(convoId);
+				} catch (error) {
+					console.error("Failed to mark as read:", error);
+				}
+			},
+
 			addMessage: async (message) => {
 				try {
 					const { userProfile } = useAuthStore.getState();
 					const { fetchMessages } = get();
-					message.isOwn = message?.senderId === userProfile?.uid;
+					message.isOwn = message?.sender?.uid === userProfile?.uid;
 					const convoId = message.conversationId;
 					let prevItems = get().messages[convoId]?.items || [];
 					if (prevItems.length === 0) {

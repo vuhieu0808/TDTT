@@ -79,9 +79,9 @@ function Navbar() {
 						<div className='flex justify-end items-center gap-1 sm:gap-2 md:gap-3'>
 							{/* USER INFORMATION */}
 							<div className='hidden md:flex items-center gap-2'>
-								{userProfile?.photoURL && (
+								{userProfile?.avatarUrl && (
 									<img
-										src={userProfile.photoURL}
+										src={userProfile.avatarUrl}
 										alt='Profile'
 										className='w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 rounded-full border-2 border-purple-400'
 									/>

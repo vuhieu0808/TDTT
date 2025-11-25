@@ -18,7 +18,7 @@ export interface UserProfile {
   photoGallery?: UserGallery[];
 
   status: "online" | "offline" | "working" | "break";
-  lastActivity: number;
+  lastActivity: string;
   
   location?: {
     lat: number; // vĩ độ
@@ -30,4 +30,19 @@ export interface UserProfile {
 
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Friend {
+  uid: string;
+  displayName: string;
+  avatarUrl?: string;
+  status: "online" | "offline" | "working" | "break";
+}
+
+export interface FriendRequest {
+  requestId: string;
+  fromUid: string;
+  toUid: string;
+  status: "pending" | "accepted" | "rejected";
+  createdAt: string;
 }
