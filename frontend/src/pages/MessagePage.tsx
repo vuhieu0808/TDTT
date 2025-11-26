@@ -230,7 +230,12 @@ function MessagePage() {
     // 1. Tin nhắn cuối cùng bị thay đổi (tức là có tin nhắn MỚI đến hoặc mình vừa gửi)
     // 2. HOẶC là lần đầu tiên load cuộc hội thoại (khi đó previousScrollHeightRef.current = 0)
     if (isLastMessageChanged && !isFetchingOldMessagesRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "end", 
+        });
+      }, 100); // Delay 100ms là đủ để React render layout
     }
   }, [currentMessages, activeConversationId]);
 
