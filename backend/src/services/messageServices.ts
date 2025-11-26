@@ -14,6 +14,7 @@ export const messageServices = {
       sender,
       content,
       attachments,
+      hasAttachments: attachments && attachments.length > 0,
       createdAt: admin.firestore.Timestamp.now(),
     };
     await messageRef.set(newMessage);

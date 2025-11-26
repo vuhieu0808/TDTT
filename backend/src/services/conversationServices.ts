@@ -72,13 +72,17 @@ export const conversationServices = {
       throw error;
     }
   },
-  async getMessages(conversationId: string, limit: number, cursor?: string) {
+
+  async getMessages(conversationId: string, limit: number, cursor?: string, onlyMedia?: boolean) {
     try {
       let query = db
         .collection("messages")
-        .where("conversationId", "==", conversationId)
-        .orderBy("createdAt", "desc");
-      if (cursor) {
+        .where("conversationId", "==", conversationId);
+      if (onlyMedia) {
+        query = query.where("hasAttachments", "==", true);
+      }
+      query = query.orderBy("createdAt", "desc");
+      if (cursor && cursor !== "null" && cursor !== "undefined") {
         const cursorDate = admin.firestore.Timestamp.fromDate(new Date(cursor));
         query = query.startAfter(cursorDate);
       }

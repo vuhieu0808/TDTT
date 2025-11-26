@@ -21,6 +21,7 @@ export interface Message {
   content: string;
 
   attachments?: Attachment[];
+  hasAttachments: boolean;
 
   isEdited?: boolean;
   editedAt?: FirebaseFirestore.Timestamp;

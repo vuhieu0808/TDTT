@@ -67,6 +67,7 @@ export interface Message {
 	conversationId: string; // ID của cuộc trò chuyện mà tin nhắn thuộc về
 	content: string | null; // Nội dung tin nhắn
 	attachments?: Attachment[]; // Các tệp đính kèm trong tin nhắn (nếu có)
+	hasAttachments: boolean; // Tin nhắn có tệp đính kèm hay không
 	createdAt?: string; // Thời gian tạo tin nhắn (dưới dạng timestamp)
 	isOwn?: boolean; // Tin nhắn có phải của người dùng hiện tại không
 	sender: SendUser; // Thông tin người gửi tin nhắn

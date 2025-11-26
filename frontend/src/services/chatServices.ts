@@ -16,10 +16,11 @@ export const chatServices = {
 
   async fetchMessages(
     conversationId: string,
-    cursor?: string
+    cursor?: string,
+    onlyMedia: boolean = false
   ): Promise<FetchMessagesResponse> {
     const res = await api.get(
-      `/conversations/${conversationId}/messages?limit=${pageLimit}&cursor=${cursor}`
+      `/conversations/${conversationId}/messages?limit=${pageLimit}&cursor=${cursor}&onlyMedia=${onlyMedia}`
     );
     return { messages: res.data.messages, cursor: res.data.nextCursor };
   },

@@ -22,7 +22,6 @@ import {
   TextSnippet,
 } from "@mui/icons-material";
 import { formatFileSize, isImageFile } from "@/lib/utils";
-import { all } from "axios";
 
 function getTimeSinceLastMessage(timestamp: any): string {
   if (!timestamp) return "";
@@ -66,6 +65,7 @@ function MessagePage() {
     sendMessage,
     markAsRead,
     loadingMessages,
+    fetchSharedMessages,
   } = useChatStore();
 
   const { onlineUsers } = useSocketStore();
@@ -78,10 +78,15 @@ function MessagePage() {
   const [conversationsList, setConversationsList] =
     useState<Conversation[]>(conversations);
   const [activeFilter, setActiveFilter] = useState<"all" | "unread">("all");
+
   const [detailView, setDetailView] = useState<"media" | "file">("media");
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [allMessages, setAllMessages] = useState<Message[]>([]);
-  const [loadingAllMessages, setLoadingAllMessages] = useState(false);
+  // const [allMessages, setAllMessages] = useState<Message[]>([]);
+  // const [loadingAllMessages, setLoadingAllMessages] = useState(false);
+  const [sharedMessages, setSharedMessages] = useState<Message[]>([]);
+  const [sharedCursor, setSharedCursor] = useState<string | null>(null);
+  const [loadingShared, setLoadingShared] = useState(false);
+  const [hasMoreShared, setHasMoreShared] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -182,6 +187,32 @@ function MessagePage() {
       isFetchingOldMessagesRef.current = false;
     }
   }, [currentMessages]); // Chạy mỗi khi list tin nhắn thay đổi
+  
+  useEffect(() => {
+    if (!currentMessages || currentMessages.length === 0) return;
+
+    // Lấy tin nhắn mới nhất trong khung chat (thường nằm cuối mảng currentMessages)
+    const newestMessage = currentMessages[currentMessages.length - 1];
+
+    // Kiểm tra xem tin nhắn mới nhất có file đính kèm không
+    if (newestMessage.attachments && newestMessage.attachments.length > 0) {
+      setSharedMessages((prev) => {
+        // 1. Kiểm tra trùng lặp: Nếu tin nhắn này đã có trong list rồi thì thôi
+        if (prev.some((msg) => msg.id === newestMessage.id)) {
+          return prev;
+        }
+
+        // 2. Format lại tin nhắn (để đảm bảo có field isOwn)
+        const processedMsg = {
+          ...newestMessage,
+          isOwn: newestMessage.sender?.uid === userProfile?.uid,
+        };
+
+        // 3. Thêm vào ĐẦU danh sách (vì danh sách này đang xếp Mới -> Cũ)
+        return [processedMsg, ...prev];
+      });
+    }
+  }, [currentMessages]); // Chạy mỗi khi khung chat chính có thay đổi
 
   // Scroll to last message sent
   useEffect(() => {
@@ -291,46 +322,65 @@ function MessagePage() {
     setActiveFilter("unread");
   };
 
-  const fetchAllMessages = async (conversationId: string) => {
-    if (!conversationId || !userProfile) return;
+  const loadMoreSharedMessages = async (isInitial = false) => {
+    if (!activeConversationId || !userProfile) return;
 
-    setLoadingAllMessages(true);
+    // Nếu đang load hoặc (không phải lần đầu VÀ đã hết dữ liệu) -> Dừng
+    if (loadingShared || (!isInitial && !hasMoreShared)) return;
 
+    setLoadingShared(true);
     try {
-      const allMsgs: Message[] = [];
-      let cursor: string | null = "";
+      const cursorToUse = isInitial ? null : sharedCursor;
 
-      while (true) {
-        const result = await chatServices.fetchMessages(conversationId, cursor);
+      // Gọi hàm fetch với onlyMedia=true (đã định nghĩa trong store)
+      const { messages: fetchedMsgs, cursor: nextCursor } =
+        await fetchSharedMessages(
+          activeConversationId,
+          cursorToUse ?? undefined
+        );
 
-        const processed = result.messages.map((msg) => ({
+      const processed = fetchedMsgs
+        .map((msg) => ({
           ...msg,
           isOwn: msg?.sender?.uid === userProfile.uid,
-        }));
+        }))
+        .reverse();
 
-        allMsgs.push(...processed);
+      // Cập nhật state
+      setSharedMessages((prev) =>
+        isInitial ? processed : [...prev, ...processed]
+      );
 
-        if (!result.cursor) {
-          break;
-        }
-
-        cursor = result.cursor;
-      }
-
-      setAllMessages(allMsgs);
+      setSharedCursor(nextCursor);
+      setHasMoreShared(!!nextCursor); // Nếu nextCursor === null nghĩa là hết data
     } catch (error) {
-      console.error("Error fetching all messages:", error);
-      setAllMessages([]);
+      console.error("Error loading shared messages:", error);
     } finally {
-      setLoadingAllMessages(false);
+      setLoadingShared(false);
     }
   };
 
+  // 2. Reset và load lần đầu khi mở Detail hoặc đổi Chat
   useEffect(() => {
     if (isDetailOpen && activeConversationId) {
-      fetchAllMessages(activeConversationId);
+      setSharedMessages([]);
+      setSharedCursor(null);
+      setHasMoreShared(true);
+      loadMoreSharedMessages(true); // Load trang đầu tiên
     }
-  }, [isDetailOpen, activeConversationId, conversations]);
+  }, [isDetailOpen, activeConversationId]);
+
+  const handleDetailScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (
+      scrollHeight - scrollTop - clientHeight <= 2 &&
+      hasMoreShared &&
+      !loadingShared
+    ) {
+      console.log("Load more shared messages triggered...");
+      loadMoreSharedMessages();
+    }
+  };
 
   return (
     <>
@@ -873,7 +923,10 @@ function MessagePage() {
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="space-y-4 overflow-y-auto flex-1 py-4">
+                <div
+                  className="space-y-4 overflow-y-auto flex-1 py-4"
+                  onScroll={handleDetailScroll}
+                >
                   {(() => {
                     const otherUser = activeConversation.participants.find(
                       (p) => p.uid !== userProfile?.uid
@@ -969,21 +1022,20 @@ function MessagePage() {
                         </div>
 
                         {/* Media/File Display Area */}
-                        <div className="py-4">
-                          {loadingAllMessages ? (
+                        <div className="py-4 overflow-y-auto flex-1 custom-scrollbar">
+                          {/* Loading State lần đầu */}
+                          {loadingShared && sharedMessages.length === 0 ? (
                             <div className="flex justify-center py-8">
                               <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
                             </div>
                           ) : detailView === "media" ? (
-                            // Media Grid - Display Images
+                            // --- MEDIA TAB ---
                             <div className="grid grid-cols-3 gap-2">
-                              {allMessages
-                                .filter(
-                                  (msg) =>
-                                    msg.attachments &&
-                                    msg.attachments.some((att) =>
-                                      isImageFile(att.originalName)
-                                    )
+                              {sharedMessages
+                                .filter((msg) =>
+                                  msg.attachments?.some((att) =>
+                                    isImageFile(att.originalName)
+                                  )
                                 )
                                 .flatMap(
                                   (msg) =>
@@ -994,7 +1046,7 @@ function MessagePage() {
                                 .map((attachment) => (
                                   <div
                                     key={attachment.id}
-                                    className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                                    className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity bg-gray-100"
                                     onClick={() =>
                                       window.open(attachment.urlView, "_blank")
                                     }
@@ -1002,41 +1054,38 @@ function MessagePage() {
                                     <img
                                       src={attachment.urlView}
                                       alt={attachment.originalName}
-                                      referrerPolicy="no-referrer"
+                                      loading="lazy"
                                       className="w-full h-full object-cover"
                                     />
                                   </div>
                                 ))}
-                              {allMessages.filter(
-                                (msg) =>
-                                  msg.attachments &&
-                                  msg.attachments.some((att) =>
-                                    isImageFile(att.originalName)
-                                  )
-                              ).length === 0 && (
-                                <div className="col-span-3 text-center py-8 text-gray-500">
-                                  <PhotoLibrary
-                                    sx={{
-                                      fontSize: "3rem",
-                                      opacity: 0.3,
-                                    }}
-                                  />
-                                  <p className="text-sm mt-2">
-                                    No media shared yet
-                                  </p>
-                                </div>
-                              )}
+
+                              {/* Empty State Media */}
+                              {!loadingShared &&
+                                sharedMessages.every(
+                                  (msg) =>
+                                    !msg.attachments?.some((att) =>
+                                      isImageFile(att.originalName)
+                                    )
+                                ) && (
+                                  <div className="col-span-3 text-center py-8 text-gray-500">
+                                    <PhotoLibrary
+                                      sx={{ fontSize: "3rem", opacity: 0.3 }}
+                                    />
+                                    <p className="text-sm mt-2">
+                                      No media shared
+                                    </p>
+                                  </div>
+                                )}
                             </div>
                           ) : (
-                            // File List - Display Documents
+                            // --- FILE TAB ---
                             <div className="space-y-2">
-                              {allMessages
-                                .filter(
-                                  (msg) =>
-                                    msg.attachments &&
-                                    msg.attachments.some(
-                                      (att) => !isImageFile(att.originalName)
-                                    )
+                              {sharedMessages
+                                .filter((msg) =>
+                                  msg.attachments?.some(
+                                    (att) => !isImageFile(att.originalName)
+                                  )
                                 )
                                 .flatMap(
                                   (msg) =>
@@ -1052,25 +1101,9 @@ function MessagePage() {
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
                                   >
-                                    {/* File Icon */}
                                     <div className="p-2 rounded-full bg-gray-100">
-                                      <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="w-6 h-6 text-gray-500"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                        />
-                                      </svg>
+                                      <TextSnippet className="w-6 h-6 text-gray-500" />
                                     </div>
-
-                                    {/* File Info */}
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium truncate text-gray-900">
                                         {attachment.originalName}
@@ -1081,25 +1114,31 @@ function MessagePage() {
                                     </div>
                                   </a>
                                 ))}
-                              {allMessages.filter(
-                                (msg) =>
-                                  msg.attachments &&
-                                  msg.attachments.some(
-                                    (att) => !isImageFile(att.originalName)
-                                  )
-                              ).length === 0 && (
-                                <div className="text-center py-8 text-gray-500">
-                                  <TextSnippet
-                                    sx={{
-                                      fontSize: "3rem",
-                                      opacity: 0.3,
-                                    }}
-                                  />
-                                  <p className="text-sm mt-2">
-                                    No files shared yet
-                                  </p>
-                                </div>
-                              )}
+
+                              {/* Empty State File */}
+                              {!loadingShared &&
+                                sharedMessages.every(
+                                  (msg) =>
+                                    !msg.attachments?.some(
+                                      (att) => !isImageFile(att.originalName)
+                                    )
+                                ) && (
+                                  <div className="text-center py-8 text-gray-500">
+                                    <TextSnippet
+                                      sx={{ fontSize: "3rem", opacity: 0.3 }}
+                                    />
+                                    <p className="text-sm mt-2">
+                                      No files shared
+                                    </p>
+                                  </div>
+                                )}
+                            </div>
+                          )}
+
+                          {/* Loading spinner ở đáy khi cuộn thêm */}
+                          {loadingShared && sharedMessages.length > 0 && (
+                            <div className="flex justify-center py-4 w-full">
+                              <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
                             </div>
                           )}
                         </div>

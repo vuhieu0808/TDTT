@@ -106,6 +106,17 @@ export const useChatStore = create<ChatState>()(
 				}
 			},
 
+			fetchSharedMessages: async (conversationId, cursor) => {
+				try {
+					const fetched = await chatServices.fetchMessages(conversationId, cursor, true);
+					const res = { messages: fetched.messages, cursor: fetched.cursor ?? null };
+					return res;
+				} catch (error) {
+					console.error("Failed to fetch shared messages:", error);
+					return { messages: [], cursor: null };
+				}
+			},
+
 			sendMessage: async (conversationId, content, attachments) => {
 				const { activeConversationId } = get();
 				const { userProfile } = useAuthStore.getState();
@@ -120,6 +131,7 @@ export const useChatStore = create<ChatState>()(
 					conversationId: convoId,
 					content: content,
 					attachments: [],
+					hasAttachments: false,
 					sender: {
 						uid: userProfile.uid,
 						displayName: userProfile.displayName,

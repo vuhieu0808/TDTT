@@ -51,11 +51,12 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
     const { conversationId } = req.params;
     const limit = Number(req.query.limit) || 50;
     const cursor = req.query.cursor as string;
+    const onlyMedia = req.query.onlyMedia === 'true';
     if (!conversationId) {
       return res.status(400).json({ error: "Missing conversation ID" });
     }
     const { messages: messagesFetched, nextCursor } =
-      await conversationServices.getMessages(conversationId, limit, cursor);
+      await conversationServices.getMessages(conversationId, limit, cursor, onlyMedia);
     const messages = messagesFetched.map((msg: Message) => ({
       ...msg,
       createdAt: msg.createdAt.toDate().toISOString(),
