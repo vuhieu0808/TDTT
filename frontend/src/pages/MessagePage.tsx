@@ -1,18 +1,28 @@
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useChatStore } from "@/stores/useChatStore";
 import type { Conversation, Message } from "@/types/chat";
+import { chatServices } from "@/services/chatServices";
 
 import { useEffect, useState, useRef, useLayoutEffect } from "react";
 
-import Navbar from "@/components/Navbar";
 import { useSocketStore } from "@/stores/useSocketStore";
+
+import Navbar from "@/components/Navbar";
 
 import Input from "@mui/joy/Input";
 import Button from "@mui/joy/Button";
-import IconButton from "@mui/joy/IconButton";
+import IconButton from "@mui/material/IconButton";
 
-import { Search, Info, Close, Circle } from "@mui/icons-material";
+import {
+	Search,
+	Info,
+	Close,
+	Circle,
+	PhotoLibrary,
+	TextSnippet,
+} from "@mui/icons-material";
 import { formatFileSize, isImageFile } from "@/lib/utils";
+import { all } from "axios";
 
 function getTimeSinceLastMessage(timestamp: any): string {
 	if (!timestamp) return "";
@@ -56,7 +66,6 @@ function MessagePage() {
 		sendMessage,
 		markAsRead,
 		loadingMessages,
-		updateConversation,
 	} = useChatStore();
 
 	const { onlineUsers } = useSocketStore();
@@ -69,8 +78,10 @@ function MessagePage() {
 	const [conversationsList, setConversationsList] =
 		useState<Conversation[]>(conversations);
 	const [activeFilter, setActiveFilter] = useState<"all" | "unread">("all");
+	const [detailView, setDetailView] = useState<"media" | "file">("media");
 	const [isDetailOpen, setIsDetailOpen] = useState(false);
-	const [isSeen, setIsSeen] = useState<boolean>(false);
+	const [allMessages, setAllMessages] = useState<Message[]>([]);
+	const [loadingAllMessages, setLoadingAllMessages] = useState(false);
 
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 	const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -281,6 +292,50 @@ function MessagePage() {
 		setActiveFilter("unread");
 	};
 
+	const fetchAllMessages = async (conversationId: string) => {
+		if (!conversationId || !userProfile) return;
+
+		setLoadingAllMessages(true);
+
+		try {
+			const allMsgs: Message[] = [];
+			let cursor: string | null = "";
+
+			while (true) {
+				const result = await chatServices.fetchMessages(
+					conversationId,
+					cursor
+				);
+
+				const processed = result.messages.map((msg) => ({
+					...msg,
+					isOwn: msg?.sender?.uid === userProfile.uid,
+				}));
+
+				allMsgs.push(...processed);
+
+				if (!result.cursor) {
+					break;
+				}
+
+				cursor = result.cursor;
+			}
+
+			setAllMessages(allMsgs);
+		} catch (error) {
+			console.error("Error fetching all messages:", error);
+			setAllMessages([]);
+		} finally {
+			setLoadingAllMessages(false);
+		}
+	};
+
+	useEffect(() => {
+		if (isDetailOpen && activeConversationId) {
+			fetchAllMessages(activeConversationId);
+		}
+	}, [isDetailOpen, activeConversationId, conversations]);
+
 	return (
 		<>
 			<Navbar />
@@ -321,6 +376,7 @@ function MessagePage() {
 
 					{/* Navigation Buttons */}
 					<div className='flex flex-row justify-center p-3 gap-5'>
+						{/* View All Conversations */}
 						<Button
 							onClick={handleAllClick}
 							variant='plain'
@@ -348,6 +404,8 @@ function MessagePage() {
 						>
 							All
 						</Button>
+
+						{/* View Unread Conversations */}
 						<Button
 							onClick={handleUnreadClick}
 							variant='plain'
@@ -594,7 +652,7 @@ function MessagePage() {
 														<div className='flex flex-col gap-2 mb-2'>
 															{message.attachments.map(
 																(att) => {
-																	// CASE 1: NẾU LÀ ẢNH
+																	// CASE 1: Image
 																	if (
 																		isImageFile(
 																			att.originalName
@@ -607,7 +665,7 @@ function MessagePage() {
 																				}
 																				className='relative group cursor-pointer'
 																			>
-																				{/* Bấm vào ảnh mở tab mới để xem full (Preview) */}
+																				{/* Click on image to open preview in new tab */}
 																				<img
 																					src={
 																						att.urlView
@@ -624,7 +682,7 @@ function MessagePage() {
 																					}
 																					className='rounded-lg max-w-full max-h-[300px] object-cover hover:opacity-90 transition-opacity'
 																				/>
-																				{/* Nút tải xuống nhỏ hiện khi hover vào ảnh (Tùy chọn) */}
+																				{/* Download button at the bottom right when hover above image */}
 																				<a
 																					href={
 																						att.urlDownload
@@ -637,7 +695,7 @@ function MessagePage() {
 																						e
 																					) =>
 																						e.stopPropagation()
-																					} // Ngăn click ảnh
+																					} // Prevent image clicking
 																				>
 																					<svg
 																						xmlns='http://www.w3.org/2000/svg'
@@ -660,7 +718,7 @@ function MessagePage() {
 																		);
 																	}
 
-																	// CASE 2: NẾU LÀ FILE KHÁC (PDF, DOC, ZIP...)
+																	// CASE 2: Other file types (PDF, DOC, ZIP...)
 																	return (
 																		<a
 																			key={
@@ -668,8 +726,8 @@ function MessagePage() {
 																			}
 																			href={
 																				att.urlDownload
-																			} // Link tải xuống trực tiếp
-																			target='_blank' // Mở tab mới để tải (tránh block luồng chat)
+																			} // Direct download link
+																			target='_blank' // Download in new tab (Prevent chat flow blocking)
 																			rel='noopener noreferrer'
 																			className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
 																				message.isOwn
@@ -796,7 +854,7 @@ function MessagePage() {
 
 							{/* Message Input */}
 							<div className='flex-shrink-0 bg-white border-t border-gray-200'>
-								{/* KHU VỰC PREVIEW FILE (Hiển thị khi có file được chọn) */}
+								{/* File Preview Area */}
 								{selectedFiles.length > 0 && (
 									<div className='flex gap-2 px-4 py-2 overflow-x-auto border-b border-gray-100 scrollbar-thin'>
 										{selectedFiles.map((file, index) => (
@@ -820,9 +878,9 @@ function MessagePage() {
 									</div>
 								)}
 
-								{/* KHU VỰC NHẬP LIỆU */}
+								{/* Message Input Area */}
 								<div className='p-4 flex gap-2 items-end'>
-									{/* Nút Ghim (Chọn file) */}
+									{/* File Choosing Button */}
 									<button
 										onClick={() =>
 											fileInputRef.current?.click()
@@ -855,8 +913,7 @@ function MessagePage() {
 										onChange={handleFileSelect}
 									/>
 
-									{/* Input Text */}
-									{/* Thay thế đoạn Input Text cũ bằng đoạn này */}
+									{/* Text Input Area */}
 									<textarea
 										ref={textareaRef}
 										value={messageText}
@@ -864,22 +921,22 @@ function MessagePage() {
 											setMessageText(e.target.value)
 										}
 										onKeyDown={(e) => {
-											// Logic: Nếu bấm Enter mà KHÔNG giữ Shift -> Gửi tin nhắn
+											// Logic: Press ENTER without SHIFT ==> Send Message
 											if (
 												e.key === "Enter" &&
 												!e.shiftKey
 											) {
-												e.preventDefault(); // Chặn xuống dòng mặc định
+												e.preventDefault(); // Prevent default line break
 												handleSendMessage();
 											}
-											// Nếu bấm Shift + Enter -> Để mặc định (sẽ xuống dòng)
+											// Prest SHIFT + ENTER to break to new line
 										}}
 										placeholder='Type a message...'
-										rows={1} // Mặc định hiển thị 1 dòng
+										rows={1} // Display 1 row by default
 										className='flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 resize-none overflow-y-auto min-h-[44px] max-h-[150px] no-scrollbar'
 									/>
 
-									{/* Nút Gửi */}
+									{/* Send Message Button */}
 									<button
 										onClick={handleSendMessage}
 										disabled={
@@ -912,14 +969,14 @@ function MessagePage() {
 					)}
 				</div>
 
-				{/* Right Side - Chat's Detail */}
+				{/* Right Side - Chat's Detail Tab */}
 				{isDetailOpen && (
 					<div className='border-l border-gray-200 bg-white overflow-hidden'>
 						{activeConversation ? (
-							<div className='flex flex-col h-full px-5'>
+							<div className='flex flex-col h-full px-3'>
 								{/* Header with Close Button */}
 								<div className='flex justify-between items-center py-4 border-b border-gray-200'>
-									<h1 className='text-xl font-bold'>
+									<h1 className='font-bold !text-4xl'>
 										Chat Details
 									</h1>
 									<IconButton
@@ -939,7 +996,9 @@ function MessagePage() {
 											);
 										return (
 											<>
+												{/* Other User's Details */}
 												<div className='text-center'>
+													{/* Avatar Image */}
 													<img
 														src={
 															otherUser?.avatarUrl ||
@@ -951,12 +1010,15 @@ function MessagePage() {
 														}
 														className='w-24 h-24 rounded-full mx-auto mb-2'
 													/>
+													{/* Display Name */}
 													<p className='font-semibold text-lg'>
 														{otherUser?.displayName ||
 															"Unknown"}
 													</p>
 												</div>
-												<div className='border-t pt-4'>
+
+												{/* Chat Information */}
+												<div className='border-t py-5'>
 													<p className='text-sm font-semibold mb-2'>
 														About
 													</p>
@@ -966,6 +1028,287 @@ function MessagePage() {
 															activeConversation.createdAt
 														).toLocaleDateString()}
 													</p>
+												</div>
+
+												{/* Navigation Buttons */}
+												<div className='flex flex-row border-b border-gray-200'>
+													{/* Media Button */}
+													<Button
+														onClick={() =>
+															setDetailView(
+																"media"
+															)
+														}
+														variant='plain'
+														sx={{
+															fontWeight:
+																detailView ===
+																"media"
+																	? "bold"
+																	: "semibold",
+															color: "black",
+															width: "100%",
+															textAlign: "center",
+															padding: "12px 0",
+															justifyContent:
+																"center",
+															borderBottom:
+																detailView ===
+																"media"
+																	? "3px solid #a855f7"
+																	: "3px solid transparent",
+															borderRadius: 0,
+															"&:hover": {
+																backgroundColor:
+																	"#f3f4f6",
+															},
+														}}
+													>
+														<PhotoLibrary
+															sx={{
+																marginRight:
+																	"5px",
+															}}
+														/>
+														Media
+													</Button>
+
+													{/* File Button */}
+													<Button
+														onClick={() =>
+															setDetailView(
+																"file"
+															)
+														}
+														variant='plain'
+														sx={{
+															fontWeight:
+																detailView ===
+																"file"
+																	? "bold"
+																	: "semibold",
+															color: "black",
+															width: "100%",
+															textAlign: "center",
+															padding: "12px 0",
+															justifyContent:
+																"center",
+															borderBottom:
+																detailView ===
+																"file"
+																	? "3px solid #a855f7"
+																	: "3px solid transparent",
+															borderRadius: 0,
+															"&:hover": {
+																backgroundColor:
+																	"#f3f4f6",
+															},
+														}}
+													>
+														<TextSnippet
+															sx={{
+																marginRight:
+																	"5px",
+															}}
+														/>
+														File
+													</Button>
+												</div>
+
+												{/* Media/File Display Area */}
+												<div className='py-4'>
+													{loadingAllMessages ? (
+														<div className='flex justify-center py-8'>
+															<div className='w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin'></div>
+														</div>
+													) : detailView ===
+													  "media" ? (
+														// Media Grid - Display Images
+														<div className='grid grid-cols-3 gap-2'>
+															{allMessages
+																.filter(
+																	(msg) =>
+																		msg.attachments &&
+																		msg.attachments.some(
+																			(
+																				att
+																			) =>
+																				isImageFile(
+																					att.originalName
+																				)
+																		)
+																)
+																.flatMap(
+																	(msg) =>
+																		msg.attachments?.filter(
+																			(
+																				att
+																			) =>
+																				isImageFile(
+																					att.originalName
+																				)
+																		) || []
+																)
+																.map(
+																	(
+																		attachment
+																	) => (
+																		<div
+																			key={
+																				attachment.id
+																			}
+																			className='aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity'
+																			onClick={() =>
+																				window.open(
+																					attachment.urlView,
+																					"_blank"
+																				)
+																			}
+																		>
+																			<img
+																				src={
+																					attachment.urlView
+																				}
+																				alt={
+																					attachment.originalName
+																				}
+																				referrerPolicy='no-referrer'
+																				className='w-full h-full object-cover'
+																			/>
+																		</div>
+																	)
+																)}
+															{allMessages.filter(
+																(msg) =>
+																	msg.attachments &&
+																	msg.attachments.some(
+																		(att) =>
+																			isImageFile(
+																				att.originalName
+																			)
+																	)
+															).length === 0 && (
+																<div className='col-span-3 text-center py-8 text-gray-500'>
+																	<PhotoLibrary
+																		sx={{
+																			fontSize:
+																				"3rem",
+																			opacity: 0.3,
+																		}}
+																	/>
+																	<p className='text-sm mt-2'>
+																		No media
+																		shared
+																		yet
+																	</p>
+																</div>
+															)}
+														</div>
+													) : (
+														// File List - Display Documents
+														<div className='space-y-2'>
+															{allMessages
+																.filter(
+																	(msg) =>
+																		msg.attachments &&
+																		msg.attachments.some(
+																			(
+																				att
+																			) =>
+																				!isImageFile(
+																					att.originalName
+																				)
+																		)
+																)
+																.flatMap(
+																	(msg) =>
+																		msg.attachments?.filter(
+																			(
+																				att
+																			) =>
+																				!isImageFile(
+																					att.originalName
+																				)
+																		) || []
+																)
+																.map(
+																	(
+																		attachment
+																	) => (
+																		<a
+																			key={
+																				attachment.id
+																			}
+																			href={
+																				attachment.urlDownload
+																			}
+																			target='_blank'
+																			rel='noopener noreferrer'
+																			className='flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors'
+																		>
+																			{/* File Icon */}
+																			<div className='p-2 rounded-full bg-gray-100'>
+																				<svg
+																					xmlns='http://www.w3.org/2000/svg'
+																					className='w-6 h-6 text-gray-500'
+																					fill='none'
+																					viewBox='0 0 24 24'
+																					stroke='currentColor'
+																				>
+																					<path
+																						strokeLinecap='round'
+																						strokeLinejoin='round'
+																						strokeWidth={
+																							2
+																						}
+																						d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+																					/>
+																				</svg>
+																			</div>
+
+																			{/* File Info */}
+																			<div className='flex-1 min-w-0'>
+																				<p className='text-sm font-medium truncate text-gray-900'>
+																					{
+																						attachment.originalName
+																					}
+																				</p>
+																				<p className='text-xs text-gray-500'>
+																					{formatFileSize(
+																						attachment.size
+																					)}
+																				</p>
+																			</div>
+																		</a>
+																	)
+																)}
+															{allMessages.filter(
+																(msg) =>
+																	msg.attachments &&
+																	msg.attachments.some(
+																		(att) =>
+																			!isImageFile(
+																				att.originalName
+																			)
+																	)
+															).length === 0 && (
+																<div className='text-center py-8 text-gray-500'>
+																	<TextSnippet
+																		sx={{
+																			fontSize:
+																				"3rem",
+																			opacity: 0.3,
+																		}}
+																	/>
+																	<p className='text-sm mt-2'>
+																		No files
+																		shared
+																		yet
+																	</p>
+																</div>
+															)}
+														</div>
+													)}
 												</div>
 											</>
 										);
