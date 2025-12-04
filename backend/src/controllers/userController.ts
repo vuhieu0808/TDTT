@@ -45,8 +45,8 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
     if (!uid) {
       return res.status(401).json({ error: "Unauthorized. No token provided" });
     }
-    const { displayName, bio, gender, dateOfBirth, interests, job } = req.body;
-    if (!displayName || !bio || !gender || !dateOfBirth || !interests || !job) {
+    const { displayName, bio, dateOfBirth } = req.body;
+    if (!displayName || !bio || !dateOfBirth) {
       return res.status(400).json({ error: "Missing required fields" });
     }
     const userDataRef = await db.collection("users").doc(uid).get();
@@ -58,10 +58,7 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
       ...currentData,
       displayName,
       bio,
-      gender,
       dateOfBirth,
-      interests,
-      job,
       updatedAt: admin.firestore.Timestamp.now(),
     };
     await db.collection("users").doc(uid).set(currentData);
