@@ -11,6 +11,7 @@ import {
 	Phone,
 	Schedule,
 	Map,
+	AttachMoney,
 } from "@mui/icons-material";
 import { Input, Card, Chip, Tabs, TabList, Tab, TabPanel } from "@mui/joy";
 
@@ -23,6 +24,7 @@ interface Cafe {
 	rating: number;
 	reviews: number;
 	phone: string;
+	price: string;
 	hours: string;
 	description: string;
 	amenities: string[];
@@ -276,6 +278,21 @@ function VenuesFindingPage() {
 																}
 															</span>
 														</div>
+													</div>
+
+													<div className='flex items-center'>
+														<h3 className='text-sm font-semibold text-gray-900 mb-2'>
+															Price
+														</h3>
+														<span className='flex items-center'>
+															<AttachMoney
+																sx={{
+																	fontSize:
+																		"1rem",
+																}}
+															/>
+															{selectedCafe.price}
+														</span>
 													</div>
 
 													<div>
