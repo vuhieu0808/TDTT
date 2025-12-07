@@ -1,10 +1,10 @@
-import { db, rtdb } from "../config/firebase.js";
+import { db } from "../config/firebase.js";
 import { admin } from "../config/firebase.js";
 import { Conversation, SeenUser } from "../models/Conversation.js";
 import { conversationDB, userDB } from "../models/db.js";
 import { Message } from "../models/Message.js";
 import { io } from "../socket/index.js";
-import { emitMarkAsRead } from "../utils/conversationHelper.js";
+import { emitMarkAsRead, emitNewConversation } from "../utils/conversationHelper.js";
 
 export const conversationServices = {
   async createConversation(participantIds: string[], type: "direct" | "group") {
@@ -47,6 +47,7 @@ export const conversationServices = {
         updatedAt: now,
       };
       await conversationRef.set(newConversation);
+      await emitNewConversation(io, newConversation);
       return newConversation;
     } catch (error) {
       console.error("Error creating conversation:", error);

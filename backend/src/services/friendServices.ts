@@ -80,7 +80,7 @@ export const friendServices = {
     const [userA, userB] = [userId, receiverId].sort();
     const friendShipId = `${userA}_${userB}`;
     const cooldownRef = cooldownDB.doc(friendShipId);
-    // Tôi muốn set cooldownTime ban đầu là 1 (2^1 = 2 days), sau đó thì bắt đầu tăng dần cooldownTime khi có các lần unmatch tiếp theo, max là 5 (2^5 = 32 days)
+    // set cooldownTime ban đầu là 1 (2^1 = 2 days), sau đó thì bắt đầu tăng dần cooldownTime khi có các lần unmatch tiếp theo, max là 5 (2^5 = 32 days)
     const cooldownDoc = await cooldownRef.get();
     let cooldownTimes = 1;
     if (cooldownDoc.exists) {

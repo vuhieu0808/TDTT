@@ -55,6 +55,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       useChatStore.getState().updateConversation(updatedConversation);
     });
 
+    // mark as read
     socket.on("mark-as-read", ({ conversationId, seenBy, unreadCount }) => {
       const updatedConversation = {
         id: conversationId,
@@ -62,6 +63,11 @@ export const useSocketStore = create<SocketState>((set, get) => ({
         unreadCount,
       };
       useChatStore.getState().updateConversation(updatedConversation);
+    });
+
+    // new conversation
+    socket.on("new-conversation", (conversation) => {
+      useChatStore.getState().addConversation(conversation);
     });
   },
   disconnectSocket: () => {

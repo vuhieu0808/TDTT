@@ -22,14 +22,16 @@ io.on("connection", async (socket) => {
   console.log(`${user.uid} connected with socket ID: ${socket.id}`);
 
   onlineUsers.set(user.uid, socket.id);
-  
+
   io.emit("online-users", Array.from(onlineUsers.keys()));
+
+  socket.join(user.uid); // join room cá nhân
 
   const conversations = await conversationServices.getConversations(user.uid);
   const conversationIds = conversations.map((conv) => conv.id);
   conversationIds.forEach((id) => {
     socket.join(id);
-  })
+  });
 
   // disconnect
   socket.on("disconnect", () => {

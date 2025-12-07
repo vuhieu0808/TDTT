@@ -51,6 +51,7 @@ export interface ChatState {
   updateConversation: (
     conversation: Partial<Conversation> & { id: string }
   ) => void; // Hàm cập nhật cuộc trò chuyện trong danh sách
+  addConversation: (conversation: Conversation) => void; // Hàm thêm cuộc trò chuyện mới vào danh sách
 }
 
 export interface SocketState {
