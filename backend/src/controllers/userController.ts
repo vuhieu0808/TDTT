@@ -1,8 +1,9 @@
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
-import { admin, db, rtdb } from "../config/firebase.js";
+import { admin } from "../config/firebase.js";
 import { User } from "../models/User.js";
 import { getLinkFileFromUser } from "../utils/userHelper.js";
+import { userDB } from "../models/db.js";
 
 export const fetchMe = async (req: AuthRequest, res: Response) => {
   try {
@@ -11,7 +12,7 @@ export const fetchMe = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: "Unauthorized. No token provided" });
     }
     const { uid } = dataUser;
-    const userDataDoc = db.collection("users").doc(uid);
+    const userDataDoc = userDB.doc(uid);
     const userDataRef = await userDataDoc.get();
     if (!userDataRef.exists) {
       return res.status(404).json({ error: "User not found" });
@@ -49,7 +50,7 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
     if (!displayName || !bio || !dateOfBirth) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-    const userDataRef = await db.collection("users").doc(uid).get();
+    const userDataRef = await userDB.doc(uid).get();
     if (!userDataRef.exists) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -61,7 +62,7 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
       dateOfBirth,
       updatedAt: admin.firestore.Timestamp.now(),
     };
-    await db.collection("users").doc(uid).set(currentData);
+    await userDB.doc(uid).set(currentData);
     const updatedUserData = {
       ...currentData,
       updatedAt: currentData.updatedAt.toDate().toISOString(),

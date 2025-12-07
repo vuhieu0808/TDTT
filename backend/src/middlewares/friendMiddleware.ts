@@ -3,6 +3,7 @@ import { AuthRequest } from "./authMiddleware.js";
 import admin from "firebase-admin";
 import { db, rtdb } from "../config/firebase.js";
 import { Conversation } from "../models/Conversation.js";
+import { conversationDB } from "../models/db.js";
 
 export const checkFriendShip = async (
   req: AuthRequest,
@@ -51,7 +52,7 @@ export const verifyUserInConversation = async (
     if (!conversationId) {
       return res.status(400).json({ message: "Missing conversationId" });
     }
-    const conversationDoc = await db.collection("conversations").doc(conversationId).get();
+    const conversationDoc = await conversationDB.doc(conversationId).get();
     if (!conversationDoc.exists) {
       return res.status(404).json({ message: "Conversation not found" });
     }

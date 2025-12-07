@@ -1,6 +1,7 @@
 import { db, rtdb } from "../config/firebase.js";
 import { admin } from "../config/firebase.js";
 import { Conversation, SeenUser } from "../models/Conversation.js";
+import { conversationDB, userDB } from "../models/db.js";
 import { Message } from "../models/Message.js";
 import { io } from "../socket/index.js";
 import { emitMarkAsRead } from "../utils/conversationHelper.js";
@@ -9,10 +10,10 @@ export const conversationServices = {
   async createConversation(participantIds: string[], type: "direct" | "group") {
     try {
       const now = admin.firestore.Timestamp.now();
-      const conversationRef = db.collection("conversations").doc();
+      const conversationRef = conversationDB.doc();
       // Lấy avatarUrl và displayName của các participantIds
       const participantDataPromises = participantIds.map(async (uid) => {
-        const userDoc = await db.collection("users").doc(uid).get();
+        const userDoc = await userDB.doc(uid).get();
         if (!userDoc.exists) {
           throw new Error(`User with ID ${uid} does not exist`);
         }

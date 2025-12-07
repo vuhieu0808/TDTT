@@ -7,6 +7,7 @@ import { Readable } from "stream";
 import { getLinkFileFromUser } from "../utils/userHelper.js";
 import { db } from "../config/firebase.js";
 import { User } from "../models/User.js";
+import { userDB } from "../models/db.js";
 
 export const sendMessage = async (req: AuthRequest, res: Response) => {
   try {
@@ -21,7 +22,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "Message must have content or attachments" });
     }
     
-    const senderDoc = (await db.collection("users").doc(senderId).get()).data() as User;
+    const senderDoc = (await userDB.doc(senderId).get()).data() as User;
     const sender: SendUser = {
       uid: senderId,
       displayName: senderDoc.displayName || "Unknown",

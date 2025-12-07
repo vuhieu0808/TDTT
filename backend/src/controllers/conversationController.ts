@@ -5,6 +5,7 @@ import { Message } from "../models/Message.js";
 import { Conversation, SeenUser } from "../models/Conversation.js";
 import { db } from "../config/firebase.js";
 import { User } from "../models/User.js";
+import { userDB } from "../models/db.js";
 
 export const getConversations = async (req: AuthRequest, res: Response) => {
   try {
@@ -80,7 +81,7 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
     if (!conversationId) {
       return res.status(400).json({ error: "Missing conversation ID" });
     }
-    const senderDoc = (await db.collection("users").doc(userId).get()).data() as User;
+    const senderDoc = (await userDB.doc(userId).get()).data() as User;
     const seenUser: SeenUser = {
       uid: userId,
       displayName: senderDoc.displayName || "Unknown",

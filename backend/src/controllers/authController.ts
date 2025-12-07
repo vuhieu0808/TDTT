@@ -1,9 +1,9 @@
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
-import { db } from "../config/firebase.js";
 import { User } from "../models/User.js";
 import { Timestamp } from "firebase-admin/firestore";
 import { getLinkFileFromUser } from "../utils/userHelper.js";
+import { userDB } from "../models/db.js";
 
 export const testEndpoint = async (req: AuthRequest, res: Response) => {
   const token = req.headers.authorization?.split(" ")[1];
@@ -21,7 +21,7 @@ export const checkUserExistence = async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const userRef = db.collection("users").doc(uid);
+    const userRef = userDB.doc(uid);
     const userSnapshot = await userRef.get();
     if (userSnapshot.exists) {
       return res.status(200).json({ exists: true });
@@ -59,7 +59,7 @@ export const createUser = async (req: AuthRequest, res: Response) => {
       updatedAt: now,
     };
 
-    const userRef = db.collection("users").doc(uid);
+    const userRef = userDB.doc(uid);
 
     const userDoc = await userRef.get();
     if (userDoc.exists) {

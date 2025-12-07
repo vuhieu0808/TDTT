@@ -1,4 +1,5 @@
 import { db, rtdb } from "../config/firebase.js";
+import { userDB } from "../models/db.js";
 
 export const getDetailsForUserIds = async (userIds: string[]) => {
   // Lấy id, displayName, avatarUrl của bạn bè
@@ -10,7 +11,7 @@ export const getDetailsForUserIds = async (userIds: string[]) => {
 
   const userSnapshots = await Promise.all(
     chunks.map((chunk) =>
-      db.collection("users").where("uid", "in", chunk).get()
+      userDB.where("uid", "in", chunk).get()
     )
   );
 

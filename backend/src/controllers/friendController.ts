@@ -1,12 +1,8 @@
 import { Response } from "express";
-import { db } from "../config/firebase.js";
-import { admin } from "../config/firebase.js";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
-import { FriendRequest } from "../models/FriendRequest.js";
-import { Friend } from "../models/Friend.js";
 import { getDetailsForUserIds } from "../utils/friendHelper.js";
-import { conversationServices } from "../services/conversationServices.js";
 import { friendServices } from "../services/friendServices.js";
+import { friendRequestDB, userDB } from "../models/db.js";
 
 export const getFriendRequests = async (req: AuthRequest, res: Response) => {
   try {
@@ -17,8 +13,8 @@ export const getFriendRequests = async (req: AuthRequest, res: Response) => {
 
     // Lấy tất cả yêu cầu gửi và nhận của userId
     const [sentRequestsSnapshot, receivedRequestsSnapshot] = await Promise.all([
-      db.collection("friendRequests").where("senderId", "==", userId).get(),
-      db.collection("friendRequests").where("receivedId", "==", userId).get(),
+      friendRequestDB.where("senderId", "==", userId).get(),
+      friendRequestDB.where("receivedId", "==", userId).get(),
     ]);
     const sendRequestIds = sentRequestsSnapshot.docs.map((doc) => {
       const requestData = doc.data();
@@ -40,7 +36,7 @@ export const getFriendRequests = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const sendMatch = async (req: AuthRequest, res: Response) => {
+export const swipeRight = async (req: AuthRequest, res: Response) => {
   try {
     const { receiverId } = req.body;
     const senderId = req.user?.uid;
@@ -52,12 +48,12 @@ export const sendMatch = async (req: AuthRequest, res: Response) => {
         .status(400)
         .json({ error: "Cannot send match request to yourself" });
     }
-    const targetUserDoc = await db.collection("users").doc(receiverId).get();
+    const targetUserDoc = await userDB.doc(receiverId).get();
     if (!targetUserDoc.exists) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const result = await friendServices.sendMatch(senderId, receiverId);
+    const result = await friendServices.swipeRight(senderId, receiverId);
     switch (result.type) {
       case "already_friends":
         return res.status(400).json({ error: "You are already friends" });
@@ -84,6 +80,25 @@ export const sendMatch = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const swipeLeft = async (req: AuthRequest, res: Response) => {
+  try {
+    const { receiverId } = req.body;
+    const senderId = req.user?.uid;
+    if (!senderId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const result = await friendServices.swipeLeft(senderId, receiverId);
+    if (result) {
+      return res.status(200).json({ message: "Swipe left successful" });
+    } else {
+      return res.status(400).json({ error: "Swipe left failed" });
+    }
+  } catch (error) {
+    console.error("Error swiping left:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
 export const getMatches = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.uid;
@@ -109,7 +124,7 @@ export const unmatch = async (req: AuthRequest, res: Response) => {
     if (!success) {
       return res.status(400).json({ error: "You are not friends" });
     }
-    return res.status(200).json({ message: "Unmatched successfully" });
+    return res.status(200).json({ message: "Unmatched successfully and cooldown applied" });
   } catch (error) {
     console.error("Error unmatching user:", error);
     return res.status(500).json({ error: "Internal server error" });

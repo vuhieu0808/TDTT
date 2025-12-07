@@ -1,15 +1,27 @@
 import { admin, db } from "../config/firebase.js";
+import { Cooldown } from "../models/Cooldown.js";
+import { cooldownDB, friendDB, friendRequestDB } from "../models/db.js";
 import { Friend } from "../models/Friend.js";
 import { getDetailsForUserIds } from "../utils/friendHelper.js";
 import { conversationServices } from "./conversationServices.js";
 
 export const friendServices = {
-  sendMatch: async (senderId: string, receiverId: string) => {
+  swipeRight: async (senderId: string, receiverId: string) => {
     const [userA, userB] = [senderId, receiverId].sort();
     const friendShipId = `${userA}_${userB}`;
+
+    const cooldownDoc = await cooldownDB.doc(friendShipId).get();
+    if (cooldownDoc.exists) {
+      const cooldownData = cooldownDoc.data() as Cooldown;
+      const now = admin.firestore.Timestamp.now();
+      if (cooldownData.expiresAt.toMillis() > now.toMillis()) {
+        return { type: "on_cooldown" };
+      }
+    }
+
     const [existingFriendship, myExistingSending, reverseSending] =
       await Promise.all([
-        db.collection("friends").doc(friendShipId).get(),
+        friendDB.doc(friendShipId).get(),
         db
           .collection("friendRequests")
           .where("senderId", "==", senderId)
@@ -36,7 +48,7 @@ export const friendServices = {
       };
 
       await db.runTransaction(async (transaction) => {
-        const friendRef = db.collection("friends").doc(friendShipId);
+        const friendRef = friendDB.doc(friendShipId);
         transaction.set(friendRef, friendData);
 
         if (!reverseSending.empty) {
@@ -52,7 +64,7 @@ export const friendServices = {
       return { type: "MATCHED", data: friendData };
     }
 
-    const friendRequestRef = db.collection("friendRequests").doc();
+    const friendRequestRef = friendRequestDB.doc();
 
     const friendRequest = {
       id: friendRequestRef.id,
@@ -64,10 +76,47 @@ export const friendServices = {
     return { type: "request_sent", data: friendRequest };
   },
 
+  swipeLeft: async (userId: string, receiverId: string) => {
+    const [userA, userB] = [userId, receiverId].sort();
+    const friendShipId = `${userA}_${userB}`;
+    const cooldownRef = cooldownDB.doc(friendShipId);
+    // Tôi muốn set cooldownTime ban đầu là 1 (2^1 = 2 days), sau đó thì bắt đầu tăng dần cooldownTime khi có các lần unmatch tiếp theo, max là 5 (2^5 = 32 days)
+    const cooldownDoc = await cooldownRef.get();
+    let cooldownTimes = 1;
+    if (cooldownDoc.exists) {
+      const cooldownData = cooldownDoc.data() as Cooldown;
+      cooldownTimes = Math.min(cooldownData.cooldownTime + 1, 5);
+    }
+    const expiresAt = admin.firestore.Timestamp.fromMillis(
+      Date.now() + Math.pow(2, cooldownTimes) * 24 * 60 * 60 * 1000
+    );
+    
+    await db.runTransaction(async (transaction) => {
+      const friendRequstSnapshot = await transaction.get(
+        friendRequestDB
+          .where("senderId", "==", receiverId)
+          .where("receivedId", "==", userId)
+      );
+      if (!friendRequstSnapshot.empty) {
+        friendRequstSnapshot.docs.forEach((doc) => {
+          transaction.delete(doc.ref);
+        });
+      }
+      transaction.set(cooldownRef, {
+        id: friendShipId,
+        userA,
+        userB,
+        cooldownTime: cooldownTimes,
+        expiresAt,
+      });
+    });
+    return true;
+  },
+
   getAllMatches: async (userId: string) => {
     const [friendsAsUserASnapshot, friendsAsUserBSnapshot] = await Promise.all([
-      db.collection("friends").where("userA", "==", userId).get(),
-      db.collection("friends").where("userB", "==", userId).get(),
+      friendDB.where("userA", "==", userId).get(),
+      friendDB.where("userB", "==", userId).get(),
     ]);
 
     const allFriendsDocs = [
@@ -83,14 +132,33 @@ export const friendServices = {
     return await getDetailsForUserIds(matchedUserIds);
   },
 
-  unmatchUser: async (userId: string, unmatchUserId: string) => {
+  unmatchUser: async (userId: string, unmatchUserId: string) => { // xoá bạn bè
     const [userA, userB] = [userId, unmatchUserId].sort();
     const friendShipId = `${userA}_${userB}`;
-    const friendRef = db.collection("friends").doc(friendShipId);
+    const friendRef = friendDB.doc(friendShipId);
     const friendDoc = await friendRef.get();
 
     if (!friendDoc.exists) return false;
-    await friendRef.delete();
+    const cooldownRef = cooldownDB.doc(friendShipId);
+    const cooldownDoc = await cooldownRef.get();
+    let cooldownTimes = 1;
+    if (cooldownDoc.exists) {
+      const cooldownData = cooldownDoc.data() as Cooldown;
+      cooldownTimes = Math.min(cooldownData.cooldownTime + 1, 5);
+    }
+    const expiresAt = admin.firestore.Timestamp.fromMillis(
+      Date.now() + Math.pow(2, cooldownTimes) * 24 * 60 * 60 * 1000
+    );
+    await db.runTransaction(async (transaction) => {
+      transaction.delete(friendRef);
+      transaction.set(cooldownRef, {
+        id: friendShipId,
+        userA,
+        userB,
+        cooldownTime: cooldownTimes,
+        expiresAt,
+      });
+    });
     return true;
   }
 };
