@@ -9,6 +9,7 @@
         "reviews": 328,
         "phone": "+84 28 3827 1234",
         "hours": "7:00 AM - 10:00 PM",
+        "price": "30,000 - 80,000 VND",
         "description": "Modern cafe with cozy atmosphere, perfect for work sessions and casual dates. Features spacious seating and excellent coffee selection.",
         "amenities": [
             "WiFi",
@@ -29,6 +30,7 @@
         "reviews": 245,
         "phone": "+84 28 3822 5678",
         "hours": "6:30 AM - 11:00 PM",
+        "price": "35,000 - 90,000 VND",
         "description": "Popular Vietnamese coffee chain with reliable service. Great ambiance for productive work and meetings.",
         "amenities": [
             "WiFi",
@@ -49,6 +51,7 @@
         "reviews": 512,
         "phone": "+84 28 3824 9012",
         "hours": "7:00 AM - 11:00 PM",
+        "price": "60,000 - 150,000 VND",
         "description": "Premium Starbucks Reserve location with elegant interior. Perfect for important meetings or romantic coffee dates.",
         "amenities": [
             "WiFi",
@@ -70,6 +73,7 @@
         "reviews": 421,
         "phone": "+84 28 3930 3456",
         "hours": "6:30 AM - 10:30 PM",
+        "price": "40,000 - 95,000 VND",
         "description": "Vietnamese tea and coffee specialist. Spacious and quiet, ideal for focused work sessions.",
         "amenities": [
             "WiFi",
@@ -91,6 +95,7 @@
         "reviews": 298,
         "phone": "+84 28 3837 7890",
         "hours": "7:00 AM - 10:00 PM",
+        "price": "35,000 - 85,000 VND",
         "description": "Iconic Vietnamese coffee brand with rich flavors. Great for coffee enthusiasts and productive work.",
         "amenities": [
             "WiFi",
@@ -111,6 +116,7 @@
         "reviews": 634,
         "phone": "+84 28 3824 1234",
         "hours": "8:00 AM - 9:00 PM",
+        "price": "50,000 - 120,000 VND",
         "description": "Trendy industrial-style cafe with boutique. Perfect blend of work space and shopping experience.",
         "amenities": [
             "WiFi",
@@ -132,6 +138,7 @@
         "reviews": 387,
         "phone": "+84 28 3825 5678",
         "hours": "7:30 AM - 10:00 PM",
+        "price": "45,000 - 100,000 VND",
         "description": "Hidden gem with peaceful garden setting. Excellent for intimate conversations and focused work.",
         "amenities": [
             "WiFi",
@@ -153,6 +160,7 @@
         "reviews": 721,
         "phone": "+84 28 3821 9012",
         "hours": "7:00 AM - 10:30 PM",
+        "price": "55,000 - 130,000 VND",
         "description": "Specialty coffee roaster with minimalist design. Perfect for coffee lovers and creative work sessions.",
         "amenities": [
             "WiFi",
@@ -174,6 +182,7 @@
         "reviews": 892,
         "phone": "+84 28 3836 3456",
         "hours": "7:00 AM - 11:00 PM",
+        "price": "30,000 - 75,000 VND",
         "description": "Vintage Vietnamese cafe with nostalgic communist-era decor. Unique atmosphere for casual work and dates.",
         "amenities": [
             "WiFi",
@@ -195,6 +204,7 @@
         "reviews": 456,
         "phone": "+84 28 3930 7890",
         "hours": "7:00 AM - 10:00 PM",
+        "price": "60,000 - 140,000 VND",
         "description": "Modern co-working cafe with premium coffee. Designed specifically for productive work sessions.",
         "amenities": [
             "WiFi",
@@ -216,6 +226,7 @@
         "reviews": 289,
         "phone": "+84 24 3942 1234",
         "hours": "7:00 AM - 10:00 PM",
+        "price": "28,000 - 75,000 VND",
         "description": "Popular chain in Hanoi's Old Quarter. Great location for exploring the city while working remotely.",
         "amenities": [
             "WiFi",
@@ -236,6 +247,7 @@
         "reviews": 567,
         "phone": "+84 24 3928 5678",
         "hours": "6:30 AM - 11:00 PM",
+        "price": "32,000 - 80,000 VND",
         "description": "Iconic location overlooking Hoan Kiem Lake. Perfect for morning work sessions with scenic views.",
         "amenities": [
             "WiFi",
@@ -257,6 +269,7 @@
         "reviews": 723,
         "phone": "+84 24 3719 9012",
         "hours": "6:00 AM - 10:00 PM",
+        "price": "50,000 - 140,000 VND",
         "description": "Western-style bakery cafe with excellent pastries. Popular expat hangout with reliable WiFi.",
         "amenities": [
             "WiFi",
@@ -278,6 +291,7 @@
         "reviews": 312,
         "phone": "+84 236 3888 1234",
         "hours": "7:00 AM - 10:30 PM",
+        "price": "30,000 - 85,000 VND",
         "description": "Beachside location with ocean breeze. Ideal for relaxed work sessions near the beach.",
         "amenities": [
             "WiFi",
@@ -299,6 +313,7 @@
         "reviews": 267,
         "phone": "+84 258 3524 5678",
         "hours": "6:30 AM - 11:00 PM",
+        "price": "32,000 - 90,000 VND",
         "description": "Coastal city cafe with fresh sea breeze. Perfect for combining work with beach vacation.",
         "amenities": [
             "WiFi",
@@ -320,6 +335,7 @@
         "reviews": 198,
         "phone": "+84 234 3888 9012",
         "hours": "7:00 AM - 10:00 PM",
+        "price": "35,000 - 88,000 VND",
         "description": "Traditional city atmosphere with modern amenities. Great for cultural exploration and work.",
         "amenities": [
             "WiFi",
@@ -341,6 +357,7 @@
         "reviews": 156,
         "phone": "+84 292 3812 3456",
         "hours": "6:30 AM - 10:00 PM",
+        "price": "25,000 - 70,000 VND",
         "description": "Mekong Delta coffee experience. Unique riverside setting for peaceful work sessions.",
         "amenities": [
             "WiFi",
@@ -362,6 +379,7 @@
         "reviews": 223,
         "phone": "+84 256 3846 7890",
         "hours": "7:00 AM - 10:30 PM",
+        "price": "28,000 - 78,000 VND",
         "description": "Coastal gem with stunning beach views. Perfect escape for remote work by the sea.",
         "amenities": [
             "WiFi",
@@ -383,6 +401,7 @@
         "reviews": 289,
         "phone": "+84 254 3856 1234",
         "hours": "6:30 AM - 11:00 PM",
+        "price": "30,000 - 85,000 VND",
         "description": "Weekend getaway cafe near the beach. Great for combining leisure and productivity.",
         "amenities": [
             "WiFi",
@@ -404,6 +423,7 @@
         "reviews": 445,
         "phone": "+84 263 3555 5678",
         "hours": "7:00 AM - 10:00 PM",
+        "price": "35,000 - 95,000 VND",
         "description": "Mountain city cafe with cool climate. Perfect for long work sessions in refreshing highland air.",
         "amenities": [
             "WiFi",

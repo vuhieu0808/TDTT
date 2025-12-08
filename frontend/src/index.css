@@ -9,15 +9,90 @@
 	text-rendering: optimizeLegibility;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
-}
 
-a {
-	font-weight: 500;
-	color: #646cff;
-	text-decoration: inherit;
-}
-a:hover {
-	color: #535bf2;
+	/* === PRIMARY COLORS === */
+	--color-primary: #a855f7; /* Purple 500 */
+	--color-primary-light: #c084fc; /* Purple 400 */
+	--color-primary-lighter: #e9d5ff; /* Purple 200 */
+	--color-primary-lightest: #f3e8ff; /* Purple 100 */
+	--color-primary-dark: #9333ea; /* Purple 600 */
+	--color-primary-darker: #7e22ce; /* Purple 700 */
+
+	/* === SECONDARY COLORS === */
+	--color-secondary: #ec4899; /* Pink 500 */
+	--color-secondary-light: #f9a8d4; /* Pink 300 */
+	--color-secondary-dark: #db2777; /* Pink 600 */
+
+	/* === ACCENT COLORS === */
+	--color-accent-brown: #a52a2a; /* Brown */
+	--color-accent-orange: #f97316; /* Orange 500 */
+	--color-accent-blue: #3b82f6; /* Blue 500 */
+	--color-accent-indigo: #6366f1; /* Indigo 500 */
+
+	/* === SUCCESS/ONLINE === */
+	--color-success: #10b981; /* Green 500 */
+	--color-success-light: #34d399; /* Green 400 */
+	--color-success-dark: #059669; /* Green 600 */
+
+	/* === ERROR/DANGER === */
+	--color-error: #dc2626; /* Red 600 */
+	--color-error-light: #ef4444; /* Red 500 */
+	--color-error-lighter: #fef2f2; /* Red 50 */
+
+	/* === WARNING === */
+	--color-warning: #f59e0b; /* Amber 500 */
+	--color-warning-light: #fbbf24; /* Amber 400 */
+
+	/* === NEUTRAL COLORS === */
+	--color-white: #ffffff;
+	--color-black: #000000;
+	--color-gray-50: #f9fafb;
+	--color-gray-100: #f3f4f6;
+	--color-gray-200: #e5e7eb;
+	--color-gray-300: #d1d5db;
+	--color-gray-400: #9ca3af;
+	--color-gray-500: #6b7280;
+	--color-gray-600: #4b5563;
+	--color-gray-700: #374151;
+	--color-gray-800: #1f2937;
+	--color-gray-900: #111827;
+
+	/* === BACKGROUND COLORS === */
+	--bg-primary: #faf8ff; /* Light purple background */
+	--bg-secondary: #ffffff;
+	--bg-chat-own: #a855f7; /* Purple 500 for own messages */
+	--bg-chat-other: #f3f4f6; /* Gray 100 for other messages */
+	--bg-hover: #f3f4f6; /* Gray 100 */
+	--bg-active: #e9d5ff; /* Purple 200 */
+
+	/* === TEXT COLORS === */
+	--text-primary: #111827; /* Gray 900 */
+	--text-secondary: #6b7280; /* Gray 500 */
+	--text-tertiary: #9ca3af; /* Gray 400 */
+	--text-white: #ffffff;
+	--text-error: #dc2626;
+	--text-success: #10b981;
+
+	/* === BORDER COLORS === */
+	--border-primary: #e5e7eb; /* Gray 200 */
+	--border-secondary: #d1d5db; /* Gray 300 */
+	--border-active: #a855f7; /* Purple 500 */
+	--border-focus: #a855f7; /* Purple 500 */
+
+	/* === SHADOW COLORS === */
+	--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+	--shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+	--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+	--shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+
+	/* === GRADIENT COLORS === */
+	--gradient-purple-pink: linear-gradient(to right, #a855f7, #ec4899);
+	--gradient-purple: linear-gradient(to right, #9333ea, #a855f7);
+
+	/* === OPACITY VALUES === */
+	--opacity-disabled: 0.5;
+	--opacity-hover: 0.8;
+	--opacity-active: 0.9;
 }
 
 body {
@@ -25,23 +100,12 @@ body {
 	padding: 0;
 	min-width: 320px;
 	min-height: 100vh;
-	background-color: #faf8ff;
+	background-color: var(--bg-primary);
 }
 
 h1 {
 	font-size: 3.2em;
 	line-height: 1.1;
-}
-
-button {
-	border-radius: 8px;
-	border: 1px solid transparent;
-	padding: 0.6em 1.2em;
-	font-size: 1em;
-	font-weight: 500;
-	font-family: inherit;
-	cursor: pointer;
-	transition: border-color 0.25s;
 }
 
 /* Ẩn thanh cuộn nhưng vẫn cho phép cuộn */
@@ -59,4 +123,45 @@ button {
 
 .MuiTooltip-tooltip {
 	transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out !important;
+}
+
+/* === UTILITY CLASSES === */
+.text-primary {
+	color: var(--color-primary);
+}
+
+.text-secondary {
+	color: var(--color-secondary);
+}
+
+.text-success {
+	color: var(--color-success);
+}
+
+.text-error {
+	color: var(--color-error);
+}
+
+.bg-primary {
+	background-color: var(--color-primary);
+}
+
+.bg-secondary {
+	background-color: var(--color-secondary);
+}
+
+.border-primary {
+	border-color: var(--border-primary);
+}
+
+.border-active {
+	border-color: var(--border-active);
+}
+
+.gradient-purple-pink {
+	background: var(--gradient-purple-pink);
+}
+
+.gradient-purple {
+	background: var(--gradient-purple);
 }

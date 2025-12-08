@@ -8,6 +8,7 @@ import SchedulePage from "./pages/SchedulePage";
 import VenuesFindingPage from "./pages/VenuesFindingPage";
 import PreferencePage from "./pages/PreferencePage";
 import MessagePage from "./pages/MessagePage";
+import MatchingPage from "./pages/MatchingPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import { useAuthStore } from "./stores/useAuthStore";
 import { useSocketStore } from "./stores/useSocketStore";
@@ -48,6 +49,10 @@ function App() {
 						<Route
 							path='/PreferencePage'
 							element={<PreferencePage />}
+						/>
+						<Route
+							path='/MatchingPage'
+							element={<MatchingPage />}
 						/>
 						<Route path='/MessagePage' element={<MessagePage />} />
 					</Route>
