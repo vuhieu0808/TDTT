@@ -42,8 +42,7 @@ const HomePage = () => {
 				<div className='max-w-7xl mx-auto px-6 py-12'>
 					<div className='text-center mb-12'>
 						<h2 className='text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 flex items-center justify-center gap-3'>
-							Welcome back,{" "}
-							{userProfile?.displayName?.split(" ")[0]}!
+							Welcome back, {userProfile?.displayName}!
 							<WavingHand
 								sx={{
 									color: "#ec4899",
