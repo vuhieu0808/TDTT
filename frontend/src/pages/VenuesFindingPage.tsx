@@ -280,11 +280,11 @@ function VenuesFindingPage() {
 														</div>
 													</div>
 
-													<div className='flex items-center'>
+													<div className=''>
 														<h3 className='text-sm font-semibold text-gray-900 mb-2'>
 															Price
 														</h3>
-														<span className='flex items-center'>
+														<span className=''>
 															<AttachMoney
 																sx={{
 																	fontSize:

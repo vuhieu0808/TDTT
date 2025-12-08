@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useNavigate } from "react-router";
 
+import { toast, Toaster } from "sonner";
+
 import Layout from "@/components/Layout";
 import Button from "@mui/joy/Button";
 import Input from "@mui/joy/Input";
@@ -141,10 +143,10 @@ function PreferencePage() {
 			console.log("Saving preferences:", preferences);
 			await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
 			// Show success message
-			alert("Preferences saved successfully!");
+			toast.success("Preferences saved successfully!");
 		} catch (error) {
-			console.error("Failed to save preferences:", error);
-			alert("Failed to save preferences. Please try again.");
+			console.log("Failed to save preferences:", error);
+			toast.error("Failed to save preferences. Please try again.");
 		} finally {
 			setIsSaving(false);
 		}
