@@ -189,8 +189,9 @@ function Navbar() {
 
 									{/* Menu Items */}
 									<div className='py-2'>
+										{/* User Profile Button */}
 										<Link
-											to='/profile'
+											to='/ProfilePage'
 											onClick={() =>
 												setUserMenuOpen(false)
 											}
@@ -207,8 +208,9 @@ function Navbar() {
 											</span>
 										</Link>
 
+										{/* Settings Button */}
 										<Link
-											to='/settings'
+											to='/SettingsPage'
 											onClick={() =>
 												setUserMenuOpen(false)
 											}
