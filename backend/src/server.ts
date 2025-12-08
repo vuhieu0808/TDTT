@@ -3,6 +3,7 @@ import { app, io, server } from "./socket/index.js";
 import express from "express";
 import "./config/firebase.js";
 import "./config/ggdrive.js";
+import "./services/matchingServices.js";
 import cors from "cors";
 import authRouter from "./routes/authRoute.js";
 import { authMiddleware } from "./middlewares/authMiddleware.js";
@@ -10,6 +11,7 @@ import userRouter from "./routes/userRoute.js";
 import conversationRoute from "./routes/conversationsRoute.js";
 import friendRoute from "./routes/friendRoute.js";
 import messageRouter from "./routes/messageRoute.js";
+import matchingRouter from "./routes/matchingRoute.js";
 
 const PORT = process.env.PORT || 5000;
 
@@ -26,6 +28,7 @@ app.use("/api/users", userRouter);
 app.use("/api/friends", friendRoute);
 app.use("/api/messages", messageRouter);
 app.use("/api/conversations", conversationRoute);
+app.use("/api/matching", matchingRouter);
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

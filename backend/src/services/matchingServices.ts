@@ -1,9 +1,11 @@
 import { pipeline } from "@xenova/transformers";
 import { User } from "../models/User.js";
-import { admin } from "../config/firebase.js";
+import { friendDB, userDB, cooldownDB } from "../models/db.js";
+import { Friend } from "../models/Friend.js";
+import { Cooldown } from "../models/Cooldown.js";
 
 export interface MatchScore {
-  uid: string;
+  user: User;
   totalScore: number;
   compatibility: string; // "Excellent" | "Good" | "Fair" | "Poor"
   breakdown: {
@@ -18,7 +20,7 @@ export interface MatchScore {
   };
 }
 
-export class MatchingSystem {
+class MatchingSystem {
   private embeddingModel: Awaited<ReturnType<typeof pipeline>> | null = null;
   private embeddingCache: Map<string, number[]> = new Map();
 
@@ -123,7 +125,7 @@ export class MatchingSystem {
     return "Poor";
   }
 
-  // public method
+  // public methods
 
   async calculateMatchScore(userA: User, userB: User): Promise<MatchScore> {
     await this.initialize();
@@ -154,7 +156,7 @@ export class MatchingSystem {
     const score = Math.round(totalScore * 100);
 
     return {
-      uid: userB.uid,
+      user: userB,
       totalScore: score,
       compatibility: this.getCompatibilityLabel(score),
       breakdown,
@@ -173,7 +175,7 @@ export class MatchingSystem {
     );
 
     return scores
-      .filter((s) => s.totalScore >= 50) // Chỉ lấy Fair trở lên
+      // .filter((s) => s.totalScore >= 50) // Chỉ lấy Fair trở lên
       .sort((a, b) => b.totalScore - a.totalScore)
       .slice(0, limit);
   }
@@ -396,69 +398,121 @@ export class MatchingSystem {
   }
 }
 
-async function testMatchingSystem() {
-  const matcher = new MatchingSystem();
-  await matcher.initialize();
-  // tính thời gian từ đây đến khi xong
-  const startTime = Date.now();
-  const userA: User = {
-    uid: "userA",
-    displayName: "User A",
-    email: "userA@example.com",
-    status: "online",
-    lastActivity: admin.firestore.Timestamp.now(),
-    createdAt: admin.firestore.Timestamp.now(),
-    updatedAt: admin.firestore.Timestamp.now(),
-    //
-    age: 25,
-    agePreference: { min: 22, max: 30 },
-    interests: ["hiking", "reading", "coding"],
-    availability: new Array(168).fill(0).map((_, i) => {
-      const day = Math.floor(i / 24);
-      const hour = i % 24;
-      // Available Mon-Fri 9am-5pm
-      return day < 5 && hour >= 9 && hour < 17 ? 1 : 0;
-    }),
-    occupation: "Software Engineer",
-    occupationDescription: "Works on web applications",
-    workDateRatio: 70,
-    location: { lat: 37.7749, lng: -122.4194 },
-    maxDistanceKm: 20,
-    workVibe: "deep-work",
-    sessionGoals: { workMinutes: 90, breakMinutes: 15, chatDesire: "medium" },
-  };
+// async function testMatchingSystem() {
+//   const matcher = new MatchingSystem();
+//   await matcher.initialize();
+//   // tính thời gian từ đây đến khi xong
+//   const startTime = Date.now();
+//   const userA: User = {
+//     uid: "userA",
+//     displayName: "User A",
+//     email: "userA@example.com",
+//     status: "online",
+//     lastActivity: admin.firestore.Timestamp.now(),
+//     createdAt: admin.firestore.Timestamp.now(),
+//     updatedAt: admin.firestore.Timestamp.now(),
+//     //
+//     age: 25,
+//     agePreference: { min: 22, max: 30 },
+//     interests: ["hiking", "reading", "coding"],
+//     availability: new Array(168).fill(0).map((_, i) => {
+//       const day = Math.floor(i / 24);
+//       const hour = i % 24;
+//       // Available Mon-Fri 9am-5pm
+//       return day < 5 && hour >= 9 && hour < 17 ? 1 : 0;
+//     }),
+//     occupation: "Software Engineer",
+//     occupationDescription: "Works on web applications",
+//     workDateRatio: 70,
+//     location: { lat: 37.7749, lng: -122.4194 },
+//     maxDistanceKm: 20,
+//     workVibe: "deep-work",
+//     sessionGoals: { workMinutes: 90, breakMinutes: 15, chatDesire: "medium" },
+//   };
 
-  const userB: User = {
-    uid: "userB",
-    displayName: "User B",
-    email: "userB@example.com",
-    status: "online",
-    lastActivity: admin.firestore.Timestamp.now(),
-    createdAt: admin.firestore.Timestamp.now(),
-    updatedAt: admin.firestore.Timestamp.now(),
-    //
-    age: 27,
-    agePreference: { min: 24, max: 32 },
-    interests: ["coding", "gaming", "traveling"],
-    availability: new Array(168).fill(0).map((_, i) => {
-      const day = Math.floor(i / 24);
-      const hour = i % 24;
-      // Available Mon-Fri 10am-6pm
-      return day < 5 && hour >= 10 && hour < 18 ? 1 : 0;
-    }),
-    occupation: "Backend Developer",
-    occupationDescription: "Builds server-side applications",
-    workDateRatio: 65,
-    location: { lat: 37.8044, lng: -122.2711 },
-    maxDistanceKm: 30,
-    workVibe: "deep-work",
-    sessionGoals: { workMinutes: 80, breakMinutes: 20, chatDesire: "high" },
-  };
-  const matchScore = await matcher.calculateMatchScore(userA, userB);
-  console.log("Match Score between User A and User B:", matchScore);
-  const endTime = Date.now();
-  console.log(`Time taken: ${(endTime - startTime) / 1000} seconds`);
-}
+//   const userB: User = {
+//     uid: "userB",
+//     displayName: "User B",
+//     email: "userB@example.com",
+//     status: "online",
+//     lastActivity: admin.firestore.Timestamp.now(),
+//     createdAt: admin.firestore.Timestamp.now(),
+//     updatedAt: admin.firestore.Timestamp.now(),
+//     //
+//     age: 27,
+//     agePreference: { min: 24, max: 32 },
+//     interests: ["coding", "gaming", "traveling"],
+//     availability: new Array(168).fill(0).map((_, i) => {
+//       const day = Math.floor(i / 24);
+//       const hour = i % 24;
+//       // Available Mon-Fri 10am-6pm
+//       return day < 5 && hour >= 10 && hour < 18 ? 1 : 0;
+//     }),
+//     occupation: "Backend Developer",
+//     occupationDescription: "Builds server-side applications",
+//     workDateRatio: 65,
+//     location: { lat: 37.8044, lng: -122.2711 },
+//     maxDistanceKm: 30,
+//     workVibe: "deep-work",
+//     sessionGoals: { workMinutes: 80, breakMinutes: 20, chatDesire: "high" },
+//   };
+//   // let users: User[] = [];
+//   // for (let i = 0; i < 100; i++) {
+//   //   users.push({ ...userB, uid: `userB_${i}` });
+//   // }
+//   // await matcher.calculateMatchScore(userA, userB);
+//   const matchScore = await matcher.calculateMatchScore(userA, userB);
+//   console.log("Match Score between User A and User B:", matchScore);
+//   // const matchScores = await matcher.findMatches(userA, users, 20);
+//   // console.log("Top Match Scores:", matchScores);
+//   const endTime = Date.now();
+//   console.log(`Time taken: ${(endTime - startTime) / 1000} seconds`);
+// }
+// await testMatchingSystem();
 
+const matchingSystem = new MatchingSystem();
+await matchingSystem.initialize();
 
-await testMatchingSystem();
+export const getCandidateUsers = async (user: User): Promise<User[]> => {
+  try {
+    const userSnapshot = await userDB.get();
+    let candidates: User[] = [];
+    const [friendA, friendB] = await Promise.all([
+      friendDB.where("userA", "==", user.uid).get(),
+      friendDB.where("userB", "==", user.uid).get(),
+    ]);
+    const [cooldownA, cooldownB] = await Promise.all([
+      cooldownDB.where("userA", "==", user.uid).get(),
+      cooldownDB.where("userB", "==", user.uid).get(),
+    ]);
+    const friendIds: string[] = [...friendA.docs, ...friendB.docs].map(
+      (doc) => {
+        const data = doc.data() as Friend;
+        return data.userA === user.uid ? data.userB : data.userA;
+      }
+    );
+    const cooldown: Cooldown[] = [...cooldownA.docs, ...cooldownB.docs].map(
+      (doc) => {
+        return doc.data() as Cooldown;
+      }
+    );
+    userSnapshot.docs.forEach((doc) => {
+      const candidate = doc.data() as User;
+      if (candidate.uid === user.uid) return;
+      if (friendIds.includes(candidate.uid)) return;
+      const cd = cooldown.find(
+        (c) =>
+          (c.userA === user.uid && c.userB === candidate.uid) ||
+          (c.userB === user.uid && c.userA === candidate.uid)
+      );
+      if (cd && cd.expiresAt.toMillis() > Date.now()) return;
+      candidates.push(candidate);
+    });
+    return candidates;
+  } catch (error) {
+    console.error("Error fetching candidate users:", error);
+    return [];
+  }
+};
+
+export { matchingSystem };

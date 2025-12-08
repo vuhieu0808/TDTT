@@ -1,7 +1,8 @@
 import type { User as FirebaseuserProfile } from "firebase/auth";
 import type { UserProfile } from "../types/user";
-import type { Attachment, Conversation, Message } from "./chat";
+import type { Conversation, Message } from "./chat";
 import type { Socket } from "node_modules/socket.io-client/build/esm/socket";
+import type { MatchScore } from "./match";
 
 export interface AuthState {
   authUser: FirebaseuserProfile | null; // Người dùng hiện tại hoặc null nếu chưa đăng nhập (dùng cho đăng nhập)
@@ -59,4 +60,11 @@ export interface SocketState {
   onlineUsers: string[]; // Danh sách người dùng đang trực tuyến
   connectSocket: () => void; // Hàm kết nối socket.io
   disconnectSocket: () => void; // Hàm ngắt kết nối socket.io
+}
+
+export interface MatchingState {
+  matches: MatchScore[]; // Danh sách người dùng được đề xuất để kết nối
+  loadingMatches: boolean; // Trạng thái tải danh sách kết nối
+
+  fetchMatches: (limit?: number) => Promise<void>; // Hàm lấy danh sách kết nối
 }
