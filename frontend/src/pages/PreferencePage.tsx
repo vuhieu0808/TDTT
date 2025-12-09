@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useNavigate } from "react-router";
 
 import { toast, Toaster } from "sonner";
+import { userServices } from "@/services/userServices";
 
 import Layout from "@/components/Layout";
 import Button from "@mui/joy/Button";
@@ -19,38 +20,55 @@ import {
 	Save,
 	Tune,
 } from "@mui/icons-material";
-import IconButton from "@mui/joy/IconButton";
 
 type WorkingMode = "quiet" | "creative" | "deep" | "balanced" | "custom";
 
 interface UserPreferences {
 	interests: string[];
-	workHours: number;
-	chatHours: number;
+	workRatio: number; // 0-100 percentage
 	chatExpectation: number; // 0-100 scale
 	workingMode: WorkingMode;
 }
 
 interface WorkingModePreset {
-	workHours: number;
-	chatHours: number;
+	workRatio: number; // percentage
 	chatExpectation: number;
 }
 
 function PreferencePage() {
-	const { userProfile } = useAuthStore();
+	const { userProfile, updateUserProfile } = useAuthStore();
 	const navigate = useNavigate();
 
 	const [newInterest, setNewInterest] = useState("");
 	const [preferences, setPreferences] = useState<UserPreferences>({
 		interests: [],
-		workHours: 2,
-		chatHours: 1,
+		workRatio: 60,
 		chatExpectation: 50,
 		workingMode: "balanced",
 	});
 
 	const [isSaving, setIsSaving] = useState(false);
+	const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+	// Load preferences from userProfile on mount (only once)
+	useEffect(() => {
+		if (userProfile && isInitialLoad) {
+			setPreferences({
+				interests: userProfile.interests || [],
+				workRatio: userProfile.workDateRatio ?? 60,
+				chatExpectation: 50,
+				workingMode:
+					userProfile.workVibe?.type === "quiet-focus"
+						? "quiet"
+						: userProfile.workVibe?.type === "creative-chat"
+						? "creative"
+						: userProfile.workVibe?.type === "deep-work"
+						? "deep"
+						: "balanced",
+			});
+			setIsInitialLoad(false);
+		}
+	}, [userProfile, isInitialLoad]);
 
 	// Define presets for each working mode
 	const workingModePresets: Record<
@@ -58,36 +76,30 @@ function PreferencePage() {
 		WorkingModePreset
 	> = {
 		quiet: {
-			workHours: 4,
-			chatHours: 0.5,
+			workRatio: 90, // 90% work, 10% chat
 			chatExpectation: 10,
 		},
 		creative: {
-			workHours: 2,
-			chatHours: 2,
+			workRatio: 50, // 50% work, 50% chat
 			chatExpectation: 80,
 		},
 		deep: {
-			workHours: 3,
-			chatHours: 0.75,
+			workRatio: 80, // 80% work, 20% chat
 			chatExpectation: 25,
 		},
 		balanced: {
-			workHours: 2.5,
-			chatHours: 1.5,
+			workRatio: 60, // 60% work, 40% chat
 			chatExpectation: 50,
 		},
 	};
 
 	const checkIfCustom = (
-		workHours: number,
-		chatHours: number,
+		workRatio: number,
 		chatExpectation: number
 	): WorkingMode => {
 		for (const [mode, preset] of Object.entries(workingModePresets)) {
 			if (
-				preset.workHours === workHours &&
-				preset.chatHours === chatHours &&
+				preset.workRatio === workRatio &&
 				preset.chatExpectation === chatExpectation
 			) {
 				return mode as Exclude<WorkingMode, "custom">;
@@ -106,8 +118,7 @@ function PreferencePage() {
 			const preset = workingModePresets[mode];
 			setPreferences({
 				...preferences,
-				workHours: preset.workHours,
-				chatHours: preset.chatHours,
+				workRatio: preset.workRatio,
 				chatExpectation: preset.chatExpectation,
 				workingMode: mode,
 			});
@@ -115,7 +126,7 @@ function PreferencePage() {
 	};
 
 	const handleWorkSessionChange = (
-		field: "workHours" | "chatHours" | "chatExpectation",
+		field: "workRatio" | "chatExpectation",
 		value: number
 	) => {
 		const newPreferences = {
@@ -125,8 +136,7 @@ function PreferencePage() {
 
 		// Check if the new settings match a preset
 		const detectedMode = checkIfCustom(
-			field === "workHours" ? value : preferences.workHours,
-			field === "chatHours" ? value : preferences.chatHours,
+			field === "workRatio" ? value : preferences.workRatio,
 			field === "chatExpectation" ? value : preferences.chatExpectation
 		);
 
@@ -139,13 +149,46 @@ function PreferencePage() {
 	const handleSavePreferences = async () => {
 		setIsSaving(true);
 		try {
-			// TODO: Save preferences to backend
-			console.log("Saving preferences:", preferences);
-			await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
+			if (!userProfile) {
+				toast.error("User profile not found");
+				return;
+			}
+
+			// Map working mode to workVibe
+			const workVibe:
+				| "quiet-focus"
+				| "creative-chat"
+				| "deep-work"
+				| "balanced" =
+				preferences.workingMode === "quiet"
+					? "quiet-focus"
+					: preferences.workingMode === "creative"
+					? "creative-chat"
+					: preferences.workingMode === "deep"
+					? "deep-work"
+					: "balanced";
+
+			// Save preferences to backend
+			const response = await userServices.updateMe({
+				...userProfile,
+				interests: preferences.interests,
+				workDateRatio: preferences.workRatio,
+				workVibe: {
+					type: workVibe,
+					workChatRatio: preferences.workRatio,
+					interactionLevel: preferences.chatExpectation,
+				},
+			});
+
+			// Update the auth store with the returned data
+			if (response?.data) {
+				updateUserProfile(response.data);
+			}
+
 			// Show success message
 			toast.success("Preferences saved successfully!");
 		} catch (error) {
-			console.log("Failed to save preferences:", error);
+			console.error("Failed to save preferences:", error);
 			toast.error("Failed to save preferences. Please try again.");
 		} finally {
 			setIsSaving(false);
@@ -279,39 +322,6 @@ function PreferencePage() {
 								preferences.interests.map((interest, index) => (
 									<Chip
 										key={index}
-										endDecorator={
-											<IconButton
-												size='sm'
-												variant='plain'
-												onClick={(e) => {
-													e.stopPropagation();
-													handleRemoveInterest(
-														interest
-													);
-												}}
-												sx={{
-													minHeight: "unset",
-													minWidth: "unset",
-													padding: 0,
-													marginLeft: "4px",
-													"--IconButton-size": "20px",
-													"&:hover": {
-														backgroundColor:
-															"transparent",
-													},
-												}}
-											>
-												<Close
-													sx={{
-														fontSize: "1rem",
-														cursor: "pointer",
-														"&:hover": {
-															color: "#dc2626",
-														},
-													}}
-												/>
-											</IconButton>
-										}
 										sx={{
 											backgroundColor: "#f3e8ff",
 											color: "#7e22ce",
@@ -322,6 +332,20 @@ function PreferencePage() {
 										}}
 									>
 										{interest}
+										<Close
+											onClick={(e) => {
+												e.stopPropagation();
+												e.preventDefault();
+												handleRemoveInterest(interest);
+											}}
+											sx={{
+												fontSize: "1rem",
+												cursor: "pointer",
+												"&:hover": {
+													color: "#dc2626",
+												},
+											}}
+										/>
 									</Chip>
 								))
 							) : (
@@ -337,10 +361,11 @@ function PreferencePage() {
 					<div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-200'>
 						<h2 className='text-xl font-bold text-gray-800 mb-4 flex items-center gap-2'>
 							<span className='w-2 h-2 rounded-full bg-indigo-500'></span>
-							Working Mode
+							Working Mode Presets
 						</h2>
 						<p className='text-sm text-gray-600 mb-6'>
-							Choose your preferred work-date style
+							Choose a preset or customize your own work-date
+							style
 						</p>
 
 						<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
@@ -406,80 +431,54 @@ function PreferencePage() {
 						</p>
 
 						<div className='space-y-6'>
-							{/* Work Hours */}
+							{/* Work/Chat Ratio */}
 							<div>
 								<div className='flex justify-between items-center mb-3'>
 									<label className='text-sm font-semibold text-gray-700'>
-										Work Duration
+										Work / Chat Ratio
 									</label>
-									<span className='text-lg font-bold text-purple-600'>
-										{preferences.workHours}{" "}
-										{preferences.workHours === 1
-											? "hour"
-											: "hours"}
-									</span>
+									<div className='flex items-center gap-3'>
+										<span className='text-lg font-bold text-purple-600'>
+											{preferences.workRatio}%
+										</span>
+										<span className='text-gray-400'>/</span>
+										<span className='text-lg font-bold text-pink-600'>
+											{100 - preferences.workRatio}%
+										</span>
+									</div>
 								</div>
 								<Slider
-									value={preferences.workHours}
+									value={preferences.workRatio}
 									onChange={(_, value) =>
 										handleWorkSessionChange(
-											"workHours",
+											"workRatio",
 											value as number
 										)
 									}
-									min={0.5}
-									max={8}
-									step={0.5}
+									min={0}
+									max={100}
+									step={5}
 									marks={[
-										{ value: 0.5, label: "30m" },
-										{ value: 2, label: "2h" },
-										{ value: 4, label: "4h" },
-										{ value: 6, label: "6h" },
-										{ value: 8, label: "8h" },
+										{ value: 0, label: "0%" },
+										{ value: 25, label: "25%" },
+										{ value: 50, label: "50%" },
+										{ value: 75, label: "75%" },
+										{ value: 100, label: "100%" },
 									]}
 									sx={{
-										"--Slider-trackBackground": "#a855f7",
+										"--Slider-trackBackground":
+											"linear-gradient(to right, #a855f7, #ec4899)",
 										"--Slider-thumbBackground": "#a855f7",
 									}}
 								/>
-							</div>
-
-							{/* Chat Hours */}
-							<div>
-								<div className='flex justify-between items-center mb-3'>
-									<label className='text-sm font-semibold text-gray-700'>
-										Chat/Break Duration
-									</label>
-									<span className='text-lg font-bold text-pink-600'>
-										{preferences.chatHours}{" "}
-										{preferences.chatHours === 1
-											? "hour"
-											: "hours"}
-									</span>
+								<div className='flex justify-between mt-2'>
+									<p className='text-xs text-purple-600 font-medium'>
+										Work: {preferences.workRatio}%
+									</p>
+									<p className='text-xs text-pink-600 font-medium'>
+										Chat: {100 - preferences.workRatio}%
+									</p>
 								</div>
-								<Slider
-									value={preferences.chatHours}
-									onChange={(_, value) =>
-										handleWorkSessionChange(
-											"chatHours",
-											value as number
-										)
-									}
-									min={0.25}
-									max={4}
-									step={0.25}
-									marks={[
-										{ value: 0.25, label: "15m" },
-										{ value: 1, label: "1h" },
-										{ value: 2, label: "2h" },
-										{ value: 3, label: "3h" },
-										{ value: 4, label: "4h" },
-									]}
-									sx={{
-										"--Slider-trackBackground": "#ec4899",
-										"--Slider-thumbBackground": "#ec4899",
-									}}
-								/>
 							</div>
 
 							{/* Chat Expectation */}

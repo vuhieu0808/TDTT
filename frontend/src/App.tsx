@@ -10,9 +10,11 @@ import PreferencePage from "./pages/PreferencePage";
 import MessagePage from "./pages/MessagePage";
 import MatchingPage from "./pages/MatchingPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import SettingsPage from "./pages/SettingsPage";
 import { useAuthStore } from "./stores/useAuthStore";
 import { useSocketStore } from "./stores/useSocketStore";
 import { useEffect } from "react";
+import ProfilePage from "./pages/ProfilePage";
 
 function App() {
 	const { token } = useAuthStore();
@@ -53,6 +55,11 @@ function App() {
 						<Route
 							path='/MatchingPage'
 							element={<MatchingPage />}
+						/>
+						<Route path='/ProfilePage' element={<ProfilePage />} />
+						<Route
+							path='/SettingsPage'
+							element={<SettingsPage />}
 						/>
 						<Route path='/MessagePage' element={<MessagePage />} />
 					</Route>
