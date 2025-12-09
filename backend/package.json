@@ -5,6 +5,7 @@
   "main": "src/server.ts",
   "scripts": {
     "dev": "nodemon",
+    "dev2": "tsx src/server.ts",
     "build": "tsc",
     "start": "node src/server.js"
   },
