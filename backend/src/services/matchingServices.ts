@@ -16,7 +16,7 @@ export interface MatchScore {
     workDateRatio: number;
     location: number;
     workVibe: number;
-    sessionGoals: number;
+    // sessionGoals: number;
   };
 }
 
@@ -25,14 +25,13 @@ class MatchingSystem {
   private embeddingCache: Map<string, number[]> = new Map();
 
   private readonly WEIGHTS = {
-    age: 0.1,
-    interests: 0.2,
+    age: 0.12, 
+    interests: 0.18,
     availability: 0.25,
-    occupation: 0.1,
-    workDateRatio: 0.1,
-    location: 0.1,
-    workVibe: 0.1,
-    sessionGoals: 0.05,
+    occupation: 0.05,
+    workDateRatio: 0.08,
+    location: 0.12, 
+    workVibe: 0.2,
   };
 
   async initialize() {
@@ -143,7 +142,7 @@ class MatchingSystem {
       workDateRatio: this.scoreWorkDateRatio(userA, userB),
       location: this.scoreLocation(userA, userB),
       workVibe: this.scoreWorkVibe(userA, userB),
-      sessionGoals: this.scoreSessionGoals(userA, userB),
+      // sessionGoals: this.scoreSessionGoals(userA, userB),
     };
 
     const totalScore = Object.entries(this.WEIGHTS).reduce(
@@ -174,37 +173,35 @@ class MatchingSystem {
         .map((c) => this.calculateMatchScore(currentUser, c))
     );
 
-    return scores
-      // .filter((s) => s.totalScore >= 50) // Chỉ lấy Fair trở lên
-      .sort((a, b) => b.totalScore - a.totalScore)
-      .slice(0, limit);
+    return (
+      scores
+        // .filter((s) => s.totalScore >= 50) // Chỉ lấy Fair trở lên
+        .sort((a, b) => b.totalScore - a.totalScore)
+        .slice(0, limit)
+    );
   }
 
   // private methods
 
   private scoreAge(userA: User, userB: User): number {
-    if (
-      !userA.agePreference ||
-      !userB.agePreference ||
-      userA.age === undefined ||
-      userB.age === undefined
-    ) {
-      return 0;
-    }
+    if (!userA.age || !userB.age) return 0.3;
 
-    const inRangeA =
-      userA.agePreference.min <= userB.age &&
-      userB.age <= userA.agePreference.max;
-    const inRangeB =
-      userB.agePreference.min <= userA.age &&
-      userA.age <= userB.agePreference.max;
+    const minA = userA.agePreference?.min ?? userA.age - 5;
+    const maxA = userA.agePreference?.max ?? userA.age + 5;
 
-    if (!inRangeA && !inRangeB) return 0;
-    const ageDiff = Math.abs(userA.age - userB.age);
-    if (ageDiff <= 2) return 1.0;
-    if (ageDiff <= 5) return 0.8;
-    if (ageDiff <= 10) return 0.6;
-    return 0.5;
+    const minB = userB.agePreference?.min ?? userB.age - 5;
+    const maxB = userB.agePreference?.max ?? userB.age + 5;
+
+    const isB_fit_A = userB.age >= minA && userB.age <= maxA;
+    const isA_fit_B = userA.age >= minB && userA.age <= maxB;
+
+    if (isB_fit_A && isA_fit_B) return 1.0;
+    if (isB_fit_A || isA_fit_B) return 0.7;
+
+    const diff = Math.abs(userA.age - userB.age);
+    if (diff <= 5) return 0.8;
+    if (diff <= 10) return 0.5;
+    return 0.2;
   }
 
   private async scoreInterests(userA: User, userB: User): Promise<number> {
@@ -212,20 +209,29 @@ class MatchingSystem {
     const text2 = this.combineInterests(userB);
 
     if (!text1 && !text2) return 0.5;
+    if (!text1 || !text2) return 0.2;
 
     const [embeddingA, embeddingB] = await Promise.all([
       this.getEmbedding(text1),
       this.getEmbedding(text2),
     ]);
 
+    let similarity: number = 0;
+
     if (embeddingA.length !== embeddingB.length) {
       const minLength = Math.min(embeddingA.length, embeddingB.length);
       const truncatedA = embeddingA.slice(0, minLength);
       const truncatedB = embeddingB.slice(0, minLength);
-      return this.cosineSimilarity(truncatedA, truncatedB);
+      similarity = this.cosineSimilarity(truncatedA, truncatedB);
     }
 
-    return this.cosineSimilarity(embeddingA, embeddingB);
+    similarity = this.cosineSimilarity(embeddingA, embeddingB);
+
+    if (similarity > 0.7) return 1.0;
+    if (similarity > 0.5) return 0.85;
+    if (similarity > 0.3) return 0.7;
+    if (similarity > 0.15) return 0.55;
+    return Math.max(0.3, similarity * 2);
   }
 
   private scoreAvailability(userA: User, userB: User): number {
@@ -261,7 +267,6 @@ class MatchingSystem {
   }
 
   private async scoreOccupation(userA: User, userB: User): Promise<number> {
-    // Sửa typo: occupationDescription thay vì occupationDecription
     const textA = `${userA.occupation || ""} ${
       userA.occupationDescription || ""
     }`.toLowerCase();
@@ -294,7 +299,7 @@ class MatchingSystem {
 
     if (distance < 0.2) return 1.0;
     if (distance < 0.4) return 0.8;
-    return 1 - distance;
+    return Math.max(0.3, 1 - distance);
   }
 
   private scoreLocation(userA: User, userB: User): number {
@@ -320,78 +325,67 @@ class MatchingSystem {
       if (distance < 2) return 1;
       if (distance < 5) return 0.8;
       if (distance < 10) return 0.6;
-      return Math.max(0, 1 - (distance - 10) / (maxDist - 10)) * 0.6;
+      return Math.max(0.3, 0.7 * (1 - (distance - 20) / (maxDist - 20)));
     }
-    return 0;
+    return 0.3;
   }
 
   private scoreWorkVibe(userA: User, userB: User): number {
-    const matrix: Record<string, Record<string, number>> = {
-      "quiet-focus": {
-        "quiet-focus": 1.0,
-        "deep-work": 0.9,
-        balanced: 0.6,
-        "creative-chat": 0.2,
-      },
-      "deep-work": {
-        "quiet-focus": 0.9,
-        "deep-work": 1.0,
-        balanced: 0.7,
-        "creative-chat": 0.3,
-      },
-      balanced: {
-        "quiet-focus": 0.6,
-        "deep-work": 0.7,
-        balanced: 1.0,
-        "creative-chat": 0.7,
-      },
-      "creative-chat": {
-        "quiet-focus": 0.2,
-        "deep-work": 0.3,
-        balanced: 0.7,
-        "creative-chat": 1.0,
-      },
-    };
+    if (!userA.workVibe || !userB.workVibe) return 0.5;
+    const chatA = userA.workVibe.workChatRatio || 50;
+    const chatB = userB.workVibe.workChatRatio || 50;
+    const chatDiff = Math.abs(chatA - chatB);
+    let chatScore = 0;
+    if (chatDiff <= 10) chatScore = 1.0;
+    else if (chatDiff <= 20) chatScore = 0.8;
+    else if (chatDiff <= 30) chatScore = 0.6;
+    else chatScore = Math.max(0, 1 - chatDiff / 100);
 
-    return (
-      matrix[userA.workVibe || "balanced"]?.[userB.workVibe || "balanced"] ??
-      0.5
-    );
+    const interactionA = userA.workVibe.interactionLevel || 50;
+    const interactionB = userB.workVibe.interactionLevel || 50;
+    const interactionDiff = Math.abs(interactionA - interactionB);
+    let interactionScore = 0;
+    if (interactionDiff <= 10) interactionScore = 1.0;
+    else if (interactionDiff <= 20) interactionScore = 0.8;
+    else if (interactionDiff <= 30) interactionScore = 0.6;
+    else interactionScore = Math.max(0, 1 - interactionDiff / 100);
+
+    return chatScore * 0.6 + interactionScore * 0.4;
   }
 
-  private scoreSessionGoals(userA: User, userB: User): number {
-    const goalsA = userA.sessionGoals;
-    const goalsB = userB.sessionGoals;
+  // private scoreSessionGoals(userA: User, userB: User): number {
+  //   const goalsA = userA.sessionGoals;
+  //   const goalsB = userB.sessionGoals;
 
-    if (!goalsA || !goalsB) return 0.5;
+  //   if (!goalsA || !goalsB) return 0.5;
 
-    const maxWorkDiff = 180;
-    const workDiff = Math.abs(
-      (goalsA.workMinutes || 0) - (goalsB.workMinutes || 0)
-    );
-    const workScore = Math.max(0, 1 - workDiff / maxWorkDiff);
+  //   const maxWorkDiff = 180;
+  //   const workDiff = Math.abs(
+  //     (goalsA.workMinutes || 0) - (goalsB.workMinutes || 0)
+  //   );
+  //   const workScore = Math.max(0, 1 - workDiff / maxWorkDiff);
 
-    const maxBreakDiff = 60;
-    const breakDiff = Math.abs(
-      (goalsA.breakMinutes || 0) - (goalsB.breakMinutes || 0)
-    );
-    const breakScore = Math.max(0, 1 - breakDiff / maxBreakDiff);
+  //   const maxBreakDiff = 60;
+  //   const breakDiff = Math.abs(
+  //     (goalsA.breakMinutes || 0) - (goalsB.breakMinutes || 0)
+  //   );
+  //   const breakScore = Math.max(0, 1 - breakDiff / maxBreakDiff);
 
-    const chatLevels: Record<string, number> = { low: 0, medium: 1, high: 2 };
-    const chatA = goalsA.chatDesire || "medium";
-    const chatB = goalsB.chatDesire || "medium";
+  //   const chatLevels: Record<string, number> = { low: 0, medium: 1, high: 2 };
+  //   const chatA = goalsA.chatDesire || "medium";
+  //   const chatB = goalsB.chatDesire || "medium";
 
-    const chatDiff = Math.abs(
-      (chatLevels[chatA] || 1) - (chatLevels[chatB] || 1)
-    );
+  //   const chatDiff = Math.abs(
+  //     (chatLevels[chatA] || 1) - (chatLevels[chatB] || 1)
+  //   );
 
-    const chatScoreArray = [1.0, 0.7, 0.3];
-    const chatScore =
-      (chatDiff < chatScoreArray.length ? chatScoreArray[chatDiff] : 0.3) ??
-      0.3;
+  //   const chatScoreArray = [1.0, 0.7, 0.3];
+  //   const chatScore =
+  //     (chatDiff < chatScoreArray.length ? chatScoreArray[chatDiff] : 0.3) ??
+  //     0.3;
 
-    return workScore * 0.4 + breakScore * 0.3 + chatScore * 0.3;
-  }
+  //   return workScore * 0.4 + breakScore * 0.3 + chatScore * 0.3;
+  // }
 
   clearCache() {
     this.embeddingCache.clear();

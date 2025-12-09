@@ -58,11 +58,11 @@ function PreferencePage() {
 				workRatio: userProfile.workDateRatio ?? 60,
 				chatExpectation: 50,
 				workingMode:
-					userProfile.workVibe === "quiet-focus"
+					userProfile.workVibe?.type === "quiet-focus"
 						? "quiet"
-						: userProfile.workVibe === "creative-chat"
+						: userProfile.workVibe?.type === "creative-chat"
 						? "creative"
-						: userProfile.workVibe === "deep-work"
+						: userProfile.workVibe?.type === "deep-work"
 						? "deep"
 						: "balanced",
 			});
@@ -173,7 +173,11 @@ function PreferencePage() {
 				...userProfile,
 				interests: preferences.interests,
 				workDateRatio: preferences.workRatio,
-				workVibe: workVibe,
+				workVibe: {
+					type: workVibe,
+					workChatRatio: preferences.workRatio,
+					interactionLevel: preferences.chatExpectation,
+				},
 			});
 
 			// Update the auth store with the returned data
