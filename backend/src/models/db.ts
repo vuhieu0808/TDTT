@@ -6,3 +6,4 @@ export const userDB = db.collection("users");
 export const conversationDB = db.collection("conversations");
 export const messageDB = db.collection("messages");
 export const cooldownDB = db.collection("cooldowns");
+export const workSessionDB = db.collection("workSessions");
