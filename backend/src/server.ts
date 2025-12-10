@@ -12,6 +12,7 @@ import conversationRoute from "./routes/conversationsRoute.js";
 import friendRoute from "./routes/friendRoute.js";
 import messageRouter from "./routes/messageRoute.js";
 import matchingRouter from "./routes/matchingRoute.js";
+import llmChatRoute from "./routes/llmChatRoute.js";
 
 const PORT = process.env.PORT || 5000;
 
@@ -29,6 +30,7 @@ app.use("/api/friends", friendRoute);
 app.use("/api/messages", messageRouter);
 app.use("/api/conversations", conversationRoute);
 app.use("/api/matching", matchingRouter);
+app.use("/api/llmChat", llmChatRoute);
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
