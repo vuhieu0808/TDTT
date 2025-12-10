@@ -4,7 +4,7 @@ import { llmChatService } from "../services/llmChatService.js";
 
 export const getLLMHistory = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.uid;
-    const conversationId = req.body.conversationId as string;
+    const conversationId = req.body?.conversationId as string;
     if (!userId) {
         return res.status(401).json({ error: "Unauthorized" });
     }
@@ -22,8 +22,8 @@ export const getLLMHistory = async (req: AuthRequest, res: Response) => {
 
 export const chatController = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.uid;
-    const conversationId = req.body.conversationId as string;
-    const message = req.body.message as string;
+    const conversationId = req.body?.conversationId as string;
+    const message = req.body?.message as string;
     if (!userId) {
         return res.status(401).json({ error: "Unauthorized" });
     }
@@ -45,7 +45,7 @@ export const chatController = async (req: AuthRequest, res: Response) => {
 
 export const deleteLLMHistory = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.uid;
-    const conversationId = req.body.conversationId as string;
+    const conversationId = req.body?.conversationId as string;
     if (!userId) {
         return res.status(401).json({ error: "Unauthorized" });
     }
