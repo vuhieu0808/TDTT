@@ -420,7 +420,7 @@ function PreferencePage() {
 					</div>
 
 					{/* Expected Work Session Section */}
-					<div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-200'>
+					<div className='bg-white rounded-2xl p-10 shadow-sm border border-gray-200'>
 						<h2 className='text-xl font-bold text-gray-800 mb-4 flex items-center gap-2'>
 							<span className='w-2 h-2 rounded-full bg-pink-500'></span>
 							Expected Work Session
