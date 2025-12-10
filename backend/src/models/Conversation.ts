@@ -1,6 +1,6 @@
 import { SendUser } from "./Message.js";
 
-interface Participant {
+export interface Participant {
   uid: string;
   displayName: string;
   avatarUrl?: string;
