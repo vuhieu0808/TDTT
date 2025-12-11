@@ -7,6 +7,7 @@ import {
   getWorkSessions,
   updateWorkSession,
   startWorkSession,
+  completeWorkSession,
 } from "../controllers/WorkSessionController.js";
 
 const WorkSessionRoute = express.Router();
@@ -27,6 +28,11 @@ WorkSessionRoute.put(
   "/cancel/:workSessionId",
   verifyUserInSession,
   cancelWorkSession
+);
+WorkSessionRoute.put(
+  "/complete/:workSessionId",
+  verifyUserInSession,
+  completeWorkSession
 );
 WorkSessionRoute.put(
   "/start/:workSessionId",

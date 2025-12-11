@@ -3,6 +3,7 @@ import { User } from "../models/User.js";
 import { friendDB, userDB, cooldownDB } from "../models/db.js";
 import { Friend } from "../models/Friend.js";
 import { Cooldown } from "../models/Cooldown.js";
+import admin from "firebase-admin";
 
 export interface MatchScore {
   user: User;
@@ -25,12 +26,12 @@ class MatchingSystem {
   private embeddingCache: Map<string, number[]> = new Map();
 
   private readonly WEIGHTS = {
-    age: 0.12, 
+    age: 0.12,
     interests: 0.18,
     availability: 0.25,
     occupation: 0.05,
     workDateRatio: 0.08,
-    location: 0.12, 
+    location: 0.12,
     workVibe: 0.2,
   };
 
@@ -76,23 +77,29 @@ class MatchingSystem {
     return embedding;
   }
 
-  private cosineSimilarity(vec1: number[], vec2: number[]): number {
-    let dotProduct = 0;
-    let norm1 = 0;
-    let norm2 = 0;
-
-    const length = Math.min(vec1.length, vec2.length);
-
-    for (let i = 0; i < length; i++) {
-      const v1 = vec1[i] || 0;
-      const v2 = vec2[i] || 0;
-      dotProduct += v1 * v2;
-      norm1 += v1 ** 2;
-      norm2 += v2 ** 2;
+  private cosineSimilarity(vecA: number[], vecB: number[]): number {
+    if (vecA.length !== vecB.length) {
+      throw new Error('Vectors must have the same length');
     }
 
-    if (norm1 === 0 || norm2 === 0) return 0;
-    return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+
+    for (let i = 0; i < vecA.length; i++) {
+      dotProduct += (vecA[i] || 0) * (vecB[i] || 0);
+      normA += (vecA[i] || 0) * (vecA[i] || 0);
+      normB += (vecB[i] || 0) * (vecB[i] || 0);
+    }
+
+    normA = Math.sqrt(normA);
+    normB = Math.sqrt(normB);
+
+    if (normA === 0 || normB === 0) return 0;
+
+    // Return similarity in range [0, 1]
+    const similarity = dotProduct / (normA * normB);
+    return (similarity + 1) / 2; // Convert from [-1, 1] to [0, 1]
   }
 
   private haversineDistance(
@@ -315,17 +322,14 @@ class MatchingSystem {
         userB.location.lat,
         userB.location.lng
       );
-
       const maxDist = Math.min(
         userA.maxDistanceKm || 50,
         userB.maxDistanceKm || 50
       );
 
       if (distance > maxDist) return 0;
-      if (distance < 2) return 1;
-      if (distance < 5) return 0.8;
-      if (distance < 10) return 0.6;
-      return Math.max(0.3, 0.7 * (1 - (distance - 20) / (maxDist - 20)));
+      const tau = 10; 
+      return Math.max(0.3, Math.exp(-distance / tau));
     }
     return 0.3;
   }
@@ -392,80 +396,80 @@ class MatchingSystem {
   }
 }
 
-// async function testMatchingSystem() {
-//   const matcher = new MatchingSystem();
-//   await matcher.initialize();
-//   // tính thời gian từ đây đến khi xong
-//   const startTime = Date.now();
-//   const userA: User = {
-//     uid: "userA",
-//     displayName: "User A",
-//     email: "userA@example.com",
-//     status: "online",
-//     lastActivity: admin.firestore.Timestamp.now(),
-//     createdAt: admin.firestore.Timestamp.now(),
-//     updatedAt: admin.firestore.Timestamp.now(),
-//     //
-//     age: 25,
-//     agePreference: { min: 22, max: 30 },
-//     interests: ["hiking", "reading", "coding"],
-//     availability: new Array(168).fill(0).map((_, i) => {
-//       const day = Math.floor(i / 24);
-//       const hour = i % 24;
-//       // Available Mon-Fri 9am-5pm
-//       return day < 5 && hour >= 9 && hour < 17 ? 1 : 0;
-//     }),
-//     occupation: "Software Engineer",
-//     occupationDescription: "Works on web applications",
-//     workDateRatio: 70,
-//     location: { lat: 37.7749, lng: -122.4194 },
-//     maxDistanceKm: 20,
-//     workVibe: "deep-work",
-//     sessionGoals: { workMinutes: 90, breakMinutes: 15, chatDesire: "medium" },
-//   };
+async function testMatchingSystem() {
+  const matcher = new MatchingSystem();
+  await matcher.initialize();
+  // tính thời gian từ đây đến khi xong
+  const startTime = Date.now();
+  const userA: User = {
+    uid: "userA",
+    displayName: "User A",
+    email: "userA@example.com",
+    status: "online",
+    lastActivity: admin.firestore.Timestamp.now(),
+    createdAt: admin.firestore.Timestamp.now(),
+    updatedAt: admin.firestore.Timestamp.now(),
+    //
+    age: 25,
+    agePreference: { min: 22, max: 30 },
+    interests: ["hiking", "reading", "coding"],
+    availability: new Array(168).fill(0).map((_, i) => {
+      const day = Math.floor(i / 24);
+      const hour = i % 24;
+      // Available Mon-Fri 9am-5pm
+      return day < 5 && hour >= 9 && hour < 17 ? 1 : 0;
+    }),
+    occupation: "Software Engineer",
+    occupationDescription: "Works on web applications",
+    workDateRatio: 70,
+    location: { lat: 37.7749, lng: -122.4194 },
+    maxDistanceKm: 20,
+    workVibe: { type: "custom", workChatRatio: 30, interactionLevel: 40 },
+    // sessionGoals: { workMinutes: 90, breakMinutes: 15, chatDesire: "medium" },
+  };
 
-//   const userB: User = {
-//     uid: "userB",
-//     displayName: "User B",
-//     email: "userB@example.com",
-//     status: "online",
-//     lastActivity: admin.firestore.Timestamp.now(),
-//     createdAt: admin.firestore.Timestamp.now(),
-//     updatedAt: admin.firestore.Timestamp.now(),
-//     //
-//     age: 27,
-//     agePreference: { min: 24, max: 32 },
-//     interests: ["coding", "gaming", "traveling"],
-//     availability: new Array(168).fill(0).map((_, i) => {
-//       const day = Math.floor(i / 24);
-//       const hour = i % 24;
-//       // Available Mon-Fri 10am-6pm
-//       return day < 5 && hour >= 10 && hour < 18 ? 1 : 0;
-//     }),
-//     occupation: "Backend Developer",
-//     occupationDescription: "Builds server-side applications",
-//     workDateRatio: 65,
-//     location: { lat: 37.8044, lng: -122.2711 },
-//     maxDistanceKm: 30,
-//     workVibe: "deep-work",
-//     sessionGoals: { workMinutes: 80, breakMinutes: 20, chatDesire: "high" },
-//   };
-//   // let users: User[] = [];
-//   // for (let i = 0; i < 100; i++) {
-//   //   users.push({ ...userB, uid: `userB_${i}` });
-//   // }
-//   // await matcher.calculateMatchScore(userA, userB);
-//   const matchScore = await matcher.calculateMatchScore(userA, userB);
-//   console.log("Match Score between User A and User B:", matchScore);
-//   // const matchScores = await matcher.findMatches(userA, users, 20);
-//   // console.log("Top Match Scores:", matchScores);
-//   const endTime = Date.now();
-//   console.log(`Time taken: ${(endTime - startTime) / 1000} seconds`);
-// }
-// await testMatchingSystem();
+  const userB: User = {
+    uid: "userB",
+    displayName: "User B",
+    email: "userB@example.com",
+    status: "online",
+    lastActivity: admin.firestore.Timestamp.now(),
+    createdAt: admin.firestore.Timestamp.now(),
+    updatedAt: admin.firestore.Timestamp.now(),
+    //
+    age: 27,
+    agePreference: { min: 24, max: 32 },
+    interests: ["coding", "gaming", "traveling"],
+    availability: new Array(168).fill(0).map((_, i) => {
+      const day = Math.floor(i / 24);
+      const hour = i % 24;
+      // Available Mon-Fri 10am-6pm
+      return day < 5 && hour >= 10 && hour < 18 ? 1 : 0;
+    }),
+    occupation: "Backend Developer",
+    occupationDescription: "Builds server-side applications",
+    workDateRatio: 65,
+    location: { lat: 37.8044, lng: -122.2711 },
+    maxDistanceKm: 30,
+    workVibe: { type: "custom", workChatRatio: 40, interactionLevel: 50 },
+    // sessionGoals: { workMinutes: 80, breakMinutes: 20, chatDesire: "high" },
+  };
+  // let users: User[] = [];
+  // for (let i = 0; i < 100; i++) {
+  //   users.push({ ...userB, uid: `userB_${i}` });
+  // }
+  // await matcher.calculateMatchScore(userA, userB);
+  const matchScore = await matcher.calculateMatchScore(userA, userB);
+  console.log("Match Score between User A and User B:", matchScore);
+  // const matchScores = await matcher.findMatches(userA, users, 20);
+  // console.log("Top Match Scores:", matchScores);
+  const endTime = Date.now();
+  console.log(`Time taken: ${(endTime - startTime) / 1000} seconds`);
+}
+await testMatchingSystem();
 
-const matchingSystem = new MatchingSystem();
-await matchingSystem.initialize();
+// const matchingSystem = new MatchingSystem();
+// await matchingSystem.initialize();
 
 export const getCandidateUsers = async (user: User): Promise<User[]> => {
   try {
@@ -509,4 +513,4 @@ export const getCandidateUsers = async (user: User): Promise<User[]> => {
   }
 };
 
-export { matchingSystem };
+// export { matchingSystem };
