@@ -157,14 +157,14 @@ class MatchingSystem {
       // sessionGoals: this.scoreSessionGoals(userA, userB),
     };
 
-    console.log(
-      "Match breakdown between",
-      userA.uid,
-      "and",
-      userB.uid,
-      ":",
-      breakdown
-    );
+    // console.log(
+    //   "Match breakdown between",
+    //   userA.uid,
+    //   "and",
+    //   userB.uid,
+    //   ":",
+    //   breakdown
+    // );
 
     const totalScore = Object.entries(this.WEIGHTS).reduce(
       (sum, [key, weight]) => {
@@ -335,16 +335,16 @@ class MatchingSystem {
         userB.maxDistanceKm || 50
       );
 
-      console.log(
-        "Distance between",
-        userA.uid,
-        "and",
-        userB.uid,
-        ":",
-        distance,
-        "km"
-      );
-      console.log("Max acceptable distance:", maxDist, "km");
+      // console.log(
+      //   "Distance between",
+      //   userA.uid,
+      //   "and",
+      //   userB.uid,
+      //   ":",
+      //   distance,
+      //   "km"
+      // );
+      // console.log("Max acceptable distance:", maxDist, "km");
 
       if (distance > maxDist) return 0;
       const ratio = distance / maxDist;
@@ -475,10 +475,10 @@ async function testMatchingSystem() {
   const endTime = Date.now();
   console.log(`Time taken: ${(endTime - startTime) / 1000} seconds`);
 }
-await testMatchingSystem();
+// await testMatchingSystem();
 
-// const matchingSystem = new MatchingSystem();
-// await matchingSystem.initialize();
+const matchingSystem = new MatchingSystem();
+await matchingSystem.initialize();
 
 export const getCandidateUsers = async (user: User): Promise<User[]> => {
   try {
@@ -522,4 +522,4 @@ export const getCandidateUsers = async (user: User): Promise<User[]> => {
   }
 };
 
-// export { matchingSystem };
+export { matchingSystem };
