@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuthStore } from "@/stores/useAuthStore";
 import Layout from "@/components/Layout";
 import Navbar from "@/components/Navbar";
+import { matchingServices } from "@/services/matchingServices";
+import type { MatchScore } from "@/types/match";
+
 import {
 	Favorite,
 	LocationOn,
@@ -17,7 +20,7 @@ import {
 	ArrowBack,
 } from "@mui/icons-material";
 
-// Mock potential matches data
+// Mock potential matches data (keep as fallback)
 const mockMatches = [
 	{
 		id: 1,
@@ -95,8 +98,67 @@ function MatchingPage() {
 		"left" | "right" | null
 	>(null);
 
-	const currentMatch = mockMatches[currentIndex];
-	const hasMoreMatches = currentIndex < mockMatches.length - 1;
+	// Add state for matches from backend
+	const [matches, setMatches] = useState<any[]>([]);
+	const [isLoading, setIsLoading] = useState(true);
+
+	// Fetch matches from backend on component mount
+	useEffect(() => {
+		const fetchMatches = async () => {
+			try {
+				setIsLoading(true);
+				const response = await matchingServices.getMatches(10);
+
+				console.log("Matches from backend:", response);
+
+				const matchesArray = Object.entries(response).map(
+					([key, value]) => {
+						return {
+							id: key,
+							...value,
+						};
+					}
+				);
+
+				console.log(typeof response);
+
+				// Transform backend data to match your UI format
+				if (matchesArray && matchesArray.length > 0) {
+					const transformedMatches = matchesArray.map(
+						(match: MatchScore) => ({
+							id: match.user.uid,
+							name: match.user.displayName,
+							email: match.user.email,
+							avatarUrl:
+								match.user.avatarUrl ||
+								"https://i.pravatar.cc/400",
+							bio: match.user.bio || "No bio available",
+							interests: match.user.interests || [],
+							workRatio: match.user.workVibe?.workChatRatio || 50,
+							chatRatio: 100 - (match.user.workDateRatio || 50),
+							interactionLevel:
+								match.user?.workVibe?.interactionLevel || 50,
+							workingMode:
+								match.user.workVibe?.type || "Balanced",
+							matchPercentage: Math.round(match.totalScore * 100),
+						})
+					);
+					setMatches(transformedMatches);
+				}
+			} catch (error) {
+				console.error("Failed to fetch matches:", error);
+
+				// Keep using mock data on error
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		fetchMatches();
+	}, []);
+
+	const currentMatch = matches[currentIndex];
+	const hasMoreMatches = currentIndex < matches.length - 1;
 
 	const handleReject = () => {
 		if (isAnimating) return;
@@ -123,7 +185,6 @@ function MatchingPage() {
 		setAnimationDirection("right");
 
 		setTimeout(() => {
-			// Here you would save the match to backend
 			console.log("Matched with:", currentMatch.name);
 
 			if (hasMoreMatches) {
@@ -135,6 +196,23 @@ function MatchingPage() {
 			setAnimationDirection(null);
 		}, 400);
 	};
+
+	// Show loading state
+	if (isLoading) {
+		return (
+			<>
+				<Navbar />
+				<div className='flex items-center justify-center min-h-[90vh]'>
+					<div className='text-center'>
+						<div className='w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4'></div>
+						<h2 className='text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
+							Finding Your Perfect Matches...
+						</h2>
+					</div>
+				</div>
+			</>
+		);
+	}
 
 	if (!currentMatch) {
 		return (
@@ -244,7 +322,7 @@ function MatchingPage() {
 							</div>
 							<div className='flex flex-wrap gap-2'>
 								{currentMatch.interests.map(
-									(interest, index) => (
+									(interest: string, index: number) => (
 										<span
 											key={index}
 											className='px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-full text-sm font-medium border border-purple-200'
@@ -270,7 +348,7 @@ function MatchingPage() {
 								</h2>
 							</div>
 							<div className='p-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl text-white'>
-								<p className='text-lg font-semibold'>
+								<p className='text-lg font-semibold capitalize'>
 									{currentMatch.workingMode}
 								</p>
 								<p className='text-sm opacity-90 mt-1'>

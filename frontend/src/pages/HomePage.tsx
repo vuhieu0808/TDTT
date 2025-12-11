@@ -248,50 +248,9 @@ const HomePage = () => {
 					</div>
 
 					{/* Active Sessions / Matches Section */}
-					<div className='grid lg:grid-cols-2 gap-8'>
-						{/* Current Session */}
-						<div className='bg-gradient-to-br from-white to-purple-50 rounded-3xl p-10 shadow-md border border-purple-100'>
-							<h3 className='text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-8'>
-								Current Session
-							</h3>
-							<div className='text-center py-12'>
-								<span className='text-7xl mb-6 block filter drop-shadow-lg'>
-									⏰
-								</span>
-								<p className='text-gray-700 mb-2 text-lg font-medium'>
-									No active work-date session
-								</p>
-								<p className='text-base text-gray-500 mb-8'>
-									Start a synchronized work session with your
-									match
-								</p>
-								<Button
-									sx={{
-										background:
-											"linear-gradient(135deg, #a855f7 0%, #ec4899 100%)",
-										color: "white",
-										textTransform: "none",
-										padding: "14px 40px",
-										fontSize: "1.1rem",
-										fontWeight: "600",
-										borderRadius: "1rem",
-										"&:hover": {
-											background:
-												"linear-gradient(135deg, #9333ea 0%, #db2777 100%)",
-											transform: "translateY(-2px)",
-											boxShadow:
-												"0 8px 20px rgba(168, 85, 247, 0.4)",
-										},
-										transition: "all 0.3s ease",
-									}}
-								>
-									Start Session
-								</Button>
-							</div>
-						</div>
-
+					<div className='flex flex-row'>
 						{/* Your Matches */}
-						<div className='bg-gradient-to-br from-white to-pink-50 rounded-3xl p-10 shadow-md border border-pink-100'>
+						<div className='w-full bg-gradient-to-br from-white to-pink-50 rounded-3xl p-10 shadow-md border border-pink-100'>
 							<h3 className='text-3xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mb-8'>
 								Your Matches
 							</h3>
