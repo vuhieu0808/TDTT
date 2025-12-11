@@ -26,12 +26,12 @@ class MatchingSystem {
   private embeddingCache: Map<string, number[]> = new Map();
 
   private readonly WEIGHTS = {
-    age: 0.12,
-    interests: 0.18,
-    availability: 0.25,
-    occupation: 0.05,
-    workDateRatio: 0.08,
-    location: 0.12,
+    age: 0.1,
+    interests: 0.15,
+    availability: 0.15,
+    occupation: 0.1,
+    workDateRatio: 0.15,
+    location: 0.15,
     workVibe: 0.2,
   };
 
@@ -79,7 +79,7 @@ class MatchingSystem {
 
   private cosineSimilarity(vecA: number[], vecB: number[]): number {
     if (vecA.length !== vecB.length) {
-      throw new Error('Vectors must have the same length');
+      throw new Error("Vectors must have the same length");
     }
 
     let dotProduct = 0;
@@ -99,7 +99,7 @@ class MatchingSystem {
 
     // Return similarity in range [0, 1]
     const similarity = dotProduct / (normA * normB);
-    return (similarity + 1) / 2; // Convert from [-1, 1] to [0, 1]
+    return Math.max(0, similarity);
   }
 
   private haversineDistance(
@@ -123,6 +123,11 @@ class MatchingSystem {
   private deg2rad(deg: number): number {
     return deg * (Math.PI / 180);
   }
+
+  private calculateScore(valA: number, valB: number): number {
+    let diff = Math.abs(valA - valB);
+    return Math.exp(-Math.pow(diff / 25, 2));
+  };
 
   private getCompatibilityLabel(score: number): string {
     if (score >= 85) return "Excellent";
@@ -151,6 +156,15 @@ class MatchingSystem {
       workVibe: this.scoreWorkVibe(userA, userB),
       // sessionGoals: this.scoreSessionGoals(userA, userB),
     };
+
+    console.log(
+      "Match breakdown between",
+      userA.uid,
+      "and",
+      userB.uid,
+      ":",
+      breakdown
+    );
 
     const totalScore = Object.entries(this.WEIGHTS).reduce(
       (sum, [key, weight]) => {
@@ -223,54 +237,49 @@ class MatchingSystem {
       this.getEmbedding(text2),
     ]);
 
-    let similarity: number = 0;
 
     if (embeddingA.length !== embeddingB.length) {
-      const minLength = Math.min(embeddingA.length, embeddingB.length);
-      const truncatedA = embeddingA.slice(0, minLength);
-      const truncatedB = embeddingB.slice(0, minLength);
-      similarity = this.cosineSimilarity(truncatedA, truncatedB);
+      console.error("Embedding dimensions mismatch!");
+      return 0;
     }
 
-    similarity = this.cosineSimilarity(embeddingA, embeddingB);
+    const similarity = this.cosineSimilarity(embeddingA, embeddingB);
 
     if (similarity > 0.7) return 1.0;
     if (similarity > 0.5) return 0.85;
     if (similarity > 0.3) return 0.7;
     if (similarity > 0.15) return 0.55;
-    return Math.max(0.3, similarity * 2);
+    return Math.max(0.3, similarity);
   }
 
   private scoreAvailability(userA: User, userB: User): number {
     if (!userA.availability || !userB.availability) {
-      return 0.5;
+      return 0;
     }
     if (
       userA.availability.length !== 168 ||
       userB.availability.length !== 168
     ) {
-      return 0.5;
+      return 0;
     }
 
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-
-    for (let i = 0; i < userA.availability.length; i++) {
-      const a = userA.availability[i] || 0;
-      const b = userB.availability[i] || 0;
-      dotProduct += a * b;
-      normA += a * a;
-      normB += b * b;
+    let intersection = 0;
+    let union = 0;
+    for (let i = 0; i < 168; i++) {
+      const availA = userA.availability[i] || 0;
+      const availB = userB.availability[i] || 0;
+      if (availA > 0 || availB > 0) {
+        union++;
+        if (availA > 0 && availB > 0) {
+          intersection++;
+        }
+      }
     }
 
-    if (normA === 0 || normB === 0) return 0;
-    const similarity = dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-
-    if (similarity > 0.7) return 1.0;
-    if (similarity > 0.5) return 0.8;
-    if (similarity > 0.3) return 0.6;
-    return similarity;
+    if (union === 0) return 0;
+    let jaccardIndex = intersection / union;
+    if (intersection < 3) jaccardIndex *= 0.5;
+    return jaccardIndex;
   }
 
   private async scoreOccupation(userA: User, userB: User): Promise<number> {
@@ -291,22 +300,22 @@ class MatchingSystem {
       this.getEmbedding(textB),
     ]);
 
+    if (embeddingA.length !== embeddingB.length) {
+      return 0;
+    }
+
     const similarity = this.cosineSimilarity(embeddingA, embeddingB);
 
     if (similarity > 0.6) return 1.0;
     if (similarity > 0.4) return 0.8;
     if (similarity > 0.2) return 0.6;
-    return 0.4;
+    return 0.3;
   }
 
   private scoreWorkDateRatio(userA: User, userB: User): number {
-    const ratioA = (userA.workDateRatio || 50) / 100;
-    const ratioB = (userB.workDateRatio || 50) / 100;
-    const distance = Math.abs(ratioA - ratioB);
-
-    if (distance < 0.2) return 1.0;
-    if (distance < 0.4) return 0.8;
-    return Math.max(0.3, 1 - distance);
+    const ratioA = (userA.workDateRatio || 50);
+    const ratioB = (userB.workDateRatio || 50);
+    return this.calculateScore(ratioA, ratioB);
   }
 
   private scoreLocation(userA: User, userB: User): number {
@@ -327,9 +336,20 @@ class MatchingSystem {
         userB.maxDistanceKm || 50
       );
 
+      console.log(
+        "Distance between",
+        userA.uid,
+        "and",
+        userB.uid,
+        ":",
+        distance,
+        "km"
+      );
+      console.log("Max acceptable distance:", maxDist, "km");
+
       if (distance > maxDist) return 0;
-      const tau = 10; 
-      return Math.max(0.3, Math.exp(-distance / tau));
+      const ratio = distance / maxDist;
+      return Math.max(0, Math.exp(-3 * ratio * ratio));
     }
     return 0.3;
   }
@@ -338,21 +358,11 @@ class MatchingSystem {
     if (!userA.workVibe || !userB.workVibe) return 0.5;
     const chatA = userA.workVibe.workChatRatio || 50;
     const chatB = userB.workVibe.workChatRatio || 50;
-    const chatDiff = Math.abs(chatA - chatB);
-    let chatScore = 0;
-    if (chatDiff <= 10) chatScore = 1.0;
-    else if (chatDiff <= 20) chatScore = 0.8;
-    else if (chatDiff <= 30) chatScore = 0.6;
-    else chatScore = Math.max(0, 1 - chatDiff / 100);
+    let chatScore = this.calculateScore(chatA, chatB);
 
     const interactionA = userA.workVibe.interactionLevel || 50;
     const interactionB = userB.workVibe.interactionLevel || 50;
-    const interactionDiff = Math.abs(interactionA - interactionB);
-    let interactionScore = 0;
-    if (interactionDiff <= 10) interactionScore = 1.0;
-    else if (interactionDiff <= 20) interactionScore = 0.8;
-    else if (interactionDiff <= 30) interactionScore = 0.6;
-    else interactionScore = Math.max(0, 1 - interactionDiff / 100);
+    let interactionScore = this.calculateScore(interactionA, interactionB);
 
     return chatScore * 0.6 + interactionScore * 0.4;
   }
