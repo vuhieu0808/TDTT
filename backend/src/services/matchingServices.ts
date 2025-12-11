@@ -127,7 +127,7 @@ class MatchingSystem {
   private calculateScore(valA: number, valB: number): number {
     let diff = Math.abs(valA - valB);
     return Math.exp(-Math.pow(diff / 25, 2));
-  };
+  }
 
   private getCompatibilityLabel(score: number): string {
     if (score >= 85) return "Excellent";
@@ -237,7 +237,6 @@ class MatchingSystem {
       this.getEmbedding(text2),
     ]);
 
-
     if (embeddingA.length !== embeddingB.length) {
       console.error("Embedding dimensions mismatch!");
       return 0;
@@ -313,8 +312,8 @@ class MatchingSystem {
   }
 
   private scoreWorkDateRatio(userA: User, userB: User): number {
-    const ratioA = (userA.workDateRatio || 50);
-    const ratioB = (userB.workDateRatio || 50);
+    const ratioA = userA.workDateRatio || 50;
+    const ratioB = userB.workDateRatio || 50;
     return this.calculateScore(ratioA, ratioB);
   }
 
