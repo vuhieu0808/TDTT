@@ -134,12 +134,8 @@ function MatchingPage() {
 								"https://i.pravatar.cc/400",
 							bio: match.user.bio || "No bio available",
 							interests: match.user.interests || [],
-							workRatio: match.user.workVibe?.workChatRatio || 50,
-							chatRatio: 100 - (match.user.workDateRatio || 50),
-							interactionLevel:
-								match.user?.workVibe?.interactionLevel || 50,
 							workingMode:
-								match.user.workVibe?.type || "Balanced",
+								match.user.workVibe || "Balanced",
 							matchPercentage: Math.round(match.totalScore * 100),
 						})
 					);
@@ -366,88 +362,6 @@ function MatchingPage() {
 							</div>
 						</div>
 
-						{/* Work/Chat Ratio */}
-						<div className='mb-6'>
-							<div className='flex items-center gap-2 mb-3'>
-								<Schedule
-									sx={{
-										fontSize: "1.5rem",
-										color: "#a855f7",
-									}}
-								/>
-								<h2 className='text-xl font-bold text-gray-800'>
-									Work/Chat Balance
-								</h2>
-							</div>
-
-							<div className='p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-200'>
-								{/* Percentage Display */}
-								<div className='flex items-center justify-between mb-3'>
-									<div className='flex items-center gap-2'>
-										<Work
-											sx={{
-												fontSize: "1.25rem",
-												color: "#a855f7",
-											}}
-										/>
-										<span className='text-lg font-bold text-purple-600'>
-											{currentMatch.workRatio}% Work
-										</span>
-									</div>
-									<div className='flex items-center gap-2'>
-										<ChatBubble
-											sx={{
-												fontSize: "1.25rem",
-												color: "#ec4899",
-											}}
-										/>
-										<span className='text-lg font-bold text-pink-600'>
-											{currentMatch.chatRatio}% Chat
-										</span>
-									</div>
-								</div>
-
-								{/* Progress Bar */}
-								<div className='w-full bg-gray-200 rounded-full h-4 overflow-hidden flex'>
-									<div
-										className='bg-gradient-to-r from-purple-500 to-purple-400 flex items-center justify-center text-white text-xs font-semibold transition-all duration-500'
-										style={{
-											width: `${currentMatch.workRatio}%`,
-										}}
-									>
-										{currentMatch.workRatio > 20 && "Work"}
-									</div>
-									<div
-										className='bg-gradient-to-r from-pink-400 to-pink-500 flex items-center justify-center text-white text-xs font-semibold transition-all duration-500'
-										style={{
-											width: `${currentMatch.chatRatio}%`,
-										}}
-									>
-										{currentMatch.chatRatio > 20 && "Chat"}
-									</div>
-								</div>
-							</div>
-
-							{/* Interaction Level */}
-							<div className='mt-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-200'>
-								<div className='flex items-center justify-between mb-2'>
-									<p className='text-sm font-semibold text-gray-700'>
-										Interaction Level
-									</p>
-									<p className='text-lg font-bold text-purple-600'>
-										{currentMatch.interactionLevel}%
-									</p>
-								</div>
-								<div className='w-full bg-gray-200 rounded-full h-3 overflow-hidden'>
-									<div
-										className='h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500'
-										style={{
-											width: `${currentMatch.interactionLevel}%`,
-										}}
-									></div>
-								</div>
-							</div>
-						</div>
 					</div>
 				</div>
 
