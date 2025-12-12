@@ -19,6 +19,12 @@ import {
 	BalanceOutlined,
 	Save,
 	Tune,
+	WbSunny,
+	WbTwilight,
+	Brightness3,
+	NightsStay,
+	LightMode,
+	Brightness7,
 } from "@mui/icons-material";
 
 type WorkingMode = "quiet" | "creative" | "deep" | "balanced" | "custom";
@@ -28,6 +34,7 @@ interface UserPreferences {
 	workRatio: number; // 0-100 percentage
 	chatExpectation: number; // 0-100 scale
 	workingMode: WorkingMode;
+	availability: number[]; // Array of 42 slots (7 days × 6 time slots)
 }
 
 interface WorkingModePreset {
@@ -45,15 +52,28 @@ function PreferencePage() {
 		workRatio: 60,
 		chatExpectation: 50,
 		workingMode: "balanced",
+		availability: [],
 	});
 
 	const [isSaving, setIsSaving] = useState(false);
 	const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+	// Calendar configuration
+	const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+	const timeSlots = [
+		{ label: "Morning", time: "6-9 AM", icon: WbSunny },
+		{ label: "Late Morning", time: "9-12 PM", icon: Brightness7 },
+		{ label: "Afternoon", time: "12-3 PM", icon: LightMode },
+		{ label: "Late Afternoon", time: "3-6 PM", icon: WbTwilight },
+		{ label: "Evening", time: "6-9 PM", icon: Brightness3 },
+		{ label: "Night", time: "9-12 AM", icon: NightsStay },
+	];
+
 	// Load preferences from userProfile on mount (only once)
 	useEffect(() => {
 		if (userProfile && isInitialLoad) {
 			setPreferences({
+				availability: userProfile.availability || [],
 				interests: userProfile.interests || [],
 				workRatio: userProfile.workDateRatio ?? 60,
 				chatExpectation: 50,
@@ -172,6 +192,7 @@ function PreferencePage() {
 			const response = await userServices.updateMe({
 				...userProfile,
 				interests: preferences.interests,
+				availability: preferences.availability,
 				workDateRatio: preferences.workRatio,
 				workVibe: {
 					type: workVibe,
@@ -214,6 +235,53 @@ function PreferencePage() {
 			interests: preferences.interests.filter((i) => i !== interest),
 		});
 	};
+	// Get slot index: dayIndex (0-6) * 6 + timeSlotIndex (0-5) = 0-41
+	const getSlotIndex = (dayIndex: number, timeSlotIndex: number) => {
+		return dayIndex * 6 + timeSlotIndex;
+	};
+
+	const isSlotSelected = (dayIndex: number, timeSlotIndex: number) => {
+		const slotIndex = getSlotIndex(dayIndex, timeSlotIndex);
+		return preferences.availability.includes(slotIndex);
+	};
+
+	const handleToggleSlot = (dayIndex: number, timeSlotIndex: number) => {
+		const slotIndex = getSlotIndex(dayIndex, timeSlotIndex);
+		const isSelected = preferences.availability.includes(slotIndex);
+
+		if (isSelected) {
+			setPreferences({
+				...preferences,
+				availability: preferences.availability.filter(
+					(slot) => slot !== slotIndex
+				),
+			});
+		} else {
+			setPreferences({
+				...preferences,
+				availability: [...preferences.availability, slotIndex].sort(
+					(a, b) => a - b
+				),
+			});
+		}
+	};
+
+	const handleClearAvailability = () => {
+		setPreferences({
+			...preferences,
+			availability: [],
+		});
+		toast.success("Availability cleared");
+	};
+
+	const handleSelectAllSlots = () => {
+		const allSlots = Array.from({ length: 42 }, (_, i) => i);
+		setPreferences({
+			...preferences,
+			availability: allSlots,
+		});
+		toast.success("All time slots selected");
+	};
 
 	const workingModes = [
 		{
@@ -245,322 +313,393 @@ function PreferencePage() {
 			description: "Equal mix of work and conversation",
 			color: "#fff",
 		},
-		{
-			id: "custom" as WorkingMode,
-			name: "Custom",
-			icon: Tune,
-			description: "Your personalized work-date settings",
-			color: "#fff",
-		},
 	];
 
-	return (
-		<Layout>
-			<div className='max-w-4xl mx-auto p-4 sm:p-6 lg:p-8'>
-				{/* Header */}
-				<div className='mb-8'>
-					<h1 className='text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2'>
-						Work-Date Preferences
-					</h1>
-					<p className='text-gray-600'>
-						Set your preferences to find the perfect work partner
-					</p>
-				</div>
-
-				<div className='space-y-8'>
-					{/* Interests Section */}
-					<div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-200'>
-						<h2 className='text-xl font-bold text-gray-800 mb-4 flex items-center gap-2'>
-							<span className='w-2 h-2 rounded-full bg-purple-500'></span>
-							Interests
-						</h2>
-						<p className='text-sm text-gray-600 mb-4'>
-							Add topics you're interested in to match with
-							like-minded partners
-						</p>
-
-						{/* Add Interest Input */}
-						<div className='flex gap-2 mb-4'>
-							<Input
-								placeholder='e.g., Machine Learning, Design, Photography...'
-								value={newInterest}
-								onChange={(e) => setNewInterest(e.target.value)}
-								onKeyDown={(e) => {
-									if (e.key === "Enter") {
-										e.preventDefault();
-										handleAddInterest();
-									}
-								}}
-								sx={{
-									flex: 1,
-									"--Input-focusedThickness": "2px",
-									"&:focus-within": {
-										outline:
-											"2px solid var(--color-primary)",
-									},
-								}}
-							/>
-							<Button
-								onClick={handleAddInterest}
-								disabled={!newInterest.trim()}
-								sx={{
-									backgroundColor: "#a855f7",
-									"&:hover": { backgroundColor: "#9333ea" },
-									"&:disabled": {
-										backgroundColor: "#e5e7eb",
-										color: "#9ca3af",
-									},
-								}}
-							>
-								<Add />
-							</Button>
+	{
+		return (
+			<>
+				<Layout>
+					<div className='max-w-4xl mx-auto p-4 sm:p-6 lg:p-8'>
+						{/* Header */}
+						<div className='mb-8'>
+							<h1 className='text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2'>
+								Work-Date Preferences
+							</h1>
+							<p className='text-gray-600'>
+								Set your preferences to find the perfect work
+								partner
+							</p>
 						</div>
 
-						{/* Interests List */}
-						<div className='flex flex-wrap gap-2'>
-							{preferences.interests.length > 0 ? (
-								preferences.interests.map((interest, index) => (
-									<Chip
-										key={index}
+						<div className='space-y-8'>
+							{/* Interests Section */}
+							<div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-200'>
+								<h2 className='text-xl font-bold text-gray-800 mb-4 flex items-center gap-2'>
+									<span className='w-2 h-2 rounded-full bg-purple-500'></span>
+									Interests
+								</h2>
+								<p className='text-sm text-gray-600 mb-4'>
+									Add topics you're interested in to match
+									with like-minded partners
+								</p>
+
+								{/* Add Interest Input */}
+								<div className='flex gap-2 mb-4'>
+									<Input
+										placeholder='e.g., Machine Learning, Design, Photography...'
+										value={newInterest}
+										onChange={(e) =>
+											setNewInterest(e.target.value)
+										}
+										onKeyDown={(e) => {
+											if (e.key === "Enter") {
+												e.preventDefault();
+												handleAddInterest();
+											}
+										}}
 										sx={{
-											backgroundColor: "#f3e8ff",
-											color: "#7e22ce",
-											fontWeight: "500",
+											flex: 1,
+											"--Input-focusedThickness": "2px",
+											"&:focus-within": {
+												outline:
+													"2px solid var(--color-primary)",
+											},
+										}}
+									/>
+									<Button
+										onClick={handleAddInterest}
+										disabled={!newInterest.trim()}
+										sx={{
+											backgroundColor: "#a855f7",
 											"&:hover": {
-												backgroundColor: "#e9d5ff",
+												backgroundColor: "#9333ea",
+											},
+											"&:disabled": {
+												backgroundColor: "#e5e7eb",
+												color: "#9ca3af",
 											},
 										}}
 									>
-										{interest}
-										<Close
-											onClick={(e) => {
-												e.stopPropagation();
-												e.preventDefault();
-												handleRemoveInterest(interest);
-											}}
+										<Add />
+									</Button>
+								</div>
+
+								{/* Interests List */}
+								<div className='flex flex-wrap gap-2'>
+									{preferences.interests.length > 0 ? (
+										preferences.interests.map(
+											(interest, index) => (
+												<Chip
+													key={index}
+													sx={{
+														backgroundColor:
+															"#f3e8ff",
+														color: "#7e22ce",
+														fontWeight: "500",
+														"&:hover": {
+															backgroundColor:
+																"#e9d5ff",
+														},
+													}}
+												>
+													{interest}
+													<Close
+														onClick={(e) => {
+															e.stopPropagation();
+															e.preventDefault();
+															handleRemoveInterest(
+																interest
+															);
+														}}
+														sx={{
+															fontSize: "1rem",
+															cursor: "pointer",
+															"&:hover": {
+																color: "#dc2626",
+															},
+														}}
+													/>
+												</Chip>
+											)
+										)
+									) : (
+										<p className='text-sm text-gray-400 italic'>
+											No interests added yet. Start by
+											adding some above!
+										</p>
+									)}
+								</div>
+							</div>
+
+							{/* Working Modes Section */}
+							<div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-200'>
+								<h2 className='text-xl font-bold text-gray-800 mb-4 flex items-center gap-2'>
+									<span className='w-2 h-2 rounded-full bg-indigo-500'></span>
+									Working Mode Presets
+								</h2>
+								<p className='text-sm text-gray-600 mb-6'>
+									Choose a preset or customize your own
+									work-date style
+								</p>
+
+								<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4'>
+									{workingModes.map((mode) => {
+										const Icon = mode.icon;
+										const isSelected =
+											preferences.workingMode === mode.id;
+
+										return (
+											<button
+												key={mode.id}
+												onClick={() =>
+													handleWorkingModeChange(
+														mode.id
+													)
+												}
+												className={`p-4 rounded-xl border-2 transition-all text-left ${
+													isSelected
+														? "border-purple-500 bg-purple-50 shadow-lg"
+														: "border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50"
+												}`}
+											>
+												<div className='flex items-center gap-3'>
+													<div className='w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center'>
+														<Icon
+															sx={{
+																fontSize:
+																	"1.5rem",
+																color: isSelected
+																	? mode.color
+																	: "#6b7280",
+															}}
+														/>
+													</div>
+													<div className='flex-1'>
+														<h3 className='font-bold text-gray-800 mb-1'>
+															{mode.name}
+														</h3>
+														<p className='text-sm text-gray-600'>
+															{mode.description}
+														</p>
+													</div>
+													{isSelected && (
+														<div className='w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center'>
+															<span className='text-white text-sm'>
+																✓
+															</span>
+														</div>
+													)}
+												</div>
+											</button>
+										);
+									})}
+								</div>
+							</div>
+
+							{/* Availability Calendar Section */}
+							<div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-200'>
+								<div className='flex items-center justify-between mb-4'>
+									<div>
+										<h2 className='text-xl font-bold text-gray-800 flex items-center gap-2'>
+											<span className='w-2 h-2 rounded-full bg-pink-500'></span>
+											Weekly Availability
+										</h2>
+										<p className='text-sm text-gray-600 mt-1'>
+											Click on time slots to mark when
+											you're available for work dates
+										</p>
+									</div>
+									<div className='flex gap-2'>
+										<Button
+											size='sm'
+											variant='outlined'
+											onClick={handleClearAvailability}
 											sx={{
-												fontSize: "1rem",
-												cursor: "pointer",
+												borderColor: "#e5e7eb",
+												color: "#6b7280",
+												fontSize: "0.75rem",
+												padding: "4px 12px",
 												"&:hover": {
-													color: "#dc2626",
+													borderColor: "#d1d5db",
+													backgroundColor: "#f9fafb",
 												},
 											}}
-										/>
-									</Chip>
-								))
-							) : (
-								<p className='text-sm text-gray-400 italic'>
-									No interests added yet. Start by adding some
-									above!
-								</p>
-							)}
-						</div>
-					</div>
-
-					{/* Working Modes Section */}
-					<div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-200'>
-						<h2 className='text-xl font-bold text-gray-800 mb-4 flex items-center gap-2'>
-							<span className='w-2 h-2 rounded-full bg-indigo-500'></span>
-							Working Mode Presets
-						</h2>
-						<p className='text-sm text-gray-600 mb-6'>
-							Choose a preset or customize your own work-date
-							style
-						</p>
-
-						<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-							{workingModes.map((mode) => {
-								const Icon = mode.icon;
-								const isSelected =
-									preferences.workingMode === mode.id;
-
-								return (
-									<button
-										key={mode.id}
-										onClick={() =>
-											handleWorkingModeChange(mode.id)
-										}
-										className={`p-4 rounded-xl border-2 transition-all text-left ${
-											isSelected
-												? "border-purple-500 bg-purple-50 shadow-lg"
-												: "border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50"
-										}`}
-									>
-										<div className='flex items-center gap-3'>
-											<div className='w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center'>
-												<Icon
-													sx={{
-														fontSize: "1.5rem",
-														color: isSelected
-															? mode.color
-															: "#6b7280",
-													}}
-												/>
-											</div>
-											<div className='flex-1'>
-												<h3 className='font-bold text-gray-800 mb-1'>
-													{mode.name}
-												</h3>
-												<p className='text-sm text-gray-600'>
-													{mode.description}
-												</p>
-											</div>
-											{isSelected && (
-												<div className='w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center'>
-													<span className='text-white text-sm'>
-														✓
-													</span>
-												</div>
-											)}
-										</div>
-									</button>
-								);
-							})}
-						</div>
-					</div>
-
-					{/* Expected Work Session Section */}
-					<div className='bg-white rounded-2xl p-10 shadow-sm border border-gray-200'>
-						<h2 className='text-xl font-bold text-gray-800 mb-4 flex items-center gap-2'>
-							<span className='w-2 h-2 rounded-full bg-pink-500'></span>
-							Expected Work Session
-						</h2>
-						<p className='text-sm text-gray-600 mb-6'>
-							Define your ideal work session duration and
-							interaction level
-						</p>
-
-						<div className='space-y-6'>
-							{/* Work/Chat Ratio */}
-							<div>
-								<div className='flex justify-between items-center mb-3'>
-									<label className='text-sm font-semibold text-gray-700'>
-										Work / Chat Ratio
-									</label>
-									<div className='flex items-center gap-3'>
-										<span className='text-lg font-bold text-purple-600'>
-											{preferences.workRatio}%
-										</span>
-										<span className='text-gray-400'>/</span>
-										<span className='text-lg font-bold text-pink-600'>
-											{100 - preferences.workRatio}%
-										</span>
+										>
+											Clear All
+										</Button>
+										<Button
+											size='sm'
+											onClick={handleSelectAllSlots}
+											sx={{
+												backgroundColor: "#ec4899",
+												fontSize: "0.75rem",
+												padding: "4px 12px",
+												"&:hover": {
+													backgroundColor: "#db2777",
+												},
+											}}
+										>
+											Select All
+										</Button>
 									</div>
 								</div>
-								<Slider
-									value={preferences.workRatio}
-									onChange={(_, value) =>
-										handleWorkSessionChange(
-											"workRatio",
-											value as number
-										)
-									}
-									min={0}
-									max={100}
-									step={5}
-									marks={[
-										{ value: 0, label: "0%" },
-										{ value: 25, label: "25%" },
-										{ value: 50, label: "50%" },
-										{ value: 75, label: "75%" },
-										{ value: 100, label: "100%" },
-									]}
-									sx={{
-										"--Slider-trackBackground":
-											"linear-gradient(to right, #a855f7, #ec4899)",
-										"--Slider-thumbBackground": "#a855f7",
-									}}
-								/>
-								<div className='flex justify-between mt-2'>
-									<p className='text-xs text-purple-600 font-medium'>
-										Work: {preferences.workRatio}%
-									</p>
-									<p className='text-xs text-pink-600 font-medium'>
-										Chat: {100 - preferences.workRatio}%
+
+								{/* Calendar Grid */}
+								<div className=''>
+									<div className='min-w-[700px]'>
+										{/* Header Row - Days of Week */}
+										<div className='grid grid-cols-8 gap-2 mb-2'>
+											<div className='text-xs font-medium text-gray-500 flex items-end pb-1'></div>
+											{daysOfWeek.map((day, index) => (
+												<div
+													key={day}
+													className='text-center text-xs font-bold text-gray-700 pb-1'
+												>
+													{day}
+												</div>
+											))}
+										</div>
+
+										{/* Time Slots Rows */}
+										{timeSlots.map(
+											(timeSlot, timeIndex) => {
+												const Icon = timeSlot.icon;
+												return (
+													<div
+														key={timeIndex}
+														className='grid grid-cols-8 gap-2 mb-2'
+													>
+														{/* Time Label */}
+														<div className='flex flex-col items-start justify-center pr-2'>
+															<div className='flex items-center gap-2'>
+																<Icon
+																	sx={{
+																		fontSize:
+																			"1rem",
+																		color: "#9ca3af",
+																	}}
+																/>
+																<div>
+																	<p className='text-xs font-medium text-gray-700'>
+																		{
+																			timeSlot.label
+																		}
+																	</p>
+																	<p className='text-xs text-gray-500'>
+																		{
+																			timeSlot.time
+																		}
+																	</p>
+																</div>
+															</div>
+														</div>
+
+														{/* Day Slots */}
+														{daysOfWeek.map(
+															(_, dayIndex) => {
+																const selected =
+																	isSlotSelected(
+																		dayIndex,
+																		timeIndex
+																	);
+																return (
+																	<button
+																		key={
+																			dayIndex
+																		}
+																		onClick={() =>
+																			handleToggleSlot(
+																				dayIndex,
+																				timeIndex
+																			)
+																		}
+																		className={`h-14 rounded-lg border-2 transition-all ${
+																			selected
+																				? "border-pink-500 bg-gradient-to-br from-pink-100 to-purple-100 shadow-md"
+																				: "border-gray-200 bg-gray-50 hover:border-pink-300 hover:bg-pink-50"
+																		}`}
+																		title={`${daysOfWeek[dayIndex]} ${timeSlot.label}`}
+																	>
+																		{selected && (
+																			<div className='flex items-center justify-center h-full'>
+																				<span className='text-pink-600 font-bold text-lg'>
+																					✓
+																				</span>
+																			</div>
+																		)}
+																	</button>
+																);
+															}
+														)}
+													</div>
+												);
+											}
+										)}
+									</div>
+								</div>
+
+								{/* Stats */}
+								<div className='mt-4 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200'>
+									<p className='text-sm text-gray-700'>
+										<span className='font-semibold text-purple-600'>
+											{preferences.availability.length} of
+											42
+										</span>{" "}
+										time slots selected
+										{preferences.availability.length ===
+											0 && (
+											<span className='text-amber-600 ml-2'>
+												⚠️ Select at least a few slots
+												to improve matching!
+											</span>
+										)}
 									</p>
 								</div>
 							</div>
 
-							{/* Chat Expectation */}
-							<div>
-								<div className='flex justify-between items-center mb-3'>
-									<label className='text-sm font-semibold text-gray-700'>
-										Interaction Level
-									</label>
-									<span className='text-lg font-bold text-purple-600'>
-										{preferences.chatExpectation}%
-									</span>
-								</div>
-								<Slider
-									value={preferences.chatExpectation}
-									onChange={(_, value) =>
-										handleWorkSessionChange(
-											"chatExpectation",
-											value as number
-										)
-									}
-									min={0}
-									max={100}
-									step={5}
-									marks={[
-										{ value: 0, label: "Silent" },
-										{ value: 50, label: "Moderate" },
-										{ value: 100, label: "Very Active" },
-									]}
+							{/* Save Button */}
+							<div className='flex justify-end gap-4'>
+								<Button
+									variant='outlined'
+									onClick={() => navigate(-1)}
 									sx={{
-										"--Slider-trackBackground":
-											"linear-gradient(to right, #a855f7, #ec4899)",
-										"--Slider-thumbBackground": "#a855f7",
+										borderColor: "#e5e7eb",
+										color: "#6b7280",
+										"&:hover": {
+											borderColor: "#d1d5db",
+											backgroundColor: "#f9fafb",
+										},
 									}}
-								/>
-								<p className='text-xs text-gray-500 mt-2'>
-									{preferences.chatExpectation < 30
-										? "You prefer minimal interaction during work"
-										: preferences.chatExpectation < 70
-										? "You enjoy moderate conversation during breaks"
-										: "You love active collaboration and chat"}
-								</p>
+								>
+									Cancel
+								</Button>
+								<Button
+									onClick={handleSavePreferences}
+									disabled={isSaving}
+									startDecorator={<Save />}
+									sx={{
+										backgroundColor: "#a855f7",
+										paddingX: 4,
+										"&:hover": {
+											backgroundColor: "#9333ea",
+										},
+										"&:disabled": {
+											backgroundColor: "#e5e7eb",
+											color: "#9ca3af",
+										},
+									}}
+								>
+									{isSaving
+										? "Saving..."
+										: "Save Preferences"}
+								</Button>
 							</div>
 						</div>
 					</div>
-
-					{/* Save Button */}
-					<div className='flex justify-end gap-4'>
-						<Button
-							variant='outlined'
-							onClick={() => navigate(-1)}
-							sx={{
-								borderColor: "#e5e7eb",
-								color: "#6b7280",
-								"&:hover": {
-									borderColor: "#d1d5db",
-									backgroundColor: "#f9fafb",
-								},
-							}}
-						>
-							Cancel
-						</Button>
-						<Button
-							onClick={handleSavePreferences}
-							disabled={isSaving}
-							startDecorator={<Save />}
-							sx={{
-								backgroundColor: "#a855f7",
-								paddingX: 4,
-								"&:hover": { backgroundColor: "#9333ea" },
-								"&:disabled": {
-									backgroundColor: "#e5e7eb",
-									color: "#9ca3af",
-								},
-							}}
-						>
-							{isSaving ? "Saving..." : "Save Preferences"}
-						</Button>
-					</div>
-				</div>
-			</div>
-		</Layout>
-	);
+				</Layout>
+			</>
+		);
+	}
 }
 
 export default PreferencePage;

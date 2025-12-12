@@ -469,7 +469,7 @@ async function testMatchingSystem() {
 	const endTime = Date.now();
 	console.log(`Time taken: ${(endTime - startTime) / 1000} seconds`);
 }
-await testMatchingSystem();
+// await testMatchingSystem();
 
 const matchingSystem = new MatchingSystem();
 await matchingSystem.initialize();

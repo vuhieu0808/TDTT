@@ -4,7 +4,6 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import PublicRoute from "./components/auth/PublicRoute";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
-import SchedulePage from "./pages/SchedulePage";
 import VenuesFindingPage from "./pages/VenuesFindingPage";
 import PreferencePage from "./pages/PreferencePage";
 import MessagePage from "./pages/MessagePage";
@@ -41,10 +40,6 @@ function App() {
 					{/* Protected Routes */}
 					<Route element={<ProtectedRoute />}>
 						<Route path='/' element={<HomePage />} />
-						<Route
-							path='/SchedulePage'
-							element={<SchedulePage />}
-						/>
 						<Route
 							path='/VenuesFindingPage'
 							element={<VenuesFindingPage />}

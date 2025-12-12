@@ -19,10 +19,6 @@ const HomePage = () => {
 	const { userProfile } = useAuthStore();
 	const navigate = useNavigate();
 
-	const handleScheduleClick = () => {
-		navigate("/SchedulePage");
-	};
-
 	const handleMatchingClick = () => {
 		navigate("/MatchingPage");
 	};
@@ -118,50 +114,7 @@ const HomePage = () => {
 					</div>
 
 					{/* Feature Cards */}
-					<div className='grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16'>
-						{/* Availability Matching */}
-						<div className='group bg-white rounded-3xl p-8 shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 flex flex-col h-full hover:-translate-y-2'>
-							<div className='w-20 h-20 bg-gradient-to-br from-purple-400 to-purple-600 rounded-3xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform duration-300 shadow-lg'>
-								<CalendarToday
-									sx={{
-										color: "white",
-										fontSize: "2rem",
-									}}
-								/>
-							</div>
-							<h3 className='text-2xl font-bold text-gray-900 mb-3 text-center'>
-								Set Availability
-							</h3>
-							<p className='text-base text-gray-600 mb-8 text-center flex-grow leading-relaxed'>
-								Sync your schedule for perfect work-date
-								matching
-							</p>
-							<Button
-								onClick={handleScheduleClick}
-								sx={{
-									width: "100%",
-									background:
-										"linear-gradient(135deg, #a855f7 0%, #9333ea 100%)",
-									color: "white",
-									textTransform: "none",
-									padding: "12px 24px",
-									borderRadius: "1rem",
-									fontSize: "1rem",
-									fontWeight: "600",
-									"&:hover": {
-										background:
-											"linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)",
-										transform: "translateY(-2px)",
-										boxShadow:
-											"0 8px 20px rgba(168, 85, 247, 0.4)",
-									},
-									transition: "all 0.3s ease",
-								}}
-							>
-								Update Schedule
-							</Button>
-						</div>
-
+					<div className='grid md:grid-cols-1 lg:grid-cols-2 gap-8 mb-16'>
 						{/* Coffee Shop Finder */}
 						<div className='group bg-white rounded-3xl p-8 shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 flex flex-col h-full hover:-translate-y-2'>
 							<div className='w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-600 rounded-3xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform duration-300 shadow-lg'>
