@@ -252,18 +252,20 @@ class MatchingSystem {
     if (!userA.availability || !userB.availability) {
       return 0;
     }
-    if (
-      userA.availability.length !== 42 ||
-      userB.availability.length !== 42
-    ) {
-      return 0;
+    let avaiA: number[42];
+    let avaiB: number[42];
+    for (const val of userA.availability) {
+      avaiA[val] = 1;
+    }
+    for (const val of userB.availability) {
+      avaiB[val] = 1;
     }
 
     let intersection = 0;
     let union = 0;
     for (let i = 0; i < 42; i++) {
-      const availA = userA.availability[i] || 0;
-      const availB = userB.availability[i] || 0;
+      const availA = avaiA[i] || 0;
+      const availB = avaiB[i] || 0;
       if (availA > 0 || availB > 0) {
         union++;
         if (availA > 0 && availB > 0) {
@@ -331,17 +333,6 @@ class MatchingSystem {
         userA.maxDistanceKm || 50,
         userB.maxDistanceKm || 50
       );
-
-      // console.log(
-      //   "Distance between",
-      //   userA.uid,
-      //   "and",
-      //   userB.uid,
-      //   ":",
-      //   distance,
-      //   "km"
-      // );
-      // console.log("Max acceptable distance:", maxDist, "km");
 
       if (distance > maxDist) return 0;
       const ratio = distance / maxDist;

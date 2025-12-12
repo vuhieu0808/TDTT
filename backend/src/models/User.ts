@@ -34,8 +34,6 @@ export interface User {
   occupation?: string;
   occupationDescription?: string;
 
-  workDateRatio?: number; // tỷ lệ làm việc (0-100) (0=all date, 100 = all work)
-
   location?: {
     lat: number; // vĩ độ
     lng: number; // kinh độ
