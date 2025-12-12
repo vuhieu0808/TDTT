@@ -354,51 +354,38 @@ class MatchingSystem {
   }
 
   private scoreWorkVibe(userA: User, userB: User): number {
-    if (!userA.workVibe || !userB.workVibe) return 0.5;
-    const chatA = userA.workVibe.workChatRatio || 50;
-    const chatB = userB.workVibe.workChatRatio || 50;
-    let chatScore = this.calculateScore(chatA, chatB);
+    const vibeA = userA.workVibe || "balanced";
+    const vibeB = userB.workVibe || "balanced";
 
-    const interactionA = userA.workVibe.interactionLevel || 50;
-    const interactionB = userB.workVibe.interactionLevel || 50;
-    let interactionScore = this.calculateScore(interactionA, interactionB);
+    const vibeMap: Record<string, Record<string, number>> = {
+      "quiet-focus": {
+        "quiet-focus": 1.0,
+        balanced: 0.7, // Giảm nhẹ
+        "creative-chat": 0.2, // Giảm mạnh: 2 người này ngồi cạnh nhau là thảm họa
+        "deep-work": 0.9, // Tăng lên: 2 người này rất hợp nhau
+      },
+      "deep-work": {
+        "deep-work": 1.0,
+        balanced: 0.7,
+        "quiet-focus": 0.9,
+        "creative-chat": 0.3, // Deep work rất kỵ chat
+      },
+      balanced: {
+        balanced: 1.0,
+        "quiet-focus": 0.7,
+        "creative-chat": 0.7,
+        "deep-work": 0.7,
+      },
+      "creative-chat": {
+        "creative-chat": 1.0,
+        balanced: 0.7,
+        "quiet-focus": 0.2,
+        "deep-work": 0.3,
+      },
+    };
 
-    return chatScore * 0.6 + interactionScore * 0.4;
+    return vibeMap[vibeA]?.[vibeB] || 0.5;
   }
-
-  // private scoreSessionGoals(userA: User, userB: User): number {
-  //   const goalsA = userA.sessionGoals;
-  //   const goalsB = userB.sessionGoals;
-
-  //   if (!goalsA || !goalsB) return 0.5;
-
-  //   const maxWorkDiff = 180;
-  //   const workDiff = Math.abs(
-  //     (goalsA.workMinutes || 0) - (goalsB.workMinutes || 0)
-  //   );
-  //   const workScore = Math.max(0, 1 - workDiff / maxWorkDiff);
-
-  //   const maxBreakDiff = 60;
-  //   const breakDiff = Math.abs(
-  //     (goalsA.breakMinutes || 0) - (goalsB.breakMinutes || 0)
-  //   );
-  //   const breakScore = Math.max(0, 1 - breakDiff / maxBreakDiff);
-
-  //   const chatLevels: Record<string, number> = { low: 0, medium: 1, high: 2 };
-  //   const chatA = goalsA.chatDesire || "medium";
-  //   const chatB = goalsB.chatDesire || "medium";
-
-  //   const chatDiff = Math.abs(
-  //     (chatLevels[chatA] || 1) - (chatLevels[chatB] || 1)
-  //   );
-
-  //   const chatScoreArray = [1.0, 0.7, 0.3];
-  //   const chatScore =
-  //     (chatDiff < chatScoreArray.length ? chatScoreArray[chatDiff] : 0.3) ??
-  //     0.3;
-
-  //   return workScore * 0.4 + breakScore * 0.3 + chatScore * 0.3;
-  // }
 
   clearCache() {
     this.embeddingCache.clear();
@@ -433,8 +420,7 @@ async function testMatchingSystem() {
     workDateRatio: 70,
     location: { lat: 37.7749, lng: -122.4194 },
     maxDistanceKm: 20,
-    workVibe: { type: "custom", workChatRatio: 30, interactionLevel: 40 },
-    // sessionGoals: { workMinutes: 90, breakMinutes: 15, chatDesire: "medium" },
+    workVibe: "quiet-focus",
   };
 
   const userB: User = {
@@ -460,8 +446,7 @@ async function testMatchingSystem() {
     workDateRatio: 65,
     location: { lat: 37.8044, lng: -122.2711 },
     maxDistanceKm: 30,
-    workVibe: { type: "custom", workChatRatio: 40, interactionLevel: 50 },
-    // sessionGoals: { workMinutes: 80, breakMinutes: 20, chatDesire: "high" },
+    workVibe: "deep-work",
   };
   // let users: User[] = [];
   // for (let i = 0; i < 100; i++) {

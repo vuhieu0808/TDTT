@@ -42,19 +42,7 @@ export interface User {
   };
   maxDistanceKm?: number; // khoảng cách tối đa (km)
 
-  // workVibe?: "quiet-focus" | "creative-chat" | "deep-work" | "balanced";
-
-  // sessionGoals?: {
-  //   workMinutes: number;
-  //   breakMinutes: number;
-  //   chatDesire: "low" | "medium" | "high"; // mong muốn trò chuyện
-  // };
-
-  workVibe?: {
-    type: string; // quiet-focus, creative-chat, deep-work, balanced, custom
-    workChatRatio: number; // tỷ lệ làm việc và trò chuyện (0-100) (0=all work, 100=all chat)
-    interactionLevel: number; // mức độ tương tác (0-100) (0=low, 100=high)
-  };
+  workVibe?: "quiet-focus" | "creative-chat" | "deep-work" | "balanced";
 
   createdAt: FirebaseFirestore.Timestamp;
   updatedAt: FirebaseFirestore.Timestamp;
