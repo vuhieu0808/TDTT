@@ -148,10 +148,8 @@ class MatchingSystem {
       interests: interestsScore,
       availability: this.scoreAvailability(userA, userB),
       occupation: occupationScore,
-      workDateRatio: this.scoreWorkDateRatio(userA, userB),
       location: this.scoreLocation(userA, userB),
       workVibe: this.scoreWorkVibe(userA, userB),
-      // sessionGoals: this.scoreSessionGoals(userA, userB),
     };
 
     // console.log(
@@ -252,8 +250,8 @@ class MatchingSystem {
     if (!userA.availability || !userB.availability) {
       return 0;
     }
-    let avaiA: number[42];
-    let avaiB: number[42];
+    let avaiA = new Array<number>(42).fill(0);
+    let avaiB = new Array<number>(42).fill(0);
     for (const val of userA.availability) {
       avaiA[val] = 1;
     }
@@ -308,12 +306,6 @@ class MatchingSystem {
     if (similarity > 0.4) return 0.8;
     if (similarity > 0.2) return 0.6;
     return 0.3;
-  }
-
-  private scoreWorkDateRatio(userA: User, userB: User): number {
-    const ratioA = userA.workDateRatio || 50;
-    const ratioB = userB.workDateRatio || 50;
-    return this.calculateScore(ratioA, ratioB);
   }
 
   private scoreLocation(userA: User, userB: User): number {
@@ -405,7 +397,6 @@ async function testMatchingSystem() {
     }),
     occupation: "Software Engineer",
     occupationDescription: "Works on web applications",
-    workDateRatio: 70,
     location: { lat: 37.7749, lng: -122.4194 },
     maxDistanceKm: 20,
     workVibe: "quiet-focus",
@@ -431,7 +422,6 @@ async function testMatchingSystem() {
     }),
     occupation: "Backend Developer",
     occupationDescription: "Builds server-side applications",
-    workDateRatio: 65,
     location: { lat: 37.8044, lng: -122.2711 },
     maxDistanceKm: 30,
     workVibe: "deep-work",
