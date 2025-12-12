@@ -23,7 +23,7 @@ export interface User {
 
   // Thông tin dùng để matching
   age?: number;
-  agePreference?: { min: number; max: number }; // [minAge, maxAge]
+  // agePreference?: { min: number; max: number }; // [minAge, maxAge]
 
   gender?: "male" | "female" | "other";
 

@@ -14,10 +14,8 @@ export interface MatchScore {
     interests: number;
     availability: number;
     occupation: number;
-    workDateRatio: number;
     location: number;
     workVibe: number;
-    // sessionGoals: number;
   };
 }
 
@@ -28,11 +26,10 @@ class MatchingSystem {
   private readonly WEIGHTS = {
     age: 0.1,
     interests: 0.15,
-    availability: 0.15,
+    availability: 0.2,
     occupation: 0.1,
-    workDateRatio: 0.15,
-    location: 0.15,
-    workVibe: 0.2,
+    location: 0.2,
+    workVibe: 0.25,
   };
 
   async initialize() {
@@ -207,17 +204,17 @@ class MatchingSystem {
   private scoreAge(userA: User, userB: User): number {
     if (!userA.age || !userB.age) return 0.3;
 
-    const minA = userA.agePreference?.min ?? userA.age - 5;
-    const maxA = userA.agePreference?.max ?? userA.age + 5;
+    // const minA = userA.agePreference?.min ?? userA.age - 5;
+    // const maxA = userA.agePreference?.max ?? userA.age + 5;
 
-    const minB = userB.agePreference?.min ?? userB.age - 5;
-    const maxB = userB.agePreference?.max ?? userB.age + 5;
+    // const minB = userB.agePreference?.min ?? userB.age - 5;
+    // const maxB = userB.agePreference?.max ?? userB.age + 5;
 
-    const isB_fit_A = userB.age >= minA && userB.age <= maxA;
-    const isA_fit_B = userA.age >= minB && userA.age <= maxB;
+    // const isB_fit_A = userB.age >= minA && userB.age <= maxA;
+    // const isA_fit_B = userA.age >= minB && userA.age <= maxB;
 
-    if (isB_fit_A && isA_fit_B) return 1.0;
-    if (isB_fit_A || isA_fit_B) return 0.7;
+    // if (isB_fit_A && isA_fit_B) return 1.0;
+    // if (isB_fit_A || isA_fit_B) return 0.7;
 
     const diff = Math.abs(userA.age - userB.age);
     if (diff <= 5) return 0.8;
@@ -256,15 +253,15 @@ class MatchingSystem {
       return 0;
     }
     if (
-      userA.availability.length !== 168 ||
-      userB.availability.length !== 168
+      userA.availability.length !== 42 ||
+      userB.availability.length !== 42
     ) {
       return 0;
     }
 
     let intersection = 0;
     let union = 0;
-    for (let i = 0; i < 168; i++) {
+    for (let i = 0; i < 42; i++) {
       const availA = userA.availability[i] || 0;
       const availB = userB.availability[i] || 0;
       if (availA > 0 || availB > 0) {
@@ -407,9 +404,9 @@ async function testMatchingSystem() {
     updatedAt: admin.firestore.Timestamp.now(),
     //
     age: 25,
-    agePreference: { min: 22, max: 30 },
+    // agePreference: { min: 22, max: 30 },
     interests: ["hiking", "reading", "coding"],
-    availability: new Array(168).fill(0).map((_, i) => {
+    availability: new Array(42).fill(0).map((_, i) => {
       const day = Math.floor(i / 24);
       const hour = i % 24;
       // Available Mon-Fri 9am-5pm
@@ -433,9 +430,9 @@ async function testMatchingSystem() {
     updatedAt: admin.firestore.Timestamp.now(),
     //
     age: 27,
-    agePreference: { min: 24, max: 32 },
+    // agePreference: { min: 24, max: 32 },
     interests: ["coding", "gaming", "traveling"],
-    availability: new Array(168).fill(0).map((_, i) => {
+    availability: new Array(42).fill(0).map((_, i) => {
       const day = Math.floor(i / 24);
       const hour = i % 24;
       // Available Mon-Fri 10am-6pm
