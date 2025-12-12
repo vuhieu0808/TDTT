@@ -229,8 +229,8 @@ class MatchingSystem {
     const text1 = this.combineInterests(userA);
     const text2 = this.combineInterests(userB);
 
-    if (!text1 && !text2) return 0.5;
-    if (!text1 || !text2) return 0.2;
+    if (!text1 && !text2) return 0.3;
+    if (!text1 || !text2) return 0.3;
 
     const [embeddingA, embeddingB] = await Promise.all([
       this.getEmbedding(text1),
@@ -291,7 +291,7 @@ class MatchingSystem {
     }`.toLowerCase();
 
     if (!textA.trim() || !textB.trim()) {
-      return 0.5;
+      return 0.3;
     }
 
     const [embeddingA, embeddingB] = await Promise.all([

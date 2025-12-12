@@ -8,13 +8,13 @@ export const createNewWorkSession = async (req: AuthRequest, res: Response) => {
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized. No token provided" });
     }
-    const { participants, scheduledAt, location, goals } = req.body;
-    if (!participants || !scheduledAt) {
+    const { participants, schedule, location, goals } = req.body;
+    if (!participants || !schedule) {
       return res.status(400).json({ error: "Missing required fields" });
     }
     await WorkSessionServices.createWorkSession(
       participants,
-      new Date(scheduledAt),
+      schedule,
       location,
       goals
     );

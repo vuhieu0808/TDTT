@@ -3,14 +3,14 @@ import { workSessionDB } from "../models/db.js";
 import { io } from "../socket/index.js";
 
 import { Participant } from "../models/Conversation.js";
-import { SessionGoal, WorkSession } from "../models/WorkSession.js";
+import { ScheduleSession, SessionGoal, WorkSession } from "../models/WorkSession.js";
 import { emitNewSession, emitStartSession } from "../utils/WorkSessionHelper.js";
 
 export const WorkSessionServices = {
   // sửa any khi có db
   async createWorkSession(
     participants: Participant[],
-    scheduledAt: Date,
+    schedule: ScheduleSession,
     location?: any,
     goals?: SessionGoal[]
   ): Promise<WorkSession> {
@@ -21,7 +21,7 @@ export const WorkSessionServices = {
       participants,
       participantIds,
       status: "pending" as const,
-      scheduledAt,
+      schedule,
       location,
       ...(goals ? { goals } : {}),
       createdAt: admin.firestore.Timestamp.now(),
