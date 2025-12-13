@@ -1,4 +1,3 @@
-import { db, rtdb } from "../config/firebase.js";
 import { userDB } from "../models/db.js";
 
 export const getDetailsForUserIds = async (userIds: string[]) => {
@@ -51,7 +50,15 @@ export const getFullUserProfile = async (userIds: string[]) => {
       .flatMap((snapshot) => snapshot.docs)
       .map((doc) => {
         const userData = doc.data();
-        return [userData.uid, { ...userData }];
+        return [
+          userData.uid,
+          {
+            ...userData,
+            lastActivity: userData.lastActivity.toDate().toISOString(),
+            createdAt: userData.createdAt.toDate().toISOString(),
+            updatedAt: userData.updatedAt.toDate().toISOString(),
+          },
+        ];
       })
   );
   const usersDetails = userIds
