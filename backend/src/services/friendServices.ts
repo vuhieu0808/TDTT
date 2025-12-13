@@ -6,6 +6,14 @@ import { getDetailsForUserIds } from "../utils/friendHelper.js";
 import { conversationServices } from "./conversationServices.js";
 
 export const friendServices = {
+  getMatchRequests: async (userId: string) => {
+    const [sentRequestsSnapshot, receivedRequestsSnapshot] = await Promise.all([
+      friendRequestDB.where("senderId", "==", userId).get(),
+      friendRequestDB.where("receivedId", "==", userId).get(),
+    ]);
+    return { sentRequestsSnapshot, receivedRequestsSnapshot };
+  },
+  
   swipeRight: async (senderId: string, receiverId: string) => {
     const [userA, userB] = [senderId, receiverId].sort();
     const friendShipId = `${userA}_${userB}`;
@@ -90,7 +98,7 @@ export const friendServices = {
     const expiresAt = admin.firestore.Timestamp.fromMillis(
       Date.now() + Math.pow(2, cooldownTimes) * 24 * 60 * 60 * 1000
     );
-    
+
     await db.runTransaction(async (transaction) => {
       const friendRequstSnapshot = await transaction.get(
         friendRequestDB
@@ -132,7 +140,8 @@ export const friendServices = {
     return await getDetailsForUserIds(matchedUserIds);
   },
 
-  unmatchUser: async (userId: string, unmatchUserId: string) => { // xoá bạn bè
+  unmatchUser: async (userId: string, unmatchUserId: string) => {
+    // xoá bạn bè
     const [userA, userB] = [userId, unmatchUserId].sort();
     const friendShipId = `${userA}_${userB}`;
     const friendRef = friendDB.doc(friendShipId);
@@ -160,5 +169,5 @@ export const friendServices = {
       });
     });
     return true;
-  }
+  },
 };

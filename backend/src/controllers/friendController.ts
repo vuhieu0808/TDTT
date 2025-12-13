@@ -2,9 +2,9 @@ import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
 import { getDetailsForUserIds } from "../utils/friendHelper.js";
 import { friendServices } from "../services/friendServices.js";
-import { friendRequestDB, userDB } from "../models/db.js";
+import { userDB } from "../models/db.js";
 
-export const getFriendRequests = async (req: AuthRequest, res: Response) => {
+export const getMatchRequests = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.uid;
     if (!userId) {
@@ -12,10 +12,7 @@ export const getFriendRequests = async (req: AuthRequest, res: Response) => {
     }
 
     // Lấy tất cả yêu cầu gửi và nhận của userId
-    const [sentRequestsSnapshot, receivedRequestsSnapshot] = await Promise.all([
-      friendRequestDB.where("senderId", "==", userId).get(),
-      friendRequestDB.where("receivedId", "==", userId).get(),
-    ]);
+    const { sentRequestsSnapshot, receivedRequestsSnapshot } = await friendServices.getMatchRequests(userId);
     const sendRequestIds = sentRequestsSnapshot.docs.map((doc) => {
       const requestData = doc.data();
       return requestData.receivedId;

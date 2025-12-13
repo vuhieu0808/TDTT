@@ -385,6 +385,7 @@ async function testMatchingSystem() {
     lastActivity: admin.firestore.Timestamp.now(),
     createdAt: admin.firestore.Timestamp.now(),
     updatedAt: admin.firestore.Timestamp.now(),
+    isReadyToMatch: true,
     //
     age: 25,
     // agePreference: { min: 22, max: 30 },
@@ -410,6 +411,7 @@ async function testMatchingSystem() {
     lastActivity: admin.firestore.Timestamp.now(),
     createdAt: admin.firestore.Timestamp.now(),
     updatedAt: admin.firestore.Timestamp.now(),
+    isReadyToMatch: true,
     //
     age: 27,
     // agePreference: { min: 24, max: 32 },

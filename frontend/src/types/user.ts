@@ -20,6 +20,9 @@ export interface UserProfile {
   lastActivity: string;
 
   // Thông tin dùng để matching
+
+  isReadyToMatch: boolean;
+
   age?: number;
   // agePreference?: { min: number; max: number }; // [minAge, maxAge]
 
