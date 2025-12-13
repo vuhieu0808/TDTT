@@ -73,7 +73,7 @@ export const useAuthStore = create<AuthState>()(
 					if (get().userProfile) {
 						return;
 					}
-					console.log("Fetching user profile for:", get().authUser);
+					// console.log("Fetching user profile for:", get().authUser);
 					set({ loading: true });
 					const { data } = await authServices.fetchMe();
 					console.log("Fetched user profile:", data);
@@ -106,7 +106,8 @@ export const useAuthStore = create<AuthState>()(
 					"Hydration finished. Loaded userProfile:",
 					state?.userProfile
 				);
-				console.log("Hydration finished. Loaded token:", state?.token);
+				// console.log("Hydration finished. Loaded token:", state?.token);
+				console.log("Hydration finished. Loaded token");
 			},
 		}
 	)
