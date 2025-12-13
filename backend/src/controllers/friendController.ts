@@ -1,6 +1,6 @@
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
-import { getDetailsForUserIds } from "../utils/friendHelper.js";
+import { getDetailsForUserIds, getFullUserProfile } from "../utils/friendHelper.js";
 import { friendServices } from "../services/friendServices.js";
 import { userDB } from "../models/db.js";
 
@@ -22,8 +22,8 @@ export const getMatchRequests = async (req: AuthRequest, res: Response) => {
       return requestData.senderId;
     });
     const [sentRequests, receivedRequests] = await Promise.all([
-      getDetailsForUserIds(sendRequestIds),
-      getDetailsForUserIds(receivedRequestIds),
+      getFullUserProfile(sendRequestIds),
+      getFullUserProfile(receivedRequestIds),
     ]);
 
     return res.status(200).json({ sentRequests, receivedRequests });

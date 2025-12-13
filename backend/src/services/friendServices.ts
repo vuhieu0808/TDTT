@@ -52,6 +52,7 @@ export const friendServices = {
       const friendData: Friend = {
         userA: userA!,
         userB: userB!,
+        isNewFriend: true,
         createdAt: admin.firestore.Timestamp.now(),
       };
 
