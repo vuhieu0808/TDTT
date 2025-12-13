@@ -1,18 +1,27 @@
-import { useAuthStore } from "@/stores/useAuthStore";
 import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+
+import { useAuthStore } from "@/stores/useAuthStore";
+import { friendServices } from "@/services/friendServices";
+import { userServices } from "@/services/userServices"; // Add this import
+import type { Friend, FriendRequest } from "@/types/user";
+import type { UserProfile } from "@/types/user";
 
 import ChatButton from "@/components/ChatButton";
-
 import Layout from "@/components/Layout";
 import Button from "@mui/joy/Button";
 
 import {
 	WavingHand,
-	CalendarToday,
+	HourglassEmpty,
 	Coffee,
 	CrisisAlert,
 	Favorite,
+	FavoriteBorder,
 	TrendingUp,
+	PersonAdd,
+	Check,
+	Close,
 } from "@mui/icons-material";
 
 const HomePage = () => {
@@ -29,6 +38,103 @@ const HomePage = () => {
 
 	const handlePreferencesClick = () => {
 		navigate("/PreferencePage");
+	};
+
+	const [requests, setRequests] = useState<FriendRequest[]>([]);
+	const [requestProfiles, setRequestProfiles] = useState<UserProfile[]>([]);
+	const [isLoading, setIsLoading] = useState(true);
+
+	useEffect(() => {
+		const fetchRequest = async () => {
+			try {
+				setIsLoading(true);
+				const response = await friendServices.getMatchRequests();
+
+				console.log("Friend requests response:", response);
+
+				// Convert object to array if needed
+				let requestArray: FriendRequest[] = [];
+				if (Array.isArray(response)) {
+					requestArray = response;
+				} else if (typeof response === "object") {
+					requestArray = Object.entries(response).map(
+						([key, value]) => ({
+							id: key,
+							...(value as any),
+						})
+					);
+				}
+
+				console.log("Parsed request array:", requestArray);
+
+				if (requestArray && requestArray.length > 0) {
+					// Fetch full profiles for each friend request
+					const profilePromises = requestArray.map(
+						async (request: FriendRequest) => {
+							try {
+								// Fetch the full user profile using the fromUid
+								const userProfile =
+									await userServices.getUserByUid(
+										request.fromUid
+									);
+								return userProfile;
+							} catch (error) {
+								console.error(
+									`Failed to fetch profile for ${request.fromUid}:`,
+									error
+								);
+								// Return a minimal profile if fetch fails
+								return {
+									uid: request.fromUid,
+								} as UserProfile;
+							}
+						}
+					);
+
+					const profiles = await Promise.all(profilePromises);
+					console.log("Fetched user profiles:", profiles);
+
+					setRequests(requestArray);
+					setRequestProfiles(profiles);
+				}
+			} catch (error) {
+				console.log("Failed to get match requests:", error);
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		fetchRequest();
+	}, []);
+
+	const handleAcceptRequest = async (requestId: string) => {
+		try {
+			await friendServices.swipeRight(requestId);
+			// Refresh the requests
+			setRequests(requests.filter((req) => req.fromUid !== requestId));
+			setRequestProfiles(
+				requestProfiles.filter(
+					(_, index) => requests[index].fromUid !== requestId
+				)
+			);
+		} catch (error) {
+			console.error("Failed to accept request:", error);
+		}
+	};
+
+	const handleRejectRequest = async (requestId: string) => {
+		try {
+			await friendServices.swipeLeft(requestId);
+			// Refresh the requests
+			setRequests(requests.filter((req) => req.fromUid !== requestId));
+			setRequestProfiles(
+				requestProfiles.filter(
+					(_, index) => requests[index].fromUid !== requestId
+				)
+			);
+		} catch (error) {
+			console.error("Failed to reject request:", error);
+		}
 	};
 
 	return (
@@ -200,17 +306,21 @@ const HomePage = () => {
 						</div>
 					</div>
 
-					{/* Active Sessions / Matches Section */}
-					<div className='flex flex-row'>
+					{/* Matches Section */}
+					<div className='grid grid-cols-2 gap-5'>
 						{/* Your Matches */}
 						<div className='w-full bg-gradient-to-br from-white to-pink-50 rounded-3xl p-10 shadow-md border border-pink-100'>
 							<h3 className='text-3xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mb-8'>
 								Your Matches
 							</h3>
 							<div className='text-center py-12'>
-								<span className='text-7xl mb-6 block filter drop-shadow-lg'>
-									💝
-								</span>
+								<FavoriteBorder
+									sx={{
+										fontSize: "3rem",
+										color: "#ec4899",
+										mb: 2,
+									}}
+								/>
 								<p className='text-gray-700 mb-2 text-lg font-medium'>
 									No matches yet
 								</p>
@@ -219,6 +329,102 @@ const HomePage = () => {
 									availability to start matching!
 								</p>
 							</div>
+						</div>
+
+						{/* Pending Match Requests */}
+						<div className='w-full bg-gradient-to-br from-white to-pink-50 rounded-3xl p-10 shadow-md border border-pink-100'>
+							<h3 className='text-3xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mb-8'>
+								Match Requests
+							</h3>
+
+							{isLoading ? (
+								<div className='text-center py-12'>
+									<div className='w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4'></div>
+									<p className='text-gray-600'>
+										Loading requests...
+									</p>
+								</div>
+							) : requestProfiles.length > 0 ? (
+								<div className='space-y-4 max-h-96 overflow-y-auto'>
+									{requestProfiles.map((profile, index) => (
+										<div
+											key={requests[index].fromUid}
+											className='flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all'
+										>
+											<img
+												src={profile.avatarUrl}
+												alt={profile.displayName}
+												className='w-16 h-16 rounded-full object-cover border-2 border-pink-300'
+											/>
+											<div className='flex-1'>
+												<h4 className='font-semibold text-gray-800 text-lg'>
+													{profile.displayName}
+												</h4>
+												<p className='text-sm text-gray-600'>
+													{profile.bio?.substring(
+														0,
+														50
+													) || "No bio available"}
+													...
+												</p>
+												<div className='flex gap-2 mt-2'>
+													{profile.interests
+														?.slice(0, 3)
+														.map((interest, i) => (
+															<span
+																key={i}
+																className='px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs'
+															>
+																{interest}
+															</span>
+														))}
+												</div>
+											</div>
+											<div className='flex gap-2'>
+												<button
+													onClick={() =>
+														handleAcceptRequest(
+															requests[index]
+																.fromUid
+														)
+													}
+													className='p-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors'
+												>
+													<Check />
+												</button>
+												<button
+													onClick={() =>
+														handleRejectRequest(
+															requests[index]
+																.fromUid
+														)
+													}
+													className='p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors'
+												>
+													<Close />
+												</button>
+											</div>
+										</div>
+									))}
+								</div>
+							) : (
+								<div className='text-center py-12'>
+									<HourglassEmpty
+										sx={{
+											fontSize: "3rem",
+											color: "#a855f7",
+											mb: 2,
+										}}
+									/>
+									<p className='text-gray-700 mb-2 text-lg font-medium'>
+										No pending requests
+									</p>
+									<p className='text-base text-gray-500'>
+										Start matching to receive work date
+										requests!
+									</p>
+								</div>
+							)}
 						</div>
 					</div>
 				</div>

@@ -67,6 +67,7 @@ function MatchingPage() {
 							// matchPercentage: Math.round(match.totalScore * 100),
 							createdAt: match.user?.createdAt,
 							updatedAt: match.user?.updatedAt,
+							isReadyToMatch: match.user.isReadyToMatch,
 						})
 					);
 
@@ -97,6 +98,7 @@ function MatchingPage() {
 			console.log("Rejected: ", currentMatch.displayName);
 			if (hasMoreMatches) {
 				setCurrentIndex(currentIndex + 1);
+				friendServices.swipeLeft(currentMatch.uid);
 			} else {
 				setCurrentIndex(0);
 			}
@@ -166,12 +168,6 @@ function MatchingPage() {
 			</>
 		);
 	}
-
-	const isReadyToMatch =
-		userProfile?.age === undefined &&
-		userProfile?.gender === undefined &&
-		userProfile?.interests === undefined &&
-		userProfile?.occupation === undefined;
 
 	return (
 		<>
