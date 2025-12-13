@@ -53,8 +53,22 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
 
     // Cập nhật trường updatedAt
     updateData.updatedAt = admin.firestore.Timestamp.now();
+
     const userDataDoc = userDB.doc(uid);
-    await userDataDoc.update(updateData);
+    const newUserData = {
+      ...userDataDoc,
+      ...updateData,
+    };
+    if (
+      newUserData.age === undefined ||
+      newUserData.interests === undefined ||
+      newUserData.occupation === undefined ||
+      newUserData.location === undefined ||
+      newUserData.workVibe === undefined
+    ) {
+      newUserData.isReadyToMatch = false;
+    }
+    await userDataDoc.update(newUserData);
 
     const updatedUserDataRef = await userDataDoc.get();
     const updatedUserData = updatedUserDataRef.data() as User;

@@ -5,13 +5,20 @@ export interface SessionGoal {
   content: string[];
 }
 
+export interface ScheduleSession {
+  startTime: Date;
+  endTime: Date;
+}
+
 export interface WorkSession {
   id: string;
+  title?: string;
+  
   participants: Participant[];
   participantIds: string[];
 
   status: "pending" | "confirmed" | "active" | "completed" | "canceled";
-  scheduledAt: Date;
+  schedule: ScheduleSession;
 
   location?: {
     name?: string;

@@ -209,30 +209,8 @@ function ProfilePage() {
 										fontWeight: "500",
 									}}
 								>
-									{userProfile.workVibe?.type.replace("-", " ")}
+									{userProfile.workVibe.replace("-", " ")}
 								</Chip>
-							</div>
-						)}
-
-						{/* Work/Date Ratio */}
-						{userProfile.workDateRatio !== undefined && (
-							<div>
-								<p className='text-sm text-gray-500 mb-2'>
-									Work/Chat Ratio
-								</p>
-								<div className='flex items-center gap-2'>
-									<div className='flex-1 bg-gray-200 rounded-full h-3 overflow-hidden'>
-										<div
-											className='h-full bg-gradient-to-r from-purple-500 to-pink-500'
-											style={{
-												width: `${userProfile.workDateRatio}%`,
-											}}
-										></div>
-									</div>
-									<p className='text-sm font-medium text-gray-700'>
-										{userProfile.workDateRatio}% Work
-									</p>
-								</div>
 							</div>
 						)}
 

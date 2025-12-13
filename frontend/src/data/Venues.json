@@ -1,27 +1,6 @@
 [
     {
         "id": 1,
-        "name": "The Coffee House - Nguyen Hue",
-        "address": "123 Nguyen Hue, District 1, Ho Chi Minh City",
-        "city": "Ho Chi Minh City",
-        "distance": "0.5 km",
-        "rating": 4.5,
-        "reviews": 328,
-        "phone": "+84 28 3827 1234",
-        "hours": "7:00 AM - 10:00 PM",
-        "price": "30,000 - 80,000 VND",
-        "description": "Modern cafe with cozy atmosphere, perfect for work sessions and casual dates. Features spacious seating and excellent coffee selection.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "Quiet Zone",
-            "AC",
-            "Parking"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4!2d106.7!3d10.77!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 2,
         "name": "Highlands Coffee - Le Loi",
         "address": "456 Le Loi, District 1, Ho Chi Minh City",
         "city": "Ho Chi Minh City",
@@ -39,10 +18,10 @@
             "AC",
             "Outdoor Seating"
         ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.5!2d106.69!3d10.77!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
+        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4959441526476!2d106.69784771215248!3d10.773276259204374!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f4753ab8ba1%3A0x8fa6242bf5c1f3bc!2sHighlands%20Coffee!5e0!3m2!1sen!2s!4v1765428024837!5m2!1sen!2s"
     },
     {
-        "id": 3,
+        "id": 2,
         "name": "Starbucks Reserve - Dong Khoi",
         "address": "789 Dong Khoi, District 1, Ho Chi Minh City",
         "city": "Ho Chi Minh City",
@@ -61,10 +40,10 @@
             "AC",
             "Pastries"
         ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.3!2d106.7!3d10.78!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
+        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d979.8488854892499!2d106.69765084774372!3d10.780987000000001!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f8055ef81a7%3A0x805dd4f684706978!2sStarbucks%20Reserve%20Diamond%20Plaza%20H%E1%BB%93%20Ch%C3%AD%20Minh!5e0!3m2!1sen!2s!4v1765428090028!5m2!1sen!2s"
     },
     {
-        "id": 4,
+        "id": 3,
         "name": "Phuc Long Coffee & Tea - Pasteur",
         "address": "234 Pasteur, District 3, Ho Chi Minh City",
         "city": "Ho Chi Minh City",
@@ -83,10 +62,10 @@
             "Tea Selection",
             "Snacks"
         ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.2!2d106.69!3d10.78!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
+        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4985968864084!2d106.70001041215244!3d10.773072459208066!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f472ba93b07%3A0x1949bd5998a38240!2sPhuc%20Long%20Coffee%20%26%20Tea!5e0!3m2!1sen!2s!4v1765428131154!5m2!1sen!2s"
     },
     {
-        "id": 5,
+        "id": 4,
         "name": "Trung Nguyen Legend Cafe - Nguyen Trai",
         "address": "567 Nguyen Trai, District 1, Ho Chi Minh City",
         "city": "Ho Chi Minh City",
@@ -104,335 +83,6 @@
             "Traditional Coffee",
             "Parking"
         ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.6!2d106.68!3d10.76!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 6,
-        "name": "L'usine Cafe - Le Loi",
-        "address": "151/5 Le Loi, District 1, Ho Chi Minh City",
-        "city": "Ho Chi Minh City",
-        "distance": "0.9 km",
-        "rating": 4.8,
-        "reviews": 634,
-        "phone": "+84 28 3824 1234",
-        "hours": "8:00 AM - 9:00 PM",
-        "price": "50,000 - 120,000 VND",
-        "description": "Trendy industrial-style cafe with boutique. Perfect blend of work space and shopping experience.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "Boutique",
-            "AC",
-            "Brunch Menu",
-            "Instagrammable"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.5!2d106.7!3d10.77!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 7,
-        "name": "Saigon Casa Cafe - Mac Thi Buoi",
-        "address": "92 Mac Thi Buoi, District 1, Ho Chi Minh City",
-        "city": "Ho Chi Minh City",
-        "distance": "1.1 km",
-        "rating": 4.5,
-        "reviews": 387,
-        "phone": "+84 28 3825 5678",
-        "hours": "7:30 AM - 10:00 PM",
-        "price": "45,000 - 100,000 VND",
-        "description": "Hidden gem with peaceful garden setting. Excellent for intimate conversations and focused work.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "Garden",
-            "AC",
-            "Quiet",
-            "Parking"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4!2d106.7!3d10.77!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 8,
-        "name": "The Workshop Coffee - Nguyen Hue",
-        "address": "27 Ngo Duc Ke, District 1, Ho Chi Minh City",
-        "city": "Ho Chi Minh City",
-        "distance": "0.7 km",
-        "rating": 4.9,
-        "reviews": 721,
-        "phone": "+84 28 3821 9012",
-        "hours": "7:00 AM - 10:30 PM",
-        "price": "55,000 - 130,000 VND",
-        "description": "Specialty coffee roaster with minimalist design. Perfect for coffee lovers and creative work sessions.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "Specialty Coffee",
-            "AC",
-            "Minimalist Design",
-            "Barista"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4!2d106.7!3d10.77!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 9,
-        "name": "Cong Caphe - Bui Vien",
-        "address": "26 Bui Vien, District 1, Ho Chi Minh City",
-        "city": "Ho Chi Minh City",
-        "distance": "1.3 km",
-        "rating": 4.6,
-        "reviews": 892,
-        "phone": "+84 28 3836 3456",
-        "hours": "7:00 AM - 11:00 PM",
-        "price": "30,000 - 75,000 VND",
-        "description": "Vintage Vietnamese cafe with nostalgic communist-era decor. Unique atmosphere for casual work and dates.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "Vintage Decor",
-            "AC",
-            "Coconut Coffee",
-            "Photo Spot"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.5!2d106.69!3d10.76!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 10,
-        "name": "Urban Station Coffee - Vo Van Tan",
-        "address": "74 Vo Van Tan, District 3, Ho Chi Minh City",
-        "city": "Ho Chi Minh City",
-        "distance": "2.1 km",
-        "rating": 4.7,
-        "reviews": 456,
-        "phone": "+84 28 3930 7890",
-        "hours": "7:00 AM - 10:00 PM",
-        "price": "60,000 - 140,000 VND",
-        "description": "Modern co-working cafe with premium coffee. Designed specifically for productive work sessions.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "Co-working Space",
-            "AC",
-            "Meeting Rooms",
-            "Printing"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.3!2d106.69!3d10.78!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 11,
-        "name": "The Coffee House - Tran Hung Dao",
-        "address": "234 Tran Hung Dao, Hoan Kiem, Hanoi",
-        "city": "Hanoi",
-        "distance": "0.6 km",
-        "rating": 4.4,
-        "reviews": 289,
-        "phone": "+84 24 3942 1234",
-        "hours": "7:00 AM - 10:00 PM",
-        "price": "28,000 - 75,000 VND",
-        "description": "Popular chain in Hanoi's Old Quarter. Great location for exploring the city while working remotely.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "AC",
-            "City View",
-            "Parking"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.1!2d105.85!3d21.03!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 12,
-        "name": "Cong Caphe - Hoan Kiem Lake",
-        "address": "11 Le Thai To, Hoan Kiem, Hanoi",
-        "city": "Hanoi",
-        "distance": "0.3 km",
-        "rating": 4.7,
-        "reviews": 567,
-        "phone": "+84 24 3928 5678",
-        "hours": "6:30 AM - 11:00 PM",
-        "price": "32,000 - 80,000 VND",
-        "description": "Iconic location overlooking Hoan Kiem Lake. Perfect for morning work sessions with scenic views.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "Lake View",
-            "AC",
-            "Balcony",
-            "Vintage Decor"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.0!2d105.85!3d21.03!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 13,
-        "name": "Joma Bakery Cafe - Xuan Dieu",
-        "address": "22 Xuan Dieu, Tay Ho, Hanoi",
-        "city": "Hanoi",
-        "distance": "3.2 km",
-        "rating": 4.8,
-        "reviews": 723,
-        "phone": "+84 24 3719 9012",
-        "hours": "6:00 AM - 10:00 PM",
-        "price": "50,000 - 140,000 VND",
-        "description": "Western-style bakery cafe with excellent pastries. Popular expat hangout with reliable WiFi.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "Bakery",
-            "AC",
-            "Breakfast Menu",
-            "Parking"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3723.5!2d105.83!3d21.05!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 14,
-        "name": "The Coffee House - Bach Dang",
-        "address": "56 Bach Dang, Hai Chau, Da Nang",
-        "city": "Da Nang",
-        "distance": "0.8 km",
-        "rating": 4.5,
-        "reviews": 312,
-        "phone": "+84 236 3888 1234",
-        "hours": "7:00 AM - 10:30 PM",
-        "price": "30,000 - 85,000 VND",
-        "description": "Beachside location with ocean breeze. Ideal for relaxed work sessions near the beach.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "Sea View",
-            "AC",
-            "Outdoor Seating",
-            "Parking"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.0!2d108.22!3d16.06!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 15,
-        "name": "Highlands Coffee - Tran Phu",
-        "address": "123 Tran Phu, Nha Trang",
-        "city": "Nha Trang",
-        "distance": "1.0 km",
-        "rating": 4.4,
-        "reviews": 267,
-        "phone": "+84 258 3524 5678",
-        "hours": "6:30 AM - 11:00 PM",
-        "price": "32,000 - 90,000 VND",
-        "description": "Coastal city cafe with fresh sea breeze. Perfect for combining work with beach vacation.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "Beach View",
-            "AC",
-            "Terrace",
-            "Smoothies"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3899.0!2d109.19!3d12.24!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 16,
-        "name": "Phuc Long - Hai Ba Trung",
-        "address": "89 Hai Ba Trung, Hue",
-        "city": "Hue",
-        "distance": "0.5 km",
-        "rating": 4.6,
-        "reviews": 198,
-        "phone": "+84 234 3888 9012",
-        "hours": "7:00 AM - 10:00 PM",
-        "price": "35,000 - 88,000 VND",
-        "description": "Traditional city atmosphere with modern amenities. Great for cultural exploration and work.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "AC",
-            "Traditional Tea",
-            "Garden",
-            "Quiet"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3826.5!2d107.59!3d16.46!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 17,
-        "name": "Trung Nguyen Coffee - Ly Thuong Kiet",
-        "address": "45 Ly Thuong Kiet, Can Tho",
-        "city": "Can Tho",
-        "distance": "0.7 km",
-        "rating": 4.3,
-        "reviews": 156,
-        "phone": "+84 292 3812 3456",
-        "hours": "6:30 AM - 10:00 PM",
-        "price": "25,000 - 70,000 VND",
-        "description": "Mekong Delta coffee experience. Unique riverside setting for peaceful work sessions.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "River View",
-            "AC",
-            "Local Coffee",
-            "Parking"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3928.8!2d105.78!3d10.03!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 18,
-        "name": "The Coffee House - Quang Trung",
-        "address": "167 Quang Trung, Quy Nhon",
-        "city": "Quy Nhon",
-        "distance": "1.2 km",
-        "rating": 4.5,
-        "reviews": 223,
-        "phone": "+84 256 3846 7890",
-        "hours": "7:00 AM - 10:30 PM",
-        "price": "28,000 - 78,000 VND",
-        "description": "Coastal gem with stunning beach views. Perfect escape for remote work by the sea.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "Beach View",
-            "AC",
-            "Balcony",
-            "Fresh Juice"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3870.5!2d109.23!3d13.77!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 19,
-        "name": "Highlands Coffee - Le Loi",
-        "address": "234 Le Loi, Vung Tau",
-        "city": "Vung Tau",
-        "distance": "0.9 km",
-        "rating": 4.4,
-        "reviews": 289,
-        "phone": "+84 254 3856 1234",
-        "hours": "6:30 AM - 11:00 PM",
-        "price": "30,000 - 85,000 VND",
-        "description": "Weekend getaway cafe near the beach. Great for combining leisure and productivity.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "Ocean View",
-            "AC",
-            "Outdoor Seating",
-            "Parking"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.6!2d107.08!3d10.34!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
-    },
-    {
-        "id": 20,
-        "name": "Phuc Long Coffee - Tran Hung Dao",
-        "address": "78 Tran Hung Dao, Dalat",
-        "city": "Dalat",
-        "distance": "0.6 km",
-        "rating": 4.7,
-        "reviews": 445,
-        "phone": "+84 263 3555 5678",
-        "hours": "7:00 AM - 10:00 PM",
-        "price": "35,000 - 95,000 VND",
-        "description": "Mountain city cafe with cool climate. Perfect for long work sessions in refreshing highland air.",
-        "amenities": [
-            "WiFi",
-            "Power Outlets",
-            "Mountain View",
-            "AC",
-            "Pine Forest Air",
-            "Tea Garden"
-        ],
-        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3903.5!2d108.44!3d11.94!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1"
+        "mapUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.7156242642113!2d106.68110203488769!3d10.756386099999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f04d7975b77%3A0x7e461dc78c2d9ab1!2sTrung%20Nguy%C3%AAn%20Legend%20Coffee!5e0!3m2!1sen!2s!4v1765428203764!5m2!1sen!2s"
     }
 ]
