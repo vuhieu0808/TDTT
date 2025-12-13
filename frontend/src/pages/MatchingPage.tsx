@@ -1,93 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuthStore } from "@/stores/useAuthStore";
-import Layout from "@/components/Layout";
 import Navbar from "@/components/Navbar";
 import { matchingServices } from "@/services/matchingServices";
 import type { MatchScore } from "@/types/match";
+import { friendServices } from "@/services/friendServices";
+import type { UserProfile } from "@/types/user.ts";
 
 import {
 	Favorite,
 	LocationOn,
-	Work,
-	Schedule,
-	ChatBubble,
 	Psychology,
-	Close,
 	Info,
-	FavoriteBorder,
 	Clear,
-	ArrowBack,
 } from "@mui/icons-material";
-
-// Mock potential matches data (keep as fallback)
-const mockMatches = [
-	{
-		id: 1,
-		name: "Sarah Johnson",
-		email: "sarah.j@example.com",
-		avatarUrl: "https://i.pravatar.cc/400?img=5",
-		bio: "Software engineer passionate about clean code and collaborative work. Love coffee chats during breaks!",
-		interests: ["Coding", "Coffee", "Music", "Reading", "Travel"],
-		workRatio: 60, // 60% work, 40% break
-		chatRatio: 40,
-		interactionLevel: 50,
-		workingMode: "Balanced",
-		matchPercentage: 92,
-	},
-	{
-		id: 2,
-		name: "Michael Chen",
-		email: "mchen@example.com",
-		avatarUrl: "https://i.pravatar.cc/400?img=12",
-		bio: "Creative designer who thrives in collaborative environments. Always up for brainstorming sessions!",
-		interests: ["Design", "Photography", "Art", "Coffee", "Music"],
-		workRatio: 50, // 50% work, 50% break
-		chatRatio: 50,
-		interactionLevel: 80,
-		workingMode: "Creative Chat",
-		matchPercentage: 85,
-	},
-	{
-		id: 3,
-		name: "Emma Davis",
-		email: "emma.davis@example.com",
-		avatarUrl: "https://i.pravatar.cc/400?img=9",
-		bio: "Data scientist focused on deep work with strategic breaks. Prefer quiet focus time with minimal interruptions.",
-		interests: ["Data Science", "Machine Learning", "Reading", "Hiking"],
-		workRatio: 80, // 80% work, 20% break
-		chatRatio: 20,
-		interactionLevel: 25,
-		workingMode: "Deep Work",
-		matchPercentage: 78,
-	},
-	{
-		id: 4,
-		name: "Alex Rodriguez",
-		email: "alex.r@example.com",
-		avatarUrl: "https://i.pravatar.cc/400?img=14",
-		bio: "Marketing professional who loves networking and collaborative projects. Let's work and connect!",
-		interests: ["Marketing", "Networking", "Travel", "Coffee", "Yoga"],
-		workRatio: 65, // 65% work, 35% break
-		chatRatio: 35,
-		interactionLevel: 65,
-		workingMode: "Balanced",
-		matchPercentage: 88,
-	},
-	{
-		id: 5,
-		name: "Lisa Wang",
-		email: "lisa.wang@example.com",
-		avatarUrl: "https://i.pravatar.cc/400?img=20",
-		bio: "Product manager seeking minimal conversation during focused work sessions. Quick check-ins work best!",
-		interests: ["Product Design", "Tech", "Meditation", "Reading"],
-		workRatio: 50, // 90% work, 10% break
-		chatRatio: 50,
-		interactionLevel: 10,
-		workingMode: "Quiet Focus",
-		matchPercentage: 72,
-	},
-];
+import { updateCurrentUser } from "firebase/auth";
 
 function MatchingPage() {
 	const { userProfile } = useAuthStore();
@@ -99,7 +26,7 @@ function MatchingPage() {
 	>(null);
 
 	// Add state for matches from backend
-	const [matches, setMatches] = useState<any[]>([]);
+	const [matches, setMatches] = useState<UserProfile[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 
 	// Fetch matches from backend on component mount
@@ -125,20 +52,24 @@ function MatchingPage() {
 				// Transform backend data to match your UI format
 				if (matchesArray && matchesArray.length > 0) {
 					const transformedMatches = matchesArray.map(
-						(match: MatchScore) => ({
-							id: match.user.uid,
-							name: match.user.displayName,
+						(match: MatchScore): UserProfile => ({
+							uid: match.user.uid,
+							displayName: match.user.displayName,
 							email: match.user.email,
 							avatarUrl:
 								match.user.avatarUrl ||
 								"https://i.pravatar.cc/400",
 							bio: match.user.bio || "No bio available",
 							interests: match.user.interests || [],
-							workingMode:
-								match.user.workVibe || "Balanced",
-							matchPercentage: Math.round(match.totalScore * 100),
+							workVibe: match.user?.workVibe || undefined,
+							status: "online",
+							lastActivity: new Date().toISOString(),
+							// matchPercentage: Math.round(match.totalScore * 100),
+							createdAt: match.user?.createdAt,
+							updatedAt: match.user?.updatedAt,
 						})
 					);
+
 					setMatches(transformedMatches);
 				}
 			} catch (error) {
@@ -163,7 +94,7 @@ function MatchingPage() {
 		setAnimationDirection("left");
 
 		setTimeout(() => {
-			console.log("Rejected: ", currentMatch.name);
+			console.log("Rejected: ", currentMatch.displayName);
 			if (hasMoreMatches) {
 				setCurrentIndex(currentIndex + 1);
 			} else {
@@ -181,10 +112,11 @@ function MatchingPage() {
 		setAnimationDirection("right");
 
 		setTimeout(() => {
-			console.log("Matched with:", currentMatch.name);
+			console.log("Matched with:", currentMatch.displayName);
 
 			if (hasMoreMatches) {
 				setCurrentIndex(currentIndex + 1);
+				friendServices.swipeRight(currentMatch.uid);
 			} else {
 				setCurrentIndex(0);
 			}
@@ -235,6 +167,12 @@ function MatchingPage() {
 		);
 	}
 
+	const isReadyToMatch =
+		userProfile?.age === undefined &&
+		userProfile?.gender === undefined &&
+		userProfile?.interests === undefined &&
+		userProfile?.occupation === undefined;
+
 	return (
 		<>
 			<Navbar />
@@ -257,7 +195,7 @@ function MatchingPage() {
 							<div className='w-80 h-80 rounded-full overflow-hidden border-8 border-white shadow-2xl'>
 								<img
 									src={currentMatch.avatarUrl}
-									alt={currentMatch.name}
+									alt={currentMatch.displayName}
 									className='w-full h-full object-cover'
 								/>
 							</div>
@@ -277,7 +215,7 @@ function MatchingPage() {
 						<div className='mb-6'>
 							<div className='flex items-center justify-between mb-2'>
 								<h1 className='text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
-									{currentMatch.name}
+									{currentMatch.displayName}
 								</h1>
 								<div className='flex gap-2'>
 									<button className='p-2 hover:bg-purple-50 rounded-full transition-colors'>
@@ -317,16 +255,17 @@ function MatchingPage() {
 								</h2>
 							</div>
 							<div className='flex flex-wrap gap-2'>
-								{currentMatch.interests.map(
-									(interest: string, index: number) => (
-										<span
-											key={index}
-											className='px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-full text-sm font-medium border border-purple-200'
-										>
-											{interest}
-										</span>
-									)
-								)}
+								{currentMatch.interests &&
+									currentMatch?.interests.map(
+										(interest: string, index: number) => (
+											<span
+												key={index}
+												className='px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-full text-sm font-medium border border-purple-200'
+											>
+												{interest}
+											</span>
+										)
+									)}
 							</div>
 						</div>
 
@@ -345,23 +284,21 @@ function MatchingPage() {
 							</div>
 							<div className='p-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl text-white'>
 								<p className='text-lg font-semibold capitalize'>
-									{currentMatch.workingMode}
+									{currentMatch.workVibe}
 								</p>
 								<p className='text-sm opacity-90 mt-1'>
-									{currentMatch.workingMode === "Balanced" &&
+									{currentMatch.workVibe === "balanced" &&
 										"Perfect balance of productivity and collaboration"}
-									{currentMatch.workingMode ===
-										"Creative Chat" &&
+									{currentMatch.workVibe ===
+										"creative-chat" &&
 										"Collaborative brainstorming and idea sharing"}
-									{currentMatch.workingMode === "Deep Work" &&
+									{currentMatch.workVibe === "deep-work" &&
 										"Focused work with strategic breaks"}
-									{currentMatch.workingMode ===
-										"Quiet Focus" &&
+									{currentMatch.workVibe === "quiet-focus" &&
 										"Minimal conversation, maximum productivity"}
 								</p>
 							</div>
 						</div>
-
 					</div>
 				</div>
 
