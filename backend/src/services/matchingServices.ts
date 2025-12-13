@@ -96,7 +96,8 @@ class MatchingSystem {
 
     // Return similarity in range [0, 1]
     const similarity = dotProduct / (normA * normB);
-    return Math.max(0, similarity);
+    return similarity;
+    // return Math.max(0, similarity);
   }
 
   private haversineDistance(
@@ -133,6 +134,43 @@ class MatchingSystem {
     return "Poor";
   }
 
+  private HardFilter(userA: User, userB: User): boolean {
+    if (!userA.availability || !userB.availability) {
+      return false;
+    }
+    let avaiA = new Array<number>(42).fill(0);
+    let avaiB = new Array<number>(42).fill(0);
+    for (const val of userA.availability) {
+      avaiA[val] = 1;
+    }
+    for (const val of userB.availability) {
+      avaiB[val] = 1;
+    }
+    let intersection = 0;
+    for (let i = 0; i < 42; i++) {
+      const availA = avaiA[i] || 0;
+      const availB = avaiB[i] || 0;
+      if (availA > 0 && availB > 0) {
+        intersection++;
+      }
+    }
+    if (intersection === 0) return false;
+    if (userA.location && userB.location) {
+      const distance = this.haversineDistance(
+        userA.location.lat,
+        userA.location.lng,
+        userB.location.lat,
+        userB.location.lng
+      );
+      const maxDist = Math.min(
+        userA.maxDistanceKm || 50,
+        userB.maxDistanceKm || 50
+      );
+      if (distance > maxDist) return false;
+    }
+    return true;
+  }
+
   // public methods
 
   async calculateMatchScore(userA: User, userB: User): Promise<MatchScore> {
@@ -161,12 +199,13 @@ class MatchingSystem {
     //   breakdown
     // );
 
-    const totalScore = Object.entries(this.WEIGHTS).reduce(
-      (sum, [key, weight]) => {
-        return sum + (breakdown[key as keyof typeof breakdown] || 0) * weight;
-      },
-      0
-    );
+    const totalScore =
+      breakdown.age * this.WEIGHTS.age +
+      breakdown.interests * this.WEIGHTS.interests +
+      breakdown.availability * this.WEIGHTS.availability +
+      breakdown.occupation * this.WEIGHTS.occupation +
+      breakdown.location * this.WEIGHTS.location +
+      breakdown.workVibe * this.WEIGHTS.workVibe;
 
     const score = Math.round(totalScore * 100);
 
@@ -201,18 +240,6 @@ class MatchingSystem {
 
   private scoreAge(userA: User, userB: User): number {
     if (!userA.age || !userB.age) return 0.3;
-
-    // const minA = userA.agePreference?.min ?? userA.age - 5;
-    // const maxA = userA.agePreference?.max ?? userA.age + 5;
-
-    // const minB = userB.agePreference?.min ?? userB.age - 5;
-    // const maxB = userB.agePreference?.max ?? userB.age + 5;
-
-    // const isB_fit_A = userB.age >= minA && userB.age <= maxA;
-    // const isA_fit_B = userA.age >= minB && userA.age <= maxB;
-
-    // if (isB_fit_A && isA_fit_B) return 1.0;
-    // if (isB_fit_A || isA_fit_B) return 0.7;
 
     const diff = Math.abs(userA.age - userB.age);
     if (diff <= 5) return 0.8;
@@ -279,11 +306,11 @@ class MatchingSystem {
   }
 
   private async scoreOccupation(userA: User, userB: User): Promise<number> {
-    const textA = `${userA.occupation || ""} ${
+    const textA = `${userA.occupation || ""}. ${
       userA.occupationDescription || ""
     }`.toLowerCase();
 
-    const textB = `${userB.occupation || ""} ${
+    const textB = `${userB.occupation || ""}. ${
       userB.occupationDescription || ""
     }`.toLowerCase();
 
@@ -341,26 +368,26 @@ class MatchingSystem {
       "quiet-focus": {
         "quiet-focus": 1.0,
         balanced: 0.7, // Giảm nhẹ
-        "creative-chat": 0.2, // Giảm mạnh: 2 người này ngồi cạnh nhau là thảm họa
+        "creative-chat": 0.1, // Giảm mạnh: 2 người này ngồi cạnh nhau là thảm họa
         "deep-work": 0.9, // Tăng lên: 2 người này rất hợp nhau
       },
       "deep-work": {
         "deep-work": 1.0,
-        balanced: 0.7,
+        balanced: 0.5,
         "quiet-focus": 0.9,
-        "creative-chat": 0.3, // Deep work rất kỵ chat
+        "creative-chat": 0.0, // Deep work rất kỵ chat
       },
       balanced: {
         balanced: 1.0,
         "quiet-focus": 0.7,
         "creative-chat": 0.7,
-        "deep-work": 0.7,
+        "deep-work": 0.5,
       },
       "creative-chat": {
         "creative-chat": 1.0,
         balanced: 0.7,
-        "quiet-focus": 0.2,
-        "deep-work": 0.3,
+        "quiet-focus": 0.1,
+        "deep-work": 0.0,
       },
     };
 
@@ -446,45 +473,45 @@ const matchingSystem = new MatchingSystem();
 await matchingSystem.initialize();
 
 export const getCandidateUsers = async (user: User): Promise<User[]> => {
-	try {
-		const userSnapshot = await userDB.get();
-		let candidates: User[] = [];
-		const [friendA, friendB] = await Promise.all([
-			friendDB.where("userA", "==", user.uid).get(),
-			friendDB.where("userB", "==", user.uid).get(),
-		]);
-		const [cooldownA, cooldownB] = await Promise.all([
-			cooldownDB.where("userA", "==", user.uid).get(),
-			cooldownDB.where("userB", "==", user.uid).get(),
-		]);
-		const friendIds: string[] = [...friendA.docs, ...friendB.docs].map(
-			(doc) => {
-				const data = doc.data() as Friend;
-				return data.userA === user.uid ? data.userB : data.userA;
-			}
-		);
-		const cooldown: Cooldown[] = [...cooldownA.docs, ...cooldownB.docs].map(
-			(doc) => {
-				return doc.data() as Cooldown;
-			}
-		);
-		userSnapshot.docs.forEach((doc) => {
-			const candidate = doc.data() as User;
-			if (candidate.uid === user.uid) return;
-			if (friendIds.includes(candidate.uid)) return;
-			const cd = cooldown.find(
-				(c) =>
-					(c.userA === user.uid && c.userB === candidate.uid) ||
-					(c.userB === user.uid && c.userA === candidate.uid)
-			);
-			if (cd && cd.expiresAt.toMillis() > Date.now()) return;
-			candidates.push(candidate);
-		});
-		return candidates;
-	} catch (error) {
-		console.error("Error fetching candidate users:", error);
-		return [];
-	}
+  try {
+    const userSnapshot = await userDB.get();
+    let candidates: User[] = [];
+    const [friendA, friendB] = await Promise.all([
+      friendDB.where("userA", "==", user.uid).get(),
+      friendDB.where("userB", "==", user.uid).get(),
+    ]);
+    const [cooldownA, cooldownB] = await Promise.all([
+      cooldownDB.where("userA", "==", user.uid).get(),
+      cooldownDB.where("userB", "==", user.uid).get(),
+    ]);
+    const friendIds: string[] = [...friendA.docs, ...friendB.docs].map(
+      (doc) => {
+        const data = doc.data() as Friend;
+        return data.userA === user.uid ? data.userB : data.userA;
+      }
+    );
+    const cooldown: Cooldown[] = [...cooldownA.docs, ...cooldownB.docs].map(
+      (doc) => {
+        return doc.data() as Cooldown;
+      }
+    );
+    userSnapshot.docs.forEach((doc) => {
+      const candidate = doc.data() as User;
+      if (candidate.uid === user.uid) return;
+      if (friendIds.includes(candidate.uid)) return;
+      const cd = cooldown.find(
+        (c) =>
+          (c.userA === user.uid && c.userB === candidate.uid) ||
+          (c.userB === user.uid && c.userA === candidate.uid)
+      );
+      if (cd && cd.expiresAt.toMillis() > Date.now()) return;
+      candidates.push(candidate);
+    });
+    return candidates;
+  } catch (error) {
+    console.error("Error fetching candidate users:", error);
+    return [];
+  }
 };
 
 export { matchingSystem };
