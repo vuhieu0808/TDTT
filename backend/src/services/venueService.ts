@@ -1,6 +1,7 @@
 import { venueDB } from "../models/db.js";
 import { Venue, VenueFilter } from "../models/Venue.js";
 import { admin } from "../config/firebase.js";
+import { Filter } from "firebase-admin/firestore";
 import { haversineDistance } from "../utils/venueHelper.js";
 
 type FilterEntry = [keyof VenueFilter, number[]];
@@ -23,7 +24,8 @@ async function queryImpl(filter: VenueFilter): Promise<Venue[]> {
     const onlineQueryFilters = activeFilters.slice(0, 4);
     const offlineQueryFilters = activeFilters.slice(4);
 
-    onlineQueryFilters.forEach(([key, values]) => {
+    onlineQueryFilters.forEach(([_key, values]) => {
+        const key: string = `attributes.${_key}`;
         if (values.length === 1) {
             //one item, simple equality
             query = query.where(key, '==', values[0]);
@@ -57,6 +59,55 @@ async function queryImpl(filter: VenueFilter): Promise<Venue[]> {
     }
 
     return results;
+}
+
+async function queryImpl2(filter: VenueFilter): Promise<Venue[]> {
+    const collectionRef = admin.firestore().collection('venues');
+    const conditions: admin.firestore.Filter[] = [];
+
+    // Cast entries to strict tuple type
+    const entries = Object.entries(filter) as FilterEntry[];
+
+    for (const [key, values] of entries) {
+        // Optimization: Skip if empty or if all options are selected
+        // Note: Ensure your max scale is actually 3. If a field has 5 options, 
+        // selecting 3 will accidentally bypass the filter here.
+        const isConstraint = values.length > 0 && values.length < 3;
+
+        if (isConstraint) {
+            // FIX 1: Update Path to Nested Object
+            // Your screenshot shows 'comfort' is inside 'attributes'.
+            const dbField = `attributes.${key}`;
+
+            // FIX 2: Query Optimization
+            // If the user selects only ONE option (e.g., [1]), use equality '=='.
+            // This is faster and avoids Firestore's limit of "one 'IN' clause per query"
+            // allowing you to filter multiple fields (e.g., comfort=1 AND view=2) safely.
+            if (values.length === 1) {
+                conditions.push(Filter.where(dbField, '==', values[0]));
+            } else {
+                conditions.push(Filter.where(dbField, 'in', values));
+            }
+        }
+    }
+
+    // If no constraints remain, fetch default list
+    if (conditions.length === 0) {
+        const snapshot = await collectionRef.limit(50).get();
+        return snapshot.docs.map(doc => doc.data() as Venue);
+    }
+
+    // Combine all clauses with logical AND
+    const complexQuery = Filter.and(...conditions);
+
+    try {
+        const query = collectionRef.where(complexQuery);
+        const snapshot = await query.get();
+        return snapshot.docs.map(doc => doc.data() as Venue);
+    } catch (error) {
+        console.error("Firestore Error: Likely missing index or too many 'IN' clauses.", error);
+        throw error;
+    }
 }
 
 //search for venues matched filter within given radius & location

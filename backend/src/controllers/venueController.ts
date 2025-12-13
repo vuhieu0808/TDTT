@@ -77,7 +77,7 @@ request body example:
 "location2": {
     "lat": xxx,
     "lng": xxx,
-}
+},
 "filter": {
     "comfort": [0, 1, 2],
     "noise": [2],
