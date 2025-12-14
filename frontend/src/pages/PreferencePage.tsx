@@ -31,8 +31,6 @@ type WorkingMode = "quiet" | "creative" | "deep" | "balanced" | "custom";
 
 interface UserPreferences {
 	interests: string[];
-	workRatio: number; // 0-100 percentage
-	chatExpectation: number; // 0-100 scale
 	workingMode: WorkingMode;
 	availability: number[]; // Array of 42 slots (7 days × 6 time slots)
 }
@@ -49,8 +47,6 @@ function PreferencePage() {
 	const [newInterest, setNewInterest] = useState("");
 	const [preferences, setPreferences] = useState<UserPreferences>({
 		interests: [],
-		workRatio: 60,
-		chatExpectation: 50,
 		workingMode: "balanced",
 		availability: [],
 	});
@@ -75,14 +71,12 @@ function PreferencePage() {
 			setPreferences({
 				availability: userProfile.availability || [],
 				interests: userProfile.interests || [],
-				workRatio: userProfile.workDateRatio ?? 60,
-				chatExpectation: 50,
 				workingMode:
-					userProfile.workVibe?.type === "quiet-focus"
+					userProfile?.workVibe === "quiet-focus"
 						? "quiet"
-						: userProfile.workVibe?.type === "creative-chat"
+						: userProfile?.workVibe === "creative-chat"
 						? "creative"
-						: userProfile.workVibe?.type === "deep-work"
+						: userProfile?.workVibe === "deep-work"
 						? "deep"
 						: "balanced",
 			});
@@ -113,21 +107,6 @@ function PreferencePage() {
 		},
 	};
 
-	const checkIfCustom = (
-		workRatio: number,
-		chatExpectation: number
-	): WorkingMode => {
-		for (const [mode, preset] of Object.entries(workingModePresets)) {
-			if (
-				preset.workRatio === workRatio &&
-				preset.chatExpectation === chatExpectation
-			) {
-				return mode as Exclude<WorkingMode, "custom">;
-			}
-		}
-		return "custom";
-	};
-
 	const handleWorkingModeChange = (mode: WorkingMode) => {
 		if (mode === "custom") {
 			setPreferences({
@@ -138,32 +117,9 @@ function PreferencePage() {
 			const preset = workingModePresets[mode];
 			setPreferences({
 				...preferences,
-				workRatio: preset.workRatio,
-				chatExpectation: preset.chatExpectation,
 				workingMode: mode,
 			});
 		}
-	};
-
-	const handleWorkSessionChange = (
-		field: "workRatio" | "chatExpectation",
-		value: number
-	) => {
-		const newPreferences = {
-			...preferences,
-			[field]: value,
-		};
-
-		// Check if the new settings match a preset
-		const detectedMode = checkIfCustom(
-			field === "workRatio" ? value : preferences.workRatio,
-			field === "chatExpectation" ? value : preferences.chatExpectation
-		);
-
-		setPreferences({
-			...newPreferences,
-			workingMode: detectedMode,
-		});
 	};
 
 	const handleSavePreferences = async () => {
@@ -193,12 +149,7 @@ function PreferencePage() {
 				...userProfile,
 				interests: preferences.interests,
 				availability: preferences.availability,
-				workDateRatio: preferences.workRatio,
-				workVibe: {
-					type: workVibe,
-					workChatRatio: preferences.workRatio,
-					interactionLevel: preferences.chatExpectation,
-				},
+				workVibe: workVibe,
 			});
 
 			// Update the auth store with the returned data

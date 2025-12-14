@@ -1,7 +1,11 @@
 import api from "@/lib/axios";
 
 export const friendServices = {
-  async getMatches() {
+  async getMatchRequests() { // get friend requests list (sentRequests, receivedRequests)
+    const response = await api.get("/friends/match-requests");
+    return response.data;
+  },
+  async getMatches() { // get friends list (friends)
     const response = await api.get("/friends/requests");
     return response.data;
   },

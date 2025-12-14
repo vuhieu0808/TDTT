@@ -13,6 +13,8 @@ export interface User {
   email: string;
   avatarUrl?: string;
   coverUrl?: string;
+  
+  isReadyToMatch: boolean;
 
   bio?: string;
   dateOfBirth?: string; // YYYY-MM-DD

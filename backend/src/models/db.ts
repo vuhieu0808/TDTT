@@ -8,3 +8,4 @@ export const messageDB = db.collection("messages");
 export const cooldownDB = db.collection("cooldowns");
 export const llmChatDB = db.collection("llmChat");
 export const workSessionDB = db.collection("workSessions");
+export const venueDB = db.collection("venues");

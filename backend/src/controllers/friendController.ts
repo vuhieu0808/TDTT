@@ -1,10 +1,10 @@
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
-import { getDetailsForUserIds } from "../utils/friendHelper.js";
+import { getDetailsForUserIds, getFullUserProfile } from "../utils/friendHelper.js";
 import { friendServices } from "../services/friendServices.js";
-import { friendRequestDB, userDB } from "../models/db.js";
+import { userDB } from "../models/db.js";
 
-export const getFriendRequests = async (req: AuthRequest, res: Response) => {
+export const getMatchRequests = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.uid;
     if (!userId) {
@@ -12,10 +12,7 @@ export const getFriendRequests = async (req: AuthRequest, res: Response) => {
     }
 
     // Lấy tất cả yêu cầu gửi và nhận của userId
-    const [sentRequestsSnapshot, receivedRequestsSnapshot] = await Promise.all([
-      friendRequestDB.where("senderId", "==", userId).get(),
-      friendRequestDB.where("receivedId", "==", userId).get(),
-    ]);
+    const { sentRequestsSnapshot, receivedRequestsSnapshot } = await friendServices.getMatchRequests(userId);
     const sendRequestIds = sentRequestsSnapshot.docs.map((doc) => {
       const requestData = doc.data();
       return requestData.receivedId;
@@ -25,8 +22,8 @@ export const getFriendRequests = async (req: AuthRequest, res: Response) => {
       return requestData.senderId;
     });
     const [sentRequests, receivedRequests] = await Promise.all([
-      getDetailsForUserIds(sendRequestIds),
-      getDetailsForUserIds(receivedRequestIds),
+      getFullUserProfile(sendRequestIds),
+      getFullUserProfile(receivedRequestIds),
     ]);
 
     return res.status(200).json({ sentRequests, receivedRequests });
@@ -54,6 +51,8 @@ export const swipeRight = async (req: AuthRequest, res: Response) => {
     }
 
     const result = await friendServices.swipeRight(senderId, receiverId);
+    console.log("User swipe right:", { senderId, receiverId });
+    console.log("Swipe right result:", result);
     switch (result.type) {
       case "already_friends":
         return res.status(400).json({ error: "You are already friends" });
