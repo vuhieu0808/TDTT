@@ -1,6 +1,17 @@
 import { google } from "googleapis";
 import { Stream } from "stream";
-import oauth2Credentials from "./oauth2Key.json" with { type: "json" };
+// import oauth2Credentials from "./oauth2Key.json" with { type: "json" };
+const oauth2data = process.env.OAUTH2
+if(!oauth2data) {
+  throw new Error("OAUTH2 missing in .env");
+}
+let oauth2Credentials: any;
+try {
+  const decoded = Buffer.from(oauth2data, "base64").toString("utf8");
+  oauth2Credentials = JSON.parse(decoded);
+} catch {
+  throw new Error("failed to parse OAUTH2");
+}
 
 const keys = oauth2Credentials.web;
 if (!keys) {
