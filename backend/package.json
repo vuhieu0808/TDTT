@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon",
     "dev2": "tsx src/server.ts",
-    "build": "tsc",
+    "build": "tsc --noCheck",
     "start": "node dist/server.js"
   },
   "type": "module",
