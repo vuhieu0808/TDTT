@@ -43,6 +43,37 @@ export const fetchMe = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const fetchUserById = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.params.id;
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+    const userDataDoc = userDB.doc(userId);
+    const userDataRef = await userDataDoc.get();
+    if (!userDataRef.exists) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    const userDataFetched = userDataRef.data() as User;
+    const avatarUrl = await getLinkFileFromUser(
+      userId,
+      userDataFetched.avatarUrl || ""
+    );
+    const userData = {
+      ...userDataFetched,
+      avatarUrl,
+      createdAt: userDataFetched.createdAt.toDate().toISOString(),
+      updatedAt: userDataFetched.updatedAt.toDate().toISOString(),
+      lastActivity: userDataFetched.lastActivity.toDate().toISOString(),
+    };
+    return res.status(200).json({ data: userData });
+  }
+  catch (error) {
+    console.error("Error fetching user by ID:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
 export const updateMe = async (req: AuthRequest, res: Response) => {
   try {
     const uid = req.user?.uid;

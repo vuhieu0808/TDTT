@@ -4,6 +4,8 @@ import { cooldownDB, friendDB, friendRequestDB } from "../models/db.js";
 import { Friend } from "../models/Friend.js";
 import { getFullUserProfile } from "../utils/friendHelper.js";
 import { conversationServices } from "./conversationServices.js";
+import { io } from "../socket/index.js";
+import { emitFriendRequestNotification } from "../utils/friendHelper.js";
 
 export const friendServices = {
   getMatchRequests: async (userId: string) => {
@@ -13,7 +15,7 @@ export const friendServices = {
     ]);
     return { sentRequestsSnapshot, receivedRequestsSnapshot };
   },
-  
+
   swipeRight: async (senderId: string, receiverId: string) => {
     const [userA, userB] = [senderId, receiverId].sort();
     const friendShipId = `${userA}_${userB}`;
@@ -81,6 +83,7 @@ export const friendServices = {
       requestedAt: admin.firestore.Timestamp.now(),
     };
     await friendRequestRef.set(friendRequest);
+    emitFriendRequestNotification(io, senderId, receiverId);
     return { type: "request_sent", data: friendRequest };
   },
 

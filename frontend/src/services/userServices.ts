@@ -16,4 +16,8 @@ export const userServices = {
 		const res = await api.put("/users/me", data);
 		return res.data;
 	},
+	async fetchUserById(userId: string) {
+		const response = await api.get(`/users/${userId}`);
+		return response.data;
+	}
 };

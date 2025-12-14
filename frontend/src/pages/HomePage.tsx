@@ -21,6 +21,7 @@ import {
   Check,
   Close,
 } from "@mui/icons-material";
+import { useFriendStore } from "@/stores/useFriendStore";
 
 const HomePage = () => {
   const { userProfile } = useAuthStore();
@@ -38,37 +39,39 @@ const HomePage = () => {
     navigate("/PreferencePage");
   };
 
-  const [friendProfiles, setFriendProfiles] = useState<UserProfile[]>([]);
-  const [requestProfiles, setRequestProfiles] = useState<UserProfile[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    friends,
+    receivedFriendRequests,
+    sentFriendRequests,
+    loadingFriend,
+    loadingFriendRequest,
+  } = useFriendStore();
+
+  const { fetchFriends, fetchFriendRequests, swipeLeft, swipeRight } = useFriendStore();
 
   useEffect(() => {
     const fetchRequest = async () => {
       try {
-        setIsLoading(true);
-
-        const [friendRequest, responseRequest] = await Promise.all([
-          friendServices.getMatches(),
-          friendServices.getMatchRequests(),
-        ]);
-
-        setFriendProfiles(friendRequest.matches);
-        setRequestProfiles(responseRequest.receivedRequests);
-        console.log("Friend Requests:", responseRequest.receivedRequests);
-        console.log("Friends:", friendRequest);
+        await fetchFriends();
+        await fetchFriendRequests();
       } catch (error) {
         console.log("Failed to get match requests:", error);
-      } finally {
-        setIsLoading(false);
       }
     };
 
     fetchRequest();
   }, []);
 
+  useEffect(() => {
+    console.log("Friends updated:", friends);
+    console.log("Received Friend Requests updated:", receivedFriendRequests);
+    console.log("Sent Friend Requests updated:", sentFriendRequests);
+  }, [friends, receivedFriendRequests, sentFriendRequests]);
+
   const handleAcceptRequest = async (requestId: string) => {
     try {
-      await friendServices.swipeRight(requestId);
+      console.log("Accepting request for ID:", requestId);
+      await swipeRight(requestId);
     } catch (error) {
       console.error("Failed to accept request:", error);
     }
@@ -76,7 +79,7 @@ const HomePage = () => {
 
   const handleRejectRequest = async (requestId: string) => {
     try {
-      await friendServices.swipeLeft(requestId);
+      await swipeLeft(requestId);
     } catch (error) {
       console.error("Failed to reject request:", error);
     }
@@ -249,14 +252,14 @@ const HomePage = () => {
               <h3 className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mb-8">
                 Your Matches
               </h3>
-              {isLoading ? (
+              {loadingFriend ? (
                 <div className="text-center py-12">
                   <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                   <p className="text-gray-600">Loading friends...</p>
                 </div>
-              ) : friendProfiles.length > 0 ? (
+              ) : friends.length > 0 ? (
                 <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {friendProfiles.map((profile, index) => (
+                  {friends.map((profile, index) => (
                     <div
                       key={profile.uid}
                       className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all"
@@ -314,14 +317,14 @@ const HomePage = () => {
                 Match Requests
               </h3>
 
-              {isLoading ? (
+              {loadingFriendRequest ? (
                 <div className="text-center py-12">
                   <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                   <p className="text-gray-600">Loading requests...</p>
                 </div>
-              ) : requestProfiles.length > 0 ? (
+              ) : receivedFriendRequests.length > 0 ? (
                 <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {requestProfiles.map((profile, index) => (
+                  {receivedFriendRequests.map((profile, index) => (
                     <div
                       key={profile.uid}
                       className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all"
