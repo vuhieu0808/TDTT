@@ -1,4 +1,6 @@
+import { Server } from "socket.io";
 import { userDB } from "../models/db.js";
+import { User } from "../models/User.js";
 
 export const getDetailsForUserIds = async (userIds: string[]) => {
   // Lấy id, displayName, avatarUrl của bạn bè
@@ -65,4 +67,21 @@ export const getFullUserProfile = async (userIds: string[]) => {
     .map((userId) => userDetailsMap.get(userId))
     .filter(Boolean);
   return usersDetails;
+};
+
+export const emitFriendRequestNotification = async (
+  io: Server,
+  senderId: string,
+  receiverId: string
+) => {
+  const senderDoc = await userDB.doc(senderId).get();
+  if (!senderDoc.exists) {
+    console.error("Sender not found for friend request notification:", senderId);
+    return;
+  }
+  const senderData = senderDoc.data() as User;
+  const payload = {
+    senderData
+  };
+  io.to(receiverId).emit("friend-request", payload);
 };

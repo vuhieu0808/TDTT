@@ -3,7 +3,10 @@ import { io, type Socket } from "socket.io-client";
 import type { SocketState } from "@/types/store";
 import { useAuthStore } from "./useAuthStore";
 import { useChatStore } from "./useChatStore";
-import type { LastMessage, Message } from "@/types/chat";
+import { userServices } from "@/services/userServices";
+import type { LastMessage, Message, Conversation } from "@/types/chat";
+import type { UserProfile } from "@/types/user";
+import { useFriendStore } from "./useFriendStore";
 
 const baseURL = import.meta.env.VITE_SOCKET_URL as string;
 
@@ -66,8 +69,30 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     });
 
     // new conversation
-    socket.on("new-conversation", (conversation) => {
-      useChatStore.getState().addConversation(conversation);
+    socket.on("new-conversation", (payload) => {
+      console.log("New conversation received from socket:", payload);
+      const { conversation, participantProfile } = payload;
+      console.log()
+      const newConversation = conversation as Conversation;
+      const newParticipantProfile = participantProfile as UserProfile[];
+      console.log("conversation:", newConversation);
+      useChatStore.getState().addConversation(newConversation);
+      // const newFriend
+      const userId = useAuthStore.getState().userProfile?.uid;
+      const newFriend: UserProfile | undefined = newParticipantProfile.find(
+        (user) => user.uid !== userId
+      );
+      console.log("participantProfile:", newFriend);
+      if (newFriend) {
+        console.log("New friend added from socket:", newFriend);
+        useFriendStore.getState().addNewFriend(newFriend);
+      }
+    });
+
+    socket.on("friend-request", (payload) => {
+      const { senderData } = payload;
+      useFriendStore.getState().addNewReceivedRequest(senderData as UserProfile);
+      console.log("New friend request received from socket:", senderData);
     });
   },
   disconnectSocket: () => {

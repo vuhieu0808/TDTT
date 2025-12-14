@@ -69,3 +69,19 @@ export interface MatchingState {
 
 	fetchMatches: (limit?: number) => Promise<void>; // Hàm lấy danh sách kết nối
 }
+
+export interface FriendState {
+	friends: UserProfile[]; // Danh sách bạn bè
+	loadingFriend: boolean; // Trạng thái tải danh sách bạn bè
+	receivedFriendRequests: UserProfile[]; // Danh sách yêu cầu kết bạn đã nhận
+	sentFriendRequests: UserProfile[]; // Danh sách yêu cầu kết bạn đã gửi
+	loadingFriendRequest: boolean; // Trạng thái tải danh sách yêu cầu kết bạn
+
+	fetchFriends: () => Promise<void>; // Hàm lấy danh sách bạn bè
+	fetchFriendRequests: () => Promise<void>; // Hàm lấy danh sách yêu cầu kết bạn
+	swipeLeft: (userId: string) => Promise<void>; // Hàm từ chối kết bạn
+	swipeRight: (userId: string) => Promise<void>; // Hàm chấp nhận kết bạn
+	addNewFriend: (friend: UserProfile) => void; // Hàm thêm bạn mới vào danh sách bạn bè
+	addNewReceivedRequest: (user: UserProfile) => void; // Hàm thêm yêu cầu kết bạn mới vào danh sách đã nhận
+	addNewSentRequest: (user: UserProfile) => void; // Hàm thêm yêu cầu kết bạn mới vào danh sách đã gửi
+}

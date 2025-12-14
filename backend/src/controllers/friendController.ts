@@ -51,6 +51,8 @@ export const swipeRight = async (req: AuthRequest, res: Response) => {
     }
 
     const result = await friendServices.swipeRight(senderId, receiverId);
+    console.log("User swipe right:", { senderId, receiverId });
+    console.log("Swipe right result:", result);
     switch (result.type) {
       case "already_friends":
         return res.status(400).json({ error: "You are already friends" });
