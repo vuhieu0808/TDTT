@@ -1,7 +1,7 @@
 export interface Venue {
     type: string;
     name: string;
-    description: string;
+    description?: string;
     ratingCount: number;
     ratingStar: number;
     website?: string;
@@ -14,4 +14,20 @@ export interface Venue {
         lng: number;
     };
     menu?: string[];
+    mapEmbeddingUrl: string;
+    attributes: {
+        comfort: number,
+        noise: number,
+        interior: number,
+        view: number,
+        staffInteraction: number,
+    };
+}
+
+export interface VenueFilter {
+    comfort: number[];
+    noise: number[];
+    interior: number[];
+    view: number[];
+    staffInteraction: number[];
 }
