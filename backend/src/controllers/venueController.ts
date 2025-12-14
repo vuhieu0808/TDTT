@@ -21,7 +21,6 @@ interface QueryNearbyRequestBody {
         lat: number,
         lng: number
     },
-    radius: number,
     filter: VenueFilter
 }
 
@@ -86,6 +85,16 @@ request body example:
     "staffInteraction": []
    }
 }
+
+response body example:
+venues: [
+    {
+        venue: { ... },
+        distance1: xxx,
+        distance2: xxx
+    },
+    ...
+]
 */
 const queryMiddle = async (req: Request<{}, {}, QueryMiddleRequestBody>, res: Response) => {
     try {
@@ -111,7 +120,6 @@ request body example:
     "lat": xxx,
     "lng": xxx,
 },
-"radius": xxx,
 "filter": {
     "comfort": [0, 1, 2],
     "noise": [2],
@@ -120,15 +128,24 @@ request body example:
     "staffInteraction": []
    }
 }
+
+response body example:
+venues: [
+    {
+        venue: { ... },
+        distance: xxx,
+    },
+    ...
+]
 */
 const queryNearby = async (req: Request<{}, {}, QueryNearbyRequestBody>, res: Response) => {
     try {
-        const { location, radius, filter } = req.body;
-        if(!location || !radius || !filter) {
+        const { location, filter } = req.body;
+        if(!location || !filter) {
             return res.status(400).json({ message: "Invalid request body" });
         }
 
-        const venues = await venueService.searchNearbyVenues(location.lat, location.lng, radius, filter);
+        const venues = await venueService.searchNearbyVenues(location.lat, location.lng, filter);
         res.status(200).json({
             venues: venues
         });

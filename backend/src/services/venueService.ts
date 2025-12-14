@@ -5,6 +5,15 @@ import { Filter } from "firebase-admin/firestore";
 import { haversineDistance } from "../utils/venueHelper.js";
 
 type FilterEntry = [keyof VenueFilter, number[]];
+export type NearbyVenueObj = {
+    venue: Venue,
+    distance: number
+}
+export type MiddleVenueObj = {
+    venue: Venue,
+    distance1: number,
+    distance2: number
+}
 
 async function queryImpl(filter: VenueFilter): Promise<Venue[]> {
     let query: admin.firestore.Query = venueDB;
@@ -111,39 +120,31 @@ async function queryImpl2(filter: VenueFilter): Promise<Venue[]> {
 }
 
 //search for venues matched filter within given radius & location
-async function searchNearbyVenues(latitude: number, longitude: number, radiusMeters: number, filter: VenueFilter): Promise<Venue[]> {
+async function searchNearbyVenues(latitude: number, longitude: number, filter: VenueFilter): Promise<NearbyVenueObj[]> {
     const venueList = await queryImpl(filter);
-    const retList: Venue[] = [];
+    const retList: NearbyVenueObj[] = [];
 
     venueList.forEach(venue => {
         const distance = haversineDistance(latitude, longitude, venue.location.lat, venue.location.lng);
-        if(distance <= radiusMeters) {
-            retList.push(venue);
-        }
+        retList.push({ venue: venue, distance: distance });
     });
 
     return retList;
 }
 
 //search for venues matched filter, sorted ascending by distance difference
-async function searchMiddleVenues(lat1: number, lng1: number, lat2: number, lng2: number, filter: VenueFilter): Promise<Venue[]> {
+async function searchMiddleVenues(lat1: number, lng1: number, lat2: number, lng2: number, filter: VenueFilter): Promise<MiddleVenueObj[]> {
     const venueList = await queryImpl(filter);
-    const sortList: [Venue, number][] = [];
-    const retList: Venue[] = [];
+    const retList: MiddleVenueObj[] = [];
     
     venueList.forEach(venue => {
         const distA = haversineDistance(lat1, lng1, venue.location.lat, venue.location.lng);
         const distB = haversineDistance(lat2, lng2, venue.location.lat, venue.location.lng);
-        const dist = Math.abs(distA - distB);
-        sortList.push([venue, dist]);
+        retList.push({ venue: venue, distance1: distA, distance2: distB });
     });
 
-    sortList.sort((a, b) => {
-        return a[1] - b[1];
-    });
-
-    sortList.forEach(([venue, _]) => {
-        retList.push(venue);
+    retList.sort((a, b) => {
+        return Math.abs(a.distance1-a.distance2) - Math.abs(b.distance1-b.distance2);
     });
 
     return retList;
