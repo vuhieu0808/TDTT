@@ -280,7 +280,7 @@ function MatchingPage() {
 							</div>
 							<div className='p-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl text-white'>
 								<p className='text-lg font-semibold capitalize'>
-									{currentMatch.workVibe}
+									{/* {currentMatch.workVibe} */}
 								</p>
 								<p className='text-sm opacity-90 mt-1'>
 									{currentMatch.workVibe === "balanced" &&

@@ -209,7 +209,7 @@ function ProfilePage() {
 										fontWeight: "500",
 									}}
 								>
-									{userProfile.workVibe.replace("-", " ")}
+									{/* {userProfile.workVibe} */}
 								</Chip>
 							</div>
 						)}
