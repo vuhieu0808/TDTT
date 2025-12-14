@@ -13,7 +13,17 @@ import {
 	Map,
 	AttachMoney,
 } from "@mui/icons-material";
-import { Input, Card, Chip, Tabs, TabList, Tab, TabPanel } from "@mui/joy";
+import {
+	Input,
+	Card,
+	Chip,
+	Tabs,
+	TabList,
+	Tab,
+	TabPanel,
+	Select,
+	Option,
+} from "@mui/joy";
 
 interface Cafe {
 	id: number;
@@ -31,13 +41,59 @@ interface Cafe {
 	mapUrl: string;
 }
 
+const FILTER_OPTIONS = {
+	comfort: {
+		label: "Comfort Level",
+		options: [
+			{ value: "all", label: "All", numericValue: null },
+			{ value: "0", label: "Basic", numericValue: 0 },
+			{ value: "1", label: "Moderate", numericValue: 1 },
+			{ value: "2", label: "Premium", numericValue: 2 },
+		],
+	},
+	noise: {
+		label: "Noise Level",
+		options: [
+			{ value: "all", label: "All", numericValue: null },
+			{ value: "0", label: "Quiet", numericValue: 0 },
+			{ value: "1", label: "Moderate", numericValue: 1 },
+			{ value: "2", label: "Lively", numericValue: 2 },
+		],
+	},
+	wifi: {
+		label: "WiFi Speed",
+		options: [
+			{ value: "all", label: "All", numericValue: null },
+			{ value: "0", label: "Basic", numericValue: 0 },
+			{ value: "1", label: "Fast", numericValue: 1 },
+			{ value: "2", label: "Ultra Fast", numericValue: 2 },
+		],
+	},
+	ambiance: {
+		label: "Ambiance",
+		options: [
+			{ value: "all", label: "All", numericValue: null },
+			{ value: "0", label: "Casual", numericValue: 0 },
+			{ value: "1", label: "Modern", numericValue: 1 },
+			{ value: "2", label: "Cozy", numericValue: 2 },
+		],
+	},
+};
+
 function VenuesFindingPage() {
 	const [location, setLocation] = useState("");
 	const [selectedCafe, setSelectedCafe] = useState<Cafe | null>(null);
 	const [activeTab, setActiveTab] = useState(0);
 	const [cafesList, setCafesList] = useState<Cafe[]>(VenuesData);
 
-	// Sample cafe data
+	// Filter state with string values for display
+	const [filters, setFilters] = useState({
+		comfort: "all",
+		noise: "all",
+		wifi: "all",
+		ambiance: "all",
+	});
+
 	const cafes: Cafe[] = VenuesData;
 
 	const findVenues = (searchLocation: string) => {
@@ -55,6 +111,60 @@ function VenuesFindingPage() {
 			);
 			setCafesList(filtered);
 		}
+	};
+
+	// Helper function to get selected label for display
+	const getFilterLabel = (filterKey: keyof typeof filters) => {
+		const selectedValue = filters[filterKey];
+		const filterConfig = FILTER_OPTIONS[filterKey];
+		const selectedOption = filterConfig.options.find(
+			(opt) => opt.value === selectedValue
+		);
+		return selectedOption?.label || "All";
+	};
+
+	// Handle filter change
+	const handleFilterChange = (
+		filterKey: keyof typeof filters,
+		value: string
+	) => {
+		setFilters((prev) => ({
+			...prev,
+			[filterKey]: value,
+		}));
+	};
+
+	// Apply filters and convert to numeric values for backend
+	const applyFilters = () => {
+		let filtered = [...cafes];
+
+		// Convert string values to numeric for filtering
+		Object.entries(filters).forEach(([key, value]) => {
+			if (value !== "all") {
+				const filterConfig =
+					FILTER_OPTIONS[key as keyof typeof FILTER_OPTIONS];
+				const selectedOption = filterConfig.options.find(
+					(opt) => opt.value === value
+				);
+				if (selectedOption && selectedOption.numericValue !== null) {
+					// Apply your filter logic here using selectedOption.numericValue
+					// Example: filtered = filtered.filter(cafe => cafe[key] === selectedOption.numericValue);
+				}
+			}
+		});
+
+		setCafesList(filtered);
+	};
+
+	// Reset filters
+	const resetFilters = () => {
+		setFilters({
+			comfort: "all",
+			noise: "all",
+			wifi: "all",
+			ambiance: "all",
+		});
+		setCafesList(cafes);
 	};
 
 	return (
@@ -96,12 +206,111 @@ function VenuesFindingPage() {
 									},
 									borderRadius: "12px",
 									border: "2px solid #e5e7eb",
-									"&:hover": {
-										borderColor: "#d1d5db",
-									},
+									"&:hover": { borderColor: "#d1d5db" },
 								}}
 							/>
 						</div>
+
+						{/* Filter Settings */}
+						<Card
+							variant='outlined'
+							sx={{
+								mb: 2,
+								border: "1px solid #e5e7eb",
+								borderRadius: "12px",
+								p: 3,
+							}}
+						>
+							<div className='flex justify-between items-center mb-2'>
+								<h3 className='text-lg font-semibold text-gray-900'>
+									Filters
+								</h3>
+								<Chip
+									size='sm'
+									variant='soft'
+									onClick={resetFilters}
+									sx={{
+										cursor: "pointer",
+										backgroundColor: "var(--color-red-500)",
+									}}
+								>
+									Reset All
+								</Chip>
+							</div>
+
+							{/* Filter Option Setting */}
+							<div className='grid grid-cols-4 gap-4'>
+								{Object.entries(FILTER_OPTIONS).map(
+									([key, config]) => (
+										<>
+											<div>
+												<label className='text-md font-medium text-gray-700 mb-2 block'>
+													{config.label}
+												</label>
+												<div key={key}>
+													<Select
+														value={
+															filters[
+																key as keyof typeof filters
+															]
+														}
+														onChange={(
+															e,
+															newValue
+														) =>
+															handleFilterChange(
+																key as keyof typeof filters,
+																newValue as string
+															)
+														}
+														placeholder={`${
+															config.label
+														}: ${getFilterLabel(
+															key as keyof typeof filters
+														)}`}
+														sx={{
+															borderRadius:
+																"12px",
+															border: "2px solid #e5e7eb",
+															"&:hover": {
+																borderColor:
+																	"#d1d5db",
+															},
+														}}
+													>
+														{config.options.map(
+															(option) => (
+																<Option
+																	key={
+																		option.value
+																	}
+																	value={
+																		option.value
+																	}
+																>
+																	{
+																		option.label
+																	}
+																</Option>
+															)
+														)}
+													</Select>
+												</div>
+											</div>
+										</>
+									)
+								)}
+							</div>
+
+							<div className='mt-4 flex justify-end'>
+								<button
+									onClick={applyFilters}
+									className='px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors'
+								>
+									Apply Filters
+								</button>
+							</div>
+						</Card>
 
 						{/* Main Content Grid */}
 						<div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'>

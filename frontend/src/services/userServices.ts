@@ -15,9 +15,4 @@ export const userServices = {
 		const res = await api.put("/users/me", data);
 		return res.data;
 	},
-
-	async getUserByUid(uid: string): Promise<UserProfile> {
-		const response = await api.get(`/users/${uid}`);
-		return response.data;
-	},
 };

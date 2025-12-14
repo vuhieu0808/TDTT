@@ -28,6 +28,8 @@ const HomePage = () => {
 	const { userProfile } = useAuthStore();
 	const navigate = useNavigate();
 
+	console.log("ngu", userProfile);
+
 	const handleMatchingClick = () => {
 		navigate("/MatchingPage");
 	};
@@ -69,29 +71,31 @@ const HomePage = () => {
 
 				if (requestArray && requestArray.length > 0) {
 					// Fetch full profiles for each friend request
-					const profilePromises = requestArray.map(
-						async (request: FriendRequest) => {
-							try {
-								// Fetch the full user profile using the fromUid
-								const userProfile =
-									await userServices.getUserByUid(
-										request.fromUid
-									);
-								return userProfile;
-							} catch (error) {
-								console.error(
-									`Failed to fetch profile for ${request.fromUid}:`,
-									error
-								);
-								// Return a minimal profile if fetch fails
-								return {
-									uid: request.fromUid,
-								} as UserProfile;
-							}
-						}
-					);
+					const profiles = requestArray.map((request: any) => {
+						const userData = request[0];
+						return {
+							uid: userData.uid,
+							displayName: userData.displayName || "Unknown User",
+							avatarUrl: userData.avatarUrl || "",
+							bio: userData.bio || "",
+							interests: userData.interests || [],
+							email: userData.email,
+							gender: userData.gender,
+							age: userData.age,
+							occupation: userData.occupation,
+							occupationDescription:
+								userData.occupationDescription,
+							status: userData.status,
+							workVibe: userData.workVibe,
+							maxDistanceKm: userData.maxDistanceKm,
+							availability: userData.availability,
+							createdAt: userData.createdAt,
+							updatedAt: userData.updatedAt,
+							lastActivity: userData.lastActivity,
+							dateOfBirth: userData.dateOfBirth,
+						} as UserProfile;
+					});
 
-					const profiles = await Promise.all(profilePromises);
 					console.log("Fetched user profiles:", profiles);
 
 					setRequests(requestArray);
@@ -176,6 +180,7 @@ const HomePage = () => {
 
 							<Button
 								onClick={handleMatchingClick}
+								disabled={userProfile?.isReadyToMatch}
 								startDecorator={
 									<Favorite sx={{ fontSize: "2rem" }} />
 								}
