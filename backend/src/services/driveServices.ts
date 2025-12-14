@@ -28,7 +28,7 @@ export const driveServices = {
       if (res.data.files && res.data.files.length > 0) {
         // Safe assertion vì đã check length
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return res.data.files[0].id!;
+        return res.data.files[0]!.id!;
       }
       console.log(`Folder ${folderName} not found, creating new one.`);
       // 2. Nếu không thấy thì tạo mới

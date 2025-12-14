@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    /* IGNORE ALL ERROR ! */
+    "noEmitOnError": false,
+
     /* === File Layout === */
     "rootDir": "./src",
     "outDir": "./dist",
@@ -19,6 +22,7 @@
     "declarationMap": true,
 
     /* === Type Checking Options === */
+    // "strict": false,
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
