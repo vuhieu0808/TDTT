@@ -2,7 +2,7 @@ import { admin, db } from "../config/firebase.js";
 import { Cooldown } from "../models/Cooldown.js";
 import { cooldownDB, friendDB, friendRequestDB } from "../models/db.js";
 import { Friend } from "../models/Friend.js";
-import { getDetailsForUserIds } from "../utils/friendHelper.js";
+import { getFullUserProfile } from "../utils/friendHelper.js";
 import { conversationServices } from "./conversationServices.js";
 
 export const friendServices = {
@@ -52,7 +52,6 @@ export const friendServices = {
       const friendData: Friend = {
         userA: userA!,
         userB: userB!,
-        isNewFriend: true,
         createdAt: admin.firestore.Timestamp.now(),
       };
 
@@ -138,7 +137,7 @@ export const friendServices = {
       return friendData.userA === userId ? friendData.userB : friendData.userA;
     });
 
-    return await getDetailsForUserIds(matchedUserIds);
+    return await getFullUserProfile(matchedUserIds);
   },
 
   unmatchUser: async (userId: string, unmatchUserId: string) => {

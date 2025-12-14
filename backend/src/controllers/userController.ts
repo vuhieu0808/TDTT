@@ -49,14 +49,19 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
     if (!uid) {
       return res.status(401).json({ error: "Unauthorized. No token provided" });
     }
-    const updateData: Partial<User> = req.body;
+    const updateData: Partial<User> = (req.body as User);
 
     // Cập nhật trường updatedAt
     updateData.updatedAt = admin.firestore.Timestamp.now();
 
     const userDataDoc = userDB.doc(uid);
+    const userDataRef = await userDataDoc.get();
+    if (!userDataRef.exists) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
     const newUserData = {
-      ...userDataDoc,
+      ...userDataRef.data() as User,
       ...updateData,
     };
     if (
