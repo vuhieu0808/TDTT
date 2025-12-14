@@ -103,16 +103,23 @@ export const friendServices = {
     );
 
     await db.runTransaction(async (transaction) => {
-      const friendRequstSnapshot = await transaction.get(
-        friendRequestDB
-          .where("senderId", "==", receiverId)
-          .where("receivedId", "==", userId)
-      );
-      if (!friendRequstSnapshot.empty) {
-        friendRequstSnapshot.docs.forEach((doc) => {
-          transaction.delete(doc.ref);
-        });
-      }
+      console.log("userId:", userId, "receiverId:", receiverId);
+      const query1 = friendRequestDB
+        .where("senderId", "==", userId)
+        .where("receivedId", "==", receiverId);
+      const query2 = friendRequestDB
+        .where("senderId", "==", receiverId)
+        .where("receivedId", "==", userId);
+      const [friendRequestSnapshot1, friendRequestSnapshot2] = await Promise.all([
+        transaction.get(query1),
+        transaction.get(query2),
+      ]);
+      friendRequestSnapshot1.docs.forEach((doc) => {
+        transaction.delete(doc.ref);
+      });
+      friendRequestSnapshot2.docs.forEach((doc) => {
+        transaction.delete(doc.ref);
+      });
       transaction.set(cooldownRef, {
         id: friendShipId,
         userA,
