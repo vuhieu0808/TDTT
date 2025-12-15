@@ -9,6 +9,9 @@ import ChatButton from "@/components/ChatButton";
 import Layout from "@/components/Layout";
 import ProfileModal from "@/components/ProfileModal";
 import Button from "@mui/joy/Button";
+import Modal from "@mui/joy/Modal";
+import ModalClose from "@mui/joy/ModalClose";
+import Sheet from "@mui/joy/Sheet";
 
 import {
 	WavingHand,
@@ -21,6 +24,8 @@ import {
 	PersonAdd,
 	Check,
 	Close,
+	Warning,
+	ArrowForward,
 } from "@mui/icons-material";
 import { useFriendStore } from "@/stores/useFriendStore";
 
@@ -29,6 +34,11 @@ const HomePage = () => {
 	const navigate = useNavigate();
 
 	const handleMatchingClick = () => {
+		// Check if user is ready to match
+		if (!userProfile?.isReadyToMatch) {
+			setShowMissingFieldsModal(true);
+			return;
+		}
 		navigate("/MatchingPage");
 	};
 
@@ -55,6 +65,7 @@ const HomePage = () => {
 		null
 	);
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
 
 	const handleViewProfile = (profile: UserProfile) => {
 		setSelectedProfile(profile);
@@ -93,6 +104,18 @@ const HomePage = () => {
 			month: "long",
 			day: "numeric",
 		});
+	};
+
+	// Check which fields are missing
+	const getMissingFields = () => {
+		const missing: string[] = [];
+		if (!userProfile?.age) missing.push("Age");
+		if (!userProfile?.interests || userProfile.interests.length === 0)
+			missing.push("Interests");
+		if (!userProfile?.occupation) missing.push("Occupation");
+		if (!userProfile?.location) missing.push("Location");
+		if (!userProfile?.workVibe) missing.push("Work Vibe");
+		return missing;
 	};
 
 	useEffect(() => {
@@ -175,7 +198,6 @@ const HomePage = () => {
 
 							<Button
 								onClick={handleMatchingClick}
-								disabled={!userProfile?.isReadyToMatch}
 								startDecorator={
 									<Favorite sx={{ fontSize: "2rem" }} />
 								}
@@ -513,6 +535,95 @@ const HomePage = () => {
 					onChat={handleChat}
 					showActions={true}
 				/>
+
+				{/* Missing Fields Modal */}
+				<Modal
+					open={showMissingFieldsModal}
+					onClose={() => setShowMissingFieldsModal(false)}
+					sx={{
+						display: "flex",
+						justifyContent: "center",
+						alignItems: "center",
+					}}
+				>
+					<Sheet
+						variant='plain'
+						sx={{
+							maxWidth: 500,
+							width: "90%",
+							borderRadius: "xl",
+							p: 4,
+							boxShadow: "lg",
+							position: "relative",
+							background: "white",
+						}}
+					>
+						<ModalClose variant='plain' sx={{ m: 1 }} />
+
+						<div className='text-center mb-6'>
+							<div className='w-20 h-20 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg'>
+								<Warning
+									sx={{ fontSize: "3rem", color: "white" }}
+								/>
+							</div>
+							<h2 className='text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2'>
+								Profile Incomplete
+							</h2>
+							<p className='text-gray-600'>
+								Please complete your profile to start matching
+							</p>
+						</div>
+
+						<div className='bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-6'>
+							<h3 className='text-lg font-semibold text-red-800 mb-3 flex items-center gap-2'>
+								<Warning sx={{ color: "#991b1b" }} />
+								Missing Information:
+							</h3>
+							<ul className='space-y-2'>
+								{getMissingFields().map((field, index) => (
+									<li
+										key={index}
+										className='flex items-center gap-2 text-red-700'
+									>
+										<span className='w-2 h-2 bg-red-500 rounded-full'></span>
+										<span className='font-medium'>
+											{field}
+										</span>
+									</li>
+								))}
+							</ul>
+						</div>
+
+						<Button
+							onClick={() => {
+								setShowMissingFieldsModal(false);
+								navigate("/SettingsPage");
+							}}
+							endDecorator={<ArrowForward />}
+							sx={{
+								width: "100%",
+								background:
+									"linear-gradient(135deg, #a855f7 0%, #ec4899 100%)",
+								color: "white",
+								padding: "12px 24px",
+								borderRadius: "1rem",
+								fontSize: "1rem",
+								fontWeight: "600",
+								textTransform: "none",
+								"&:hover": {
+									background:
+										"linear-gradient(135deg, #9333ea 0%, #db2777 100%)",
+									transform: "translateY(-2px)",
+									boxShadow:
+										"0 8px 20px rgba(168, 85, 247, 0.4)",
+								},
+								transition: "all 0.3s ease",
+							}}
+						>
+							Complete Profile Now
+						</Button>
+					</Sheet>
+				</Modal>
 			</Layout>
 		</div>
 	);

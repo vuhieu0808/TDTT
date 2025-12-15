@@ -8,6 +8,9 @@ import {
 	LocationOn,
 	Edit,
 	Camera,
+	CheckCircle,
+	Warning,
+	Tune,
 } from "@mui/icons-material";
 import Button from "@mui/joy/Button";
 import Chip from "@mui/joy/Chip";
@@ -41,6 +44,24 @@ function ProfilePage() {
 		}
 	};
 
+	const hasIncompletePreferences = () => {
+		if (!userProfile) return false;
+		const missingFields: string[] = [];
+		if (!userProfile.interests || userProfile.interests.length === 0) {
+			missingFields.push("interests");
+		}
+		if (!userProfile.workVibe) {
+			missingFields.push("work vibe");
+		}
+		if (
+			!userProfile.availability ||
+			userProfile.availability.length === 0
+		) {
+			missingFields.push("availability");
+		}
+		return missingFields;
+	};
+
 	const formatDate = (dateString?: string) => {
 		if (!dateString) return "Not set";
 		const date = new Date(dateString);
@@ -51,9 +72,65 @@ function ProfilePage() {
 		});
 	};
 
+	const missingPreferences = hasIncompletePreferences();
+
 	return (
 		<Layout>
 			<div className='max-w-5xl mx-auto'>
+				{/* Recommendation Banner */}
+				{missingPreferences && missingPreferences.length > 0 && (
+					<div className='bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-lg p-4 mb-4 shadow-sm'>
+						<div className='flex items-start gap-3'>
+							<Warning
+								sx={{ color: "#f59e0b", fontSize: "1.5rem" }}
+							/>
+							<div className='flex-1'>
+								<h3 className='font-bold text-gray-900 mb-1'>
+									Complete Your Work Preferences
+								</h3>
+								<p className='text-sm text-gray-700 mb-3'>
+									You're missing:{" "}
+									<span className='font-semibold'>
+										{missingPreferences.join(", ")}
+									</span>
+									. Set up your work preferences to start
+									matching with work partners!
+								</p>
+								<Button
+									onClick={() => navigate("/PreferencePage")}
+									startDecorator={<Tune />}
+									size='sm'
+									sx={{
+										backgroundColor: "#f59e0b",
+										"&:hover": {
+											backgroundColor: "#d97706",
+										},
+									}}
+								>
+									Set Up Work Preferences
+								</Button>
+							</div>
+						</div>
+					</div>
+				)}
+				{missingPreferences && missingPreferences.length === 0 && (
+					<div className='bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-4 mb-4 shadow-sm'>
+						<div className='flex items-center gap-3'>
+							<CheckCircle
+								sx={{ color: "#10b981", fontSize: "1.5rem" }}
+							/>
+							<div>
+								<h3 className='font-bold text-gray-900'>
+									Profile Complete! 🎉
+								</h3>
+								<p className='text-sm text-gray-700'>
+									Your profile and work preferences are all
+									set up. You're ready to match!
+								</p>
+							</div>
+						</div>
+					</div>
+				)}
 				{/* Cover Photo and Profile Picture */}
 				<div className='relative bg-white rounded-lg shadow-sm overflow-hidden mb-4'>
 					{/* Cover Image */}
@@ -69,7 +146,7 @@ function ProfilePage() {
 					></div>
 
 					{/* Profile Section */}
-					<div className='px-6 pb-6'>
+					<div className='px-6 py-6'>
 						<div className='flex flex-col sm:flex-row gap-4 sm:gap-6 items-start sm:items-end -mt-16 sm:-mt-20'>
 							{/* Avatar */}
 							<div className='relative'>
