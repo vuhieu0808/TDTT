@@ -48,7 +48,7 @@ const HomePage = () => {
 		loadingFriendRequest,
 	} = useFriendStore();
 
-	const { fetchFriends, fetchFriendRequests, swipeLeft, swipeRight } =
+	const { fetchFriends, fetchFriendRequests, swipeLeft, swipeRight, unMatch } =
 		useFriendStore();
 
 	const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(
@@ -69,7 +69,7 @@ const HomePage = () => {
 	const handleUnmatch = async () => {
 		if (selectedProfile) {
 			try {
-				await swipeLeft(selectedProfile.uid);
+				await unMatch(selectedProfile.uid);
 				handleCloseModal();
 			} catch (error) {
 				console.error("Failed to unmatch:", error);
