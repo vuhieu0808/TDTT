@@ -58,6 +58,17 @@ export const useFriendStore = create<FriendState>((set, get) => ({
       console.error("Error swiping right:", error);
     }
   },
+  unMatch: async (userId: string) => {
+    try {
+      await friendServices.unmatch(userId);
+      const { friends } = get();
+      set({
+        friends: friends.filter((user) => user.uid !== userId),
+      });
+    } catch (error) {
+      console.error("Error unmatching friend:", error);
+    }
+  },
   addNewFriend: (friend: UserProfile) => {
     const { friends } = get();
     set({ friends: [friend, ...friends] });

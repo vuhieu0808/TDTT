@@ -85,3 +85,16 @@ export const emitFriendRequestNotification = async (
   };
   io.to(receiverId).emit("friend-request", payload);
 };
+
+export const emitUnMatchNotification = async (
+  io: Server,
+  unmatchUserId: string,
+  conversationId: string,
+  userId: string
+) => {
+  const payload = {
+    conversationId,
+    userId,
+  };
+  io.to(unmatchUserId).emit("unmatch-notification", payload);
+};
