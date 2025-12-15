@@ -7,6 +7,7 @@ import type { UserProfile } from "@/types/user";
 
 import ChatButton from "@/components/ChatButton";
 import Layout from "@/components/Layout";
+import ProfileModal from "@/components/ProfileModal";
 import Button from "@mui/joy/Button";
 
 import {
@@ -50,6 +51,50 @@ const HomePage = () => {
 	const { fetchFriends, fetchFriendRequests, swipeLeft, swipeRight } =
 		useFriendStore();
 
+	const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(
+		null
+	);
+	const [isModalOpen, setIsModalOpen] = useState(false);
+
+	const handleViewProfile = (profile: UserProfile) => {
+		setSelectedProfile(profile);
+		setIsModalOpen(true);
+	};
+
+	const handleCloseModal = () => {
+		setIsModalOpen(false);
+		setSelectedProfile(null);
+	};
+
+	const handleUnmatch = async () => {
+		if (selectedProfile) {
+			try {
+				await swipeLeft(selectedProfile.uid);
+				handleCloseModal();
+			} catch (error) {
+				console.error("Failed to unmatch:", error);
+			}
+		}
+	};
+
+	const handleChat = () => {
+		if (selectedProfile) {
+			// Navigate to chat with this user
+			navigate(`/MessagePage?userId=${selectedProfile.uid}`);
+			handleCloseModal();
+		}
+	};
+
+	const formatDate = (dateString?: string) => {
+		if (!dateString) return "Not set";
+		const date = new Date(dateString);
+		return date.toLocaleDateString("en-US", {
+			year: "numeric",
+			month: "long",
+			day: "numeric",
+		});
+	};
+
 	useEffect(() => {
 		const fetchRequest = async () => {
 			try {
@@ -88,6 +133,8 @@ const HomePage = () => {
 			console.error("Failed to reject request:", error);
 		}
 	};
+
+	console.log(userProfile);
 
 	return (
 		<div className='min-h-screen bg-gradient-to-br from-slate-50 to-purple-50'>
@@ -128,6 +175,7 @@ const HomePage = () => {
 
 							<Button
 								onClick={handleMatchingClick}
+								disabled={!userProfile?.isReadyToMatch}
 								startDecorator={
 									<Favorite sx={{ fontSize: "2rem" }} />
 								}
@@ -280,11 +328,19 @@ const HomePage = () => {
 											className='flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all'
 										>
 											<img
+												onClick={() =>
+													handleViewProfile(profile)
+												}
 												src={profile.avatarUrl}
 												alt={profile.displayName}
-												className='w-16 h-16 rounded-full object-cover border-2 border-pink-300'
+												className='w-16 h-16 rounded-full object-cover border-2 border-pink-300 cursor-pointer'
 											/>
-											<div className='flex-1'>
+											<div
+												className='flex-1 cursor-pointer'
+												onClick={() =>
+													handleViewProfile(profile)
+												}
+											>
 												<h4 className='font-semibold text-gray-800 text-lg'>
 													{profile.displayName}
 												</h4>
@@ -353,11 +409,23 @@ const HomePage = () => {
 												className='flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all'
 											>
 												<img
+													onClick={() =>
+														handleViewProfile(
+															profile
+														)
+													}
 													src={profile.avatarUrl}
 													alt={profile.displayName}
-													className='w-16 h-16 rounded-full object-cover border-2 border-pink-300'
+													className='w-16 h-16 rounded-full object-cover border-2 border-pink-300 cursor-pointer'
 												/>
-												<div className='flex-1'>
+												<div
+													className='flex-1 cursor-pointer'
+													onClick={() =>
+														handleViewProfile(
+															profile
+														)
+													}
+												>
 													<h4 className='font-semibold text-gray-800 text-lg'>
 														{profile.displayName}
 													</h4>
@@ -435,7 +503,16 @@ const HomePage = () => {
 						</div>
 					</div>
 				</div>
-				<ChatButton />
+
+				{/* Profile View Modal */}
+				<ProfileModal
+					isOpen={isModalOpen}
+					onClose={handleCloseModal}
+					userProfile={selectedProfile}
+					onUnmatch={handleUnmatch}
+					onChat={handleChat}
+					showActions={true}
+				/>
 			</Layout>
 		</div>
 	);

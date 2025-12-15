@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { venueServices } from "@/services/venueServices";
-import type { Venue } from "@/types/venue";
+import type { Venue, VenueFilter } from "@/types/venue";
 import { useAuthStore } from "@/stores/useAuthStore";
 import Layout from "@/components/Layout";
 import {
@@ -25,6 +25,10 @@ import {
 	Select,
 	Option,
 	CircularProgress,
+	Checkbox,
+	Button,
+	Menu,
+	MenuItem,
 } from "@mui/joy";
 
 const FILTER_OPTIONS = {
@@ -85,13 +89,24 @@ function VenuesFindingPage() {
 	const [loading, setLoading] = useState(true);
 	const [sortBy, setSortBy] = useState<string>("rating-desc");
 
-	// Filter state with string values for display
+	// Filter state with arrays for multiple selections
 	const [filters, setFilters] = useState({
-		comfort: "all",
-		noise: "all",
-		interior: "all",
-		view: "all",
-		staffInteraction: "all",
+		comfort: [] as number[],
+		noise: [] as number[],
+		interior: [] as number[],
+		view: [] as number[],
+		staffInteraction: [] as number[],
+	});
+
+	// Track which dropdown menu is open
+	const [anchorEl, setAnchorEl] = useState<{
+		[key: string]: HTMLElement | null;
+	}>({
+		comfort: null,
+		noise: null,
+		interior: null,
+		view: null,
+		staffInteraction: null,
 	});
 
 	// Fetch venues from Firebase on component mount
@@ -99,9 +114,20 @@ function VenuesFindingPage() {
 		const loadVenues = async () => {
 			try {
 				setLoading(true);
+
+				// Pass filter arrays directly to backend
+				const venueFilter: VenueFilter = {
+					comfort: filters.comfort,
+					noise: filters.noise,
+					interior: filters.interior,
+					view: filters.view,
+					staffInteraction: filters.staffInteraction,
+				};
+
 				const venues = await venueServices.fetchVenues(
 					(userProfile?.location && userProfile?.location.lat) || 0,
-					(userProfile?.location && userProfile?.location.lng) || 0
+					(userProfile?.location && userProfile?.location.lng) || 0,
+					venueFilter
 				);
 
 				console.log("Fetched venues:", venues);
@@ -121,7 +147,7 @@ function VenuesFindingPage() {
 	// Filter venues by location search
 	const findVenues = (searchLocation: string) => {
 		if (searchLocation.trim() === "") {
-			applyAllFilters(allVenues);
+			setFilteredVenues(allVenues);
 		} else {
 			const locationFiltered = allVenues.filter(
 				(venue) =>
@@ -132,28 +158,43 @@ function VenuesFindingPage() {
 						.toLowerCase()
 						.includes(searchLocation.toLowerCase())
 			);
-			applyAllFilters(locationFiltered);
+			setFilteredVenues(locationFiltered);
 		}
 	};
 
-	// Helper function to get selected label for display
-	const getFilterLabel = (filterKey: keyof typeof filters) => {
-		const selectedValue = filters[filterKey];
-		const filterConfig = FILTER_OPTIONS[filterKey];
-		const selectedOption = filterConfig.options.find(
-			(opt) => opt.value === selectedValue
-		);
-		return selectedOption?.label || "All";
-	};
-
-	// Handle filter change
+	// Handle checkbox toggle for filters
 	const handleFilterChange = (
 		filterKey: keyof typeof filters,
-		value: string
+		value: number
 	) => {
-		setFilters((prev) => ({
+		setFilters((prev) => {
+			const currentValues = prev[filterKey];
+			const newValues = currentValues.includes(value)
+				? currentValues.filter((v) => v !== value)
+				: [...currentValues, value];
+			return {
+				...prev,
+				[filterKey]: newValues,
+			};
+		});
+	};
+
+	// Handle toggle dropdown menu (open/close)
+	const handleToggleMenu = (
+		filterKey: string,
+		event: React.MouseEvent<HTMLElement>
+	) => {
+		setAnchorEl((prev) => ({
 			...prev,
-			[filterKey]: value,
+			[filterKey]: prev[filterKey] ? null : event.currentTarget,
+		}));
+	};
+
+	// Handle closing dropdown menu
+	const handleCloseMenu = (filterKey: string) => {
+		setAnchorEl((prev) => ({
+			...prev,
+			[filterKey]: null,
 		}));
 	};
 
@@ -178,66 +219,101 @@ function VenuesFindingPage() {
 		setFilteredVenues(sorted);
 	};
 
-	// Apply all filters (location + attribute filters)
-	const applyAllFilters = (venuesBase: Venue[] = allVenues) => {
-		let filtered = [...venuesBase];
+	// Apply filters - fetch from backend with selected filters
+	const applyFilters = async () => {
+		try {
+			setLoading(true);
+			setSelectedVenue(null);
 
-		// Apply location filter if exists
-		if (location.trim() !== "") {
-			filtered = filtered.filter(
-				(venue) =>
-					venue.address
-						.toLowerCase()
-						.includes(location.toLowerCase()) ||
-					venue.name.toLowerCase().includes(location.toLowerCase())
+			const venueFilter: VenueFilter = {
+				comfort: filters.comfort,
+				noise: filters.noise,
+				interior: filters.interior,
+				view: filters.view,
+				staffInteraction: filters.staffInteraction,
+			};
+
+			const venues = await venueServices.fetchVenues(
+				(userProfile?.location && userProfile?.location.lat) || 0,
+				(userProfile?.location && userProfile?.location.lng) || 0,
+				venueFilter
 			);
-		}
 
-		// Apply attribute filters
-		Object.entries(filters).forEach(([key, value]) => {
-			if (value !== "all") {
-				const filterConfig =
-					FILTER_OPTIONS[key as keyof typeof FILTER_OPTIONS];
-				const selectedOption = filterConfig.options.find(
-					(opt) => opt.value === value
+			// Apply location filter on frontend if exists
+			let filtered = venues;
+			if (location.trim() !== "") {
+				filtered = venues.filter(
+					(venue) =>
+						venue.address
+							.toLowerCase()
+							.includes(location.toLowerCase()) ||
+						venue.name
+							.toLowerCase()
+							.includes(location.toLowerCase())
 				);
-				if (selectedOption && selectedOption.numericValue !== null) {
-					filtered = filtered.filter((venue) => {
-						const venueValue =
-							venue.attributes[
-								key as keyof typeof venue.attributes
-							];
-						return venueValue === selectedOption.numericValue;
-					});
-				}
 			}
-		});
 
-		// Apply sorting
-		filtered = sortVenues(filtered, sortBy);
+			const sortedVenues = sortVenues(filtered, sortBy);
+			setAllVenues(sortedVenues);
+			setFilteredVenues(sortedVenues);
 
-		setFilteredVenues(filtered);
-	};
-
-	// Apply filters button handler
-	const applyFilters = () => {
-		setSelectedVenue(null);
-		applyAllFilters();
+			setAnchorEl({
+				comfort: null,
+				noise: null,
+				interior: null,
+				view: null,
+				staffInteraction: null,
+			});
+		} catch (error) {
+			console.error("Error applying filters:", error);
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	// Reset filters
-	const resetFilters = () => {
+	const resetFilters = async () => {
+		// Close all dropdown menus first
+		setAnchorEl({
+			comfort: null,
+			noise: null,
+			interior: null,
+			view: null,
+			staffInteraction: null,
+		});
+
 		setFilters({
-			comfort: "all",
-			noise: "all",
-			interior: "all",
-			view: "all",
-			staffInteraction: "all",
+			comfort: [],
+			noise: [],
+			interior: [],
+			view: [],
+			staffInteraction: [],
 		});
 		setLocation("");
-		setFilteredVenues(allVenues);
 		setSelectedVenue(null);
-		// findVenues(location);
+
+		// Refetch all venues without filters
+		try {
+			setLoading(true);
+			const venues = await venueServices.fetchVenues(
+				(userProfile?.location && userProfile?.location.lat) || 0,
+				(userProfile?.location && userProfile?.location.lng) || 0,
+				{
+					comfort: [],
+					noise: [],
+					interior: [],
+					view: [],
+					staffInteraction: [],
+				}
+			);
+			const sortedVenues = sortVenues(venues, sortBy);
+			setAllVenues(sortedVenues);
+			setFilteredVenues(sortedVenues);
+		} catch (error) {
+			console.error("Error resetting filters:", error);
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	if (loading) {
@@ -326,47 +402,115 @@ function VenuesFindingPage() {
 						{/* Filter Option Setting */}
 						<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4'>
 							{Object.entries(FILTER_OPTIONS).map(
-								([key, config]) => (
-									<div key={key}>
-										<label className='text-md font-medium text-gray-700 mb-2 block'>
-											{config.label}
-										</label>
-										<Select
-											value={
-												filters[
-													key as keyof typeof filters
-												]
-											}
-											onChange={(e, newValue) =>
-												handleFilterChange(
-													key as keyof typeof filters,
-													newValue as string
-												)
-											}
-											placeholder={`${
-												config.label
-											}: ${getFilterLabel(
-												key as keyof typeof filters
-											)}`}
-											sx={{
-												borderRadius: "12px",
-												border: "2px solid #e5e7eb",
-												"&:hover": {
-													borderColor: "#d1d5db",
-												},
-											}}
-										>
-											{config.options.map((option) => (
-												<Option
-													key={option.value}
-													value={option.value}
-												>
-													{option.label}
-												</Option>
-											))}
-										</Select>
-									</div>
-								)
+								([key, config]) => {
+									const hasSelections =
+										filters[key as keyof typeof filters]
+											.length > 0;
+									return (
+										<div key={key}>
+											<label className='text-md font-medium text-gray-700 mb-2 block'>
+												{config.label}
+											</label>
+											<Button
+												variant='outlined'
+												onClick={(e) =>
+													handleToggleMenu(key, e)
+												}
+												fullWidth
+												sx={{
+													justifyContent:
+														"space-between",
+													borderRadius: "8px",
+													border: hasSelections
+														? "2px solid #a855f7"
+														: "2px solid #e5e7eb",
+													backgroundColor:
+														hasSelections
+															? "#faf5ff"
+															: "white",
+													color: hasSelections
+														? "#a855f7"
+														: "#374151",
+													fontWeight: hasSelections
+														? 600
+														: 400,
+													"&:hover": {
+														borderColor: "#a855f7",
+														backgroundColor:
+															"#faf5ff",
+													},
+												}}
+											>
+												<span>
+													{hasSelections
+														? `Selected (${
+																filters[
+																	key as keyof typeof filters
+																].length
+														  })`
+														: "Select options"}
+												</span>
+												<span>▼</span>
+											</Button>
+											<Menu
+												anchorEl={anchorEl[key]}
+												open={Boolean(anchorEl[key])}
+												onClose={() =>
+													handleCloseMenu(key)
+												}
+												placement='bottom-start'
+												disablePortal={false}
+												sx={{
+													minWidth: "200px",
+													maxHeight: "300px",
+													overflowY: "auto",
+												}}
+											>
+												{config.options
+													.filter(
+														(option) =>
+															option.numericValue !==
+															null
+													)
+													.map((option) => (
+														<MenuItem
+															key={option.value}
+															onClick={() =>
+																handleFilterChange(
+																	key as keyof typeof filters,
+																	option.numericValue as number
+																)
+															}
+															sx={{
+																display: "flex",
+																alignItems:
+																	"center",
+																gap: 1,
+																py: 1,
+															}}
+														>
+															<Checkbox
+																checked={filters[
+																	key as keyof typeof filters
+																].includes(
+																	option.numericValue as number
+																)}
+																size='sm'
+																readOnly
+																sx={{
+																	pointerEvents:
+																		"none",
+																}}
+															/>
+															<span>
+																{option.label}
+															</span>
+														</MenuItem>
+													))}
+											</Menu>
+										</div>
+									);
+								}
 							)}
 						</div>
 
