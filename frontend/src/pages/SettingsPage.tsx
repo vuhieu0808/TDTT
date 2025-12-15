@@ -19,6 +19,7 @@ import {
 	Work,
 	LocationOn,
 	Numbers,
+	MyLocation,
 } from "@mui/icons-material";
 
 interface SettingsForm {
@@ -40,6 +41,7 @@ function SettingsPage() {
 	const { userProfile, updateUserProfile } = useAuthStore();
 	const navigate = useNavigate();
 	const [isSaving, setIsSaving] = useState(false);
+	const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
 	const [formData, setFormData] = useState<SettingsForm>({
 		displayName: "",
@@ -92,6 +94,100 @@ function SettingsPage() {
 			},
 		}));
 	};
+
+	const handleLatitudeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value;
+
+		// Check if comma is in the input
+		if (value.includes(",")) {
+			const parts = value.split(",").map((part) => part.trim());
+			const lat = parseFloat(parts[0]) || 0;
+			const lng = parseFloat(parts[1]) || 0;
+
+			// Update both latitude and longitude
+			setFormData((prev) => ({
+				...prev,
+				location: {
+					lat: lat,
+					lng: lng,
+				},
+			}));
+
+			// Focus to longitude input after a short delay
+			setTimeout(() => {
+				const lngInput = document.getElementById(
+					"longitude-input"
+				) as HTMLInputElement;
+				if (lngInput) {
+					lngInput.focus();
+				}
+			}, 0);
+		} else {
+			// Normal input without comma
+			handleLocationChange("lat", parseFloat(value) || 0);
+		}
+	};
+
+	const handleLocationPaste = (
+		e: React.ClipboardEvent<HTMLInputElement | HTMLDivElement>,
+		field: "lat" | "lng"
+	) => {
+		const pastedText = e.clipboardData.getData("text");
+
+		// Check if pasted text contains comma (format: lat, lng)
+		if (pastedText.includes(",")) {
+			e.preventDefault();
+			const parts = pastedText.split(",").map((part) => part.trim());
+			const lat = parseFloat(parts[0]) || 0;
+			const lng = parseFloat(parts[1]) || 0;
+
+			setFormData((prev) => ({
+				...prev,
+				location: {
+					lat: lat,
+					lng: lng,
+				},
+			}));
+
+			// Focus to longitude input
+			setTimeout(() => {
+				const lngInput = document.getElementById(
+					"longitude-input"
+				) as HTMLInputElement;
+				if (lngInput) {
+					lngInput.focus();
+				}
+			}, 0);
+		}
+	};
+
+	const handleDetectLocation = () => {
+        if (!navigator.geolocation) {
+            toast.error("Geolocation is not supported by your browser");
+            return;
+        }
+
+        setIsDetectingLocation(true);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                setFormData((prev) => ({
+                    ...prev,
+                    location: {
+                        lat: parseFloat(latitude.toFixed(6)),
+                        lng: parseFloat(longitude.toFixed(6)),
+                    },
+                }));
+                toast.success("Location detected successfully!");
+                setIsDetectingLocation(false);
+            },
+            (error) => {
+                console.error("Geolocation error:", error);
+                toast.error("Failed to detect location. Please try again.");
+                setIsDetectingLocation(false);
+            }
+        );
+    };
 
 	const handleSave = async () => {
 		if (!userProfile) {
@@ -381,13 +477,12 @@ function SettingsPage() {
 										Latitude
 									</label>
 									<Input
+										id='latitude-input'
 										type='number'
 										value={formData.location.lat}
-										onChange={(e) =>
-											handleLocationChange(
-												"lat",
-												parseFloat(e.target.value) || 0
-											)
+										onChange={handleLatitudeInput}
+										onPaste={(e) =>
+											handleLocationPaste(e, "lat")
 										}
 										placeholder='e.g., 10.762622'
 										slotProps={{
@@ -423,6 +518,29 @@ function SettingsPage() {
 										}}
 									/>
 								</div>
+								{/* Detect Location Button */}
+                                <div className='md:col-span-2'>
+                                    <Button
+                                        onClick={handleDetectLocation}
+                                        disabled={isDetectingLocation}
+                                        startDecorator={<MyLocation />}
+                                        sx={{
+                                            backgroundColor: "#3b82f6",
+                                            width: "100%",
+                                            "&:hover": {
+                                                backgroundColor: "#2563eb",
+                                            },
+                                            "&:disabled": {
+                                                backgroundColor: "#e5e7eb",
+                                                color: "#9ca3af",
+                                            },
+                                        }}
+                                    >
+                                        {isDetectingLocation
+                                            ? "Detecting..."
+                                            : "Detect My Location"}
+                                    </Button>
+                                </div>
 							</div>
 
 							{/* Max Distance */}
