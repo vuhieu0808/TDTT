@@ -1,9 +1,8 @@
-import { useState } from "react";
-
+import { useState, useEffect } from "react";
+import { venueServices } from "@/services/venueServices";
+import type { Venue } from "@/types/venue";
+import { useAuthStore } from "@/stores/useAuthStore";
 import Layout from "@/components/Layout";
-
-import VenuesData from "@/data/Venues.json";
-
 import {
 	Search,
 	LocationOn,
@@ -12,6 +11,8 @@ import {
 	Schedule,
 	Map,
 	AttachMoney,
+	Language,
+	Sort, // Add this import
 } from "@mui/icons-material";
 import {
 	Input,
@@ -23,23 +24,8 @@ import {
 	TabPanel,
 	Select,
 	Option,
+	CircularProgress,
 } from "@mui/joy";
-
-interface Cafe {
-	id: number;
-	name: string;
-	address: string;
-	city: string;
-	distance: string;
-	rating: number;
-	reviews: number;
-	phone: string;
-	price: string;
-	hours: string;
-	description: string;
-	amenities: string[];
-	mapUrl: string;
-}
 
 const FILTER_OPTIONS = {
 	comfort: {
@@ -60,56 +46,93 @@ const FILTER_OPTIONS = {
 			{ value: "2", label: "Lively", numericValue: 2 },
 		],
 	},
-	wifi: {
-		label: "WiFi Speed",
+	interior: {
+		label: "Interior",
 		options: [
 			{ value: "all", label: "All", numericValue: null },
 			{ value: "0", label: "Basic", numericValue: 0 },
-			{ value: "1", label: "Fast", numericValue: 1 },
-			{ value: "2", label: "Ultra Fast", numericValue: 2 },
+			{ value: "1", label: "Modern", numericValue: 1 },
+			{ value: "2", label: "Luxurious", numericValue: 2 },
 		],
 	},
-	ambiance: {
-		label: "Ambiance",
+	view: {
+		label: "View",
 		options: [
 			{ value: "all", label: "All", numericValue: null },
-			{ value: "0", label: "Casual", numericValue: 0 },
-			{ value: "1", label: "Modern", numericValue: 1 },
-			{ value: "2", label: "Cozy", numericValue: 2 },
+			{ value: "0", label: "No View", numericValue: 0 },
+			{ value: "1", label: "Street View", numericValue: 1 },
+			{ value: "2", label: "Scenic", numericValue: 2 },
+		],
+	},
+	staffInteraction: {
+		label: "Staff Interaction",
+		options: [
+			{ value: "all", label: "All", numericValue: null },
+			{ value: "0", label: "Minimal", numericValue: 0 },
+			{ value: "1", label: "Friendly", numericValue: 1 },
+			{ value: "2", label: "Attentive", numericValue: 2 },
 		],
 	},
 };
 
 function VenuesFindingPage() {
+	const { userProfile } = useAuthStore();
 	const [location, setLocation] = useState("");
-	const [selectedCafe, setSelectedCafe] = useState<Cafe | null>(null);
+	const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
 	const [activeTab, setActiveTab] = useState(0);
-	const [cafesList, setCafesList] = useState<Cafe[]>(VenuesData);
+	const [allVenues, setAllVenues] = useState<Venue[]>([]);
+	const [filteredVenues, setFilteredVenues] = useState<Venue[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [sortBy, setSortBy] = useState<string>("rating-desc");
 
 	// Filter state with string values for display
 	const [filters, setFilters] = useState({
 		comfort: "all",
 		noise: "all",
-		wifi: "all",
-		ambiance: "all",
+		interior: "all",
+		view: "all",
+		staffInteraction: "all",
 	});
 
-	const cafes: Cafe[] = VenuesData;
+	// Fetch venues from Firebase on component mount
+	useEffect(() => {
+		const loadVenues = async () => {
+			try {
+				setLoading(true);
+				const venues = await venueServices.fetchVenues(
+					(userProfile?.location && userProfile?.location.lat) || 0,
+					(userProfile?.location && userProfile?.location.lng) || 0
+				);
 
+				console.log("Fetched venues:", venues);
+
+				setAllVenues(sortVenues(venues, sortBy));
+				setFilteredVenues(sortVenues(venues, sortBy));
+			} catch (error) {
+				console.error("Error fetching venues:", error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		loadVenues();
+	}, []);
+
+	// Filter venues by location search
 	const findVenues = (searchLocation: string) => {
 		if (searchLocation.trim() === "") {
-			setCafesList(cafes);
+			applyAllFilters(allVenues);
 		} else {
-			const filtered = cafes.filter(
-				(cafe) =>
-					cafe.address
+			const locationFiltered = allVenues.filter(
+				(venue) =>
+					venue.address
 						.toLowerCase()
 						.includes(searchLocation.toLowerCase()) ||
-					cafe.city
+					venue.name
 						.toLowerCase()
 						.includes(searchLocation.toLowerCase())
 			);
-			setCafesList(filtered);
+			applyAllFilters(locationFiltered);
 		}
 	};
 
@@ -134,11 +157,43 @@ function VenuesFindingPage() {
 		}));
 	};
 
-	// Apply filters and convert to numeric values for backend
-	const applyFilters = () => {
-		let filtered = [...cafes];
+	// Sort venues function
+	const sortVenues = (venues: Venue[], sortOption: string): Venue[] => {
+		const sorted = [...venues];
 
-		// Convert string values to numeric for filtering
+		switch (sortOption) {
+			case "rating-desc":
+				return sorted.sort((a, b) => b.ratingStar - a.ratingStar);
+			case "rating-asc":
+				return sorted.sort((a, b) => a.ratingStar - b.ratingStar);
+			default:
+				return sorted;
+		}
+	};
+
+	// Handle sort change
+	const handleSortChange = (newSortOption: string) => {
+		setSortBy(newSortOption);
+		const sorted = sortVenues(filteredVenues, newSortOption);
+		setFilteredVenues(sorted);
+	};
+
+	// Apply all filters (location + attribute filters)
+	const applyAllFilters = (venuesBase: Venue[] = allVenues) => {
+		let filtered = [...venuesBase];
+
+		// Apply location filter if exists
+		if (location.trim() !== "") {
+			filtered = filtered.filter(
+				(venue) =>
+					venue.address
+						.toLowerCase()
+						.includes(location.toLowerCase()) ||
+					venue.name.toLowerCase().includes(location.toLowerCase())
+			);
+		}
+
+		// Apply attribute filters
 		Object.entries(filters).forEach(([key, value]) => {
 			if (value !== "all") {
 				const filterConfig =
@@ -147,13 +202,27 @@ function VenuesFindingPage() {
 					(opt) => opt.value === value
 				);
 				if (selectedOption && selectedOption.numericValue !== null) {
-					// Apply your filter logic here using selectedOption.numericValue
-					// Example: filtered = filtered.filter(cafe => cafe[key] === selectedOption.numericValue);
+					filtered = filtered.filter((venue) => {
+						const venueValue =
+							venue.attributes[
+								key as keyof typeof venue.attributes
+							];
+						return venueValue === selectedOption.numericValue;
+					});
 				}
 			}
 		});
 
-		setCafesList(filtered);
+		// Apply sorting
+		filtered = sortVenues(filtered, sortBy);
+
+		setFilteredVenues(filtered);
+	};
+
+	// Apply filters button handler
+	const applyFilters = () => {
+		setSelectedVenue(null);
+		applyAllFilters();
 	};
 
 	// Reset filters
@@ -161,183 +230,228 @@ function VenuesFindingPage() {
 		setFilters({
 			comfort: "all",
 			noise: "all",
-			wifi: "all",
-			ambiance: "all",
+			interior: "all",
+			view: "all",
+			staffInteraction: "all",
 		});
-		setCafesList(cafes);
+		setLocation("");
+		setFilteredVenues(allVenues);
+		setSelectedVenue(null);
+		// findVenues(location);
 	};
 
-	return (
-		<>
+	if (loading) {
+		return (
 			<Layout>
-				<div className='min-h-screen bg-gradient-to-br from-slate-50 to-purple-50'>
-					<div className='max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6'>
-						{/* Header */}
-						<div className='mb-6 sm:mb-8'>
-							<h1 className='text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2'>
-								Cafes Scouting
-							</h1>
-							<p className='text-sm sm:text-base text-gray-600'>
-								Find the perfect cafe for your work-and-date
-								sessions
-							</p>
-						</div>
+				<div className='flex items-center justify-center min-h-screen'>
+					<CircularProgress size='lg' />
+				</div>
+			</Layout>
+		);
+	}
 
-						{/* Search Bar */}
-						<div className='mb-6'>
-							<Input
-								placeholder='Enter your location (e.g., District 1, HCMC)'
-								value={location}
-								onChange={(e) => {
-									setLocation(e.target.value);
-									findVenues(e.target.value);
-								}}
-								startDecorator={<Search />}
-								endDecorator={
-									<LocationOn sx={{ color: "#a855f7" }} />
-								}
-								sx={{
-									"--Input-focusedThickness": "2px",
-									"--Input-focusedHighlight": "#a855f7",
-									fontSize: { xs: "0.875rem", sm: "1rem" },
-									padding: {
-										xs: "10px 12px",
-										sm: "12px 16px",
-									},
-									borderRadius: "12px",
-									border: "2px solid #e5e7eb",
-									"&:hover": { borderColor: "#d1d5db" },
-								}}
-							/>
-						</div>
+	return (
+		<Layout>
+			<div className='min-h-screen bg-gradient-to-br from-slate-50 to-purple-50'>
+				<div className='max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6'>
+					{/* Header */}
+					<div className='mb-6 sm:mb-8'>
+						<h1 className='text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2'>
+							Cafes Scouting
+						</h1>
+						<p className='text-sm sm:text-base text-gray-600'>
+							Find the perfect cafe for your work-and-date
+							sessions
+						</p>
+					</div>
 
-						{/* Filter Settings */}
-						<Card
-							variant='outlined'
-							sx={{
-								mb: 2,
-								border: "1px solid #e5e7eb",
-								borderRadius: "12px",
-								p: 3,
+					{/* Search Bar */}
+					<div className='mb-6'>
+						<Input
+							placeholder='Enter your location or cafe name'
+							value={location}
+							onChange={(e) => {
+								setLocation(e.target.value);
+								findVenues(e.target.value);
 							}}
-						>
-							<div className='flex justify-between items-center mb-2'>
-								<h3 className='text-lg font-semibold text-gray-900'>
-									Filters
-								</h3>
-								<Chip
-									size='sm'
-									variant='soft'
-									onClick={resetFilters}
-									sx={{
-										cursor: "pointer",
-										backgroundColor: "var(--color-red-500)",
-									}}
-								>
-									Reset All
-								</Chip>
-							</div>
+							startDecorator={<Search />}
+							endDecorator={
+								<LocationOn sx={{ color: "#a855f7" }} />
+							}
+							sx={{
+								"--Input-focusedThickness": "2px",
+								"--Input-focusedHighlight": "#a855f7",
+								fontSize: { xs: "0.875rem", sm: "1rem" },
+								padding: {
+									xs: "10px 12px",
+									sm: "12px 16px",
+								},
+								borderRadius: "12px",
+								border: "2px solid #e5e7eb",
+								"&:hover": { borderColor: "#d1d5db" },
+							}}
+						/>
+					</div>
 
-							{/* Filter Option Setting */}
-							<div className='grid grid-cols-4 gap-4'>
-								{Object.entries(FILTER_OPTIONS).map(
-									([key, config]) => (
-										<>
-											<div>
-												<label className='text-md font-medium text-gray-700 mb-2 block'>
-													{config.label}
-												</label>
-												<div key={key}>
-													<Select
-														value={
-															filters[
-																key as keyof typeof filters
-															]
-														}
-														onChange={(
-															e,
-															newValue
-														) =>
-															handleFilterChange(
-																key as keyof typeof filters,
-																newValue as string
-															)
-														}
-														placeholder={`${
-															config.label
-														}: ${getFilterLabel(
-															key as keyof typeof filters
-														)}`}
-														sx={{
-															borderRadius:
-																"12px",
-															border: "2px solid #e5e7eb",
-															"&:hover": {
-																borderColor:
-																	"#d1d5db",
-															},
-														}}
-													>
-														{config.options.map(
-															(option) => (
-																<Option
-																	key={
-																		option.value
-																	}
-																	value={
-																		option.value
-																	}
-																>
-																	{
-																		option.label
-																	}
-																</Option>
-															)
-														)}
-													</Select>
-												</div>
-											</div>
-										</>
-									)
-								)}
-							</div>
+					{/* Filter Settings */}
+					<Card
+						variant='outlined'
+						sx={{
+							mb: 2,
+							border: "1px solid #e5e7eb",
+							borderRadius: "12px",
+							p: 3,
+						}}
+					>
+						<div className='flex justify-between items-center mb-2'>
+							<h3 className='text-lg font-semibold text-gray-900'>
+								Filters
+							</h3>
+							<Chip
+								size='sm'
+								variant='solid'
+								color='danger'
+								onClick={resetFilters}
+								sx={{
+									cursor: "pointer",
+									"&:hover": {
+										backgroundColor: "#dc2626",
+									},
+								}}
+							>
+								Reset All
+							</Chip>
+						</div>
 
-							<div className='mt-4 flex justify-end'>
-								<button
-									onClick={applyFilters}
-									className='px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors'
-								>
-									Apply Filters
-								</button>
-							</div>
-						</Card>
+						{/* Filter Option Setting */}
+						<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4'>
+							{Object.entries(FILTER_OPTIONS).map(
+								([key, config]) => (
+									<div key={key}>
+										<label className='text-md font-medium text-gray-700 mb-2 block'>
+											{config.label}
+										</label>
+										<Select
+											value={
+												filters[
+													key as keyof typeof filters
+												]
+											}
+											onChange={(e, newValue) =>
+												handleFilterChange(
+													key as keyof typeof filters,
+													newValue as string
+												)
+											}
+											placeholder={`${
+												config.label
+											}: ${getFilterLabel(
+												key as keyof typeof filters
+											)}`}
+											sx={{
+												borderRadius: "12px",
+												border: "2px solid #e5e7eb",
+												"&:hover": {
+													borderColor: "#d1d5db",
+												},
+											}}
+										>
+											{config.options.map((option) => (
+												<Option
+													key={option.value}
+													value={option.value}
+												>
+													{option.label}
+												</Option>
+											))}
+										</Select>
+									</div>
+								)
+							)}
+						</div>
 
-						{/* Main Content Grid */}
-						<div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'>
-							{/* Left Side - Cafe List */}
-							<div>
-								<h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-4'>
-									Nearby Cafes ({cafesList.length})
+						<div className='mt-4 flex justify-end'>
+							<button
+								onClick={applyFilters}
+								className='px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors'
+							>
+								Apply Filters
+							</button>
+						</div>
+					</Card>
+
+					{/* Main Content Grid */}
+					<div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'>
+						{/* Left Side - Venue List */}
+						<div>
+							{/* Header with Sort */}
+							<div className='flex items-center justify-between mb-4'>
+								<h2 className='text-lg sm:text-xl font-semibold text-gray-900'>
+									Nearby Cafes ({filteredVenues.length})
 								</h2>
 
-								{/* Scrollable area */}
-								<div className='h-[600px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-gray-100'>
-									{cafesList.map((cafe) => (
+								{/* Sort Dropdown */}
+								<Select
+									value={sortBy}
+									onChange={(e, newValue) =>
+										handleSortChange(newValue as string)
+									}
+									startDecorator={<Sort />}
+									size='sm'
+									sx={{
+										minWidth: "180px",
+										borderRadius: "8px",
+										border: "1px solid #e5e7eb",
+										"&:hover": {
+											borderColor: "#a855f7",
+										},
+									}}
+								>
+									<Option value='rating-desc'>
+										Rating: High to Low
+									</Option>
+									<Option value='rating-asc'>
+										Rating: Low to High
+									</Option>
+								</Select>
+							</div>
+
+							{/* Scrollable area */}
+							<div className='h-[600px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-gray-100'>
+								{filteredVenues.length === 0 ? (
+									<Card
+										variant='outlined'
+										sx={{
+											border: "1px solid #e5e7eb",
+											borderRadius: "12px",
+											p: 4,
+											textAlign: "center",
+										}}
+									>
+										<p className='text-gray-500'>
+											No venues found matching your
+											criteria
+										</p>
+									</Card>
+								) : (
+									filteredVenues.map((venue, idx) => (
 										<Card
-											key={cafe.id}
+											key={idx}
 											variant='outlined'
 											onClick={() =>
-												setSelectedCafe(cafe)
+												setSelectedVenue(venue)
 											}
 											sx={{
 												cursor: "pointer",
 												transition: "all 0.2s",
 												border:
-													selectedCafe?.id === cafe.id
+													selectedVenue?.name ===
+													venue.name
 														? "2px solid #a855f7"
 														: "1px solid #e5e7eb",
 												backgroundColor:
-													selectedCafe?.id === cafe.id
+													selectedVenue?.name ===
+													venue.name
 														? "#faf5ff"
 														: "white",
 												"&:hover": {
@@ -352,7 +466,7 @@ function VenuesFindingPage() {
 											<div className='flex flex-col sm:flex-row justify-between gap-3'>
 												<div className='flex-1'>
 													<h3 className='text-base sm:text-lg font-semibold text-gray-900 mb-1'>
-														{cafe.name}
+														{venue.name}
 													</h3>
 													<div className='flex items-center gap-1 text-xs sm:text-sm text-gray-600 mb-2'>
 														<LocationOn
@@ -362,7 +476,7 @@ function VenuesFindingPage() {
 															}}
 														/>
 														<span>
-															{cafe.address}
+															{venue.address}
 														</span>
 													</div>
 													<div className='flex items-center gap-3 flex-wrap'>
@@ -375,191 +489,316 @@ function VenuesFindingPage() {
 																}}
 															/>
 															<span className='text-xs sm:text-sm font-medium'>
-																{cafe.rating}
+																{
+																	venue.ratingStar
+																}
 															</span>
 															<span className='text-xs text-gray-500'>
-																({cafe.reviews})
+																(
+																{
+																	venue.ratingCount
+																}
+																)
 															</span>
 														</div>
-														<Chip
-															size='sm'
-															variant='soft'
-															color='success'
-														>
-															{cafe.distance}
-														</Chip>
 													</div>
 												</div>
 											</div>
 										</Card>
-									))}
-								</div>
+									))
+								)}
 							</div>
+						</div>
 
-							{/* Right Side - Cafe Details */}
-							<div className='lg:sticky lg:top-24 h-fit'>
-								{selectedCafe ? (
-									<Card
-										variant='outlined'
-										sx={{
-											border: "1px solid #e5e7eb",
-											borderRadius: "16px",
-										}}
+						{/* Right Side - Venue Details */}
+						<div className='lg:sticky lg:top-24 h-fit'>
+							{selectedVenue ? (
+								<Card
+									variant='outlined'
+									sx={{
+										border: "1px solid #e5e7eb",
+										borderRadius: "16px",
+									}}
+								>
+									<div className='mb-4'>
+										<h2 className='text-xl sm:text-2xl font-bold text-gray-900 mb-2'>
+											{selectedVenue.name}
+										</h2>
+										<div className='flex items-center gap-2 mb-3'>
+											<Star
+												sx={{
+													fontSize: "1.25rem",
+													color: "#fbbf24",
+												}}
+											/>
+											<span className='text-lg font-semibold'>
+												{selectedVenue.ratingStar}
+											</span>
+											<span className='text-sm text-gray-500'>
+												({selectedVenue.ratingCount}{" "}
+												ratings)
+											</span>
+										</div>
+									</div>
+
+									<Tabs
+										value={activeTab}
+										onChange={(e, value) =>
+											setActiveTab(value as number)
+										}
 									>
-										<div className='mb-4'>
-											<h2 className='text-xl sm:text-2xl font-bold text-gray-900 mb-2'>
-												{selectedCafe.name}
-											</h2>
-											<div className='flex items-center gap-2 mb-3'>
-												<Star
+										<TabList>
+											<Tab>Details</Tab>
+											<Tab>
+												<Map
 													sx={{
-														fontSize: "1.25rem",
-														color: "#fbbf24",
+														mr: 1,
+														fontSize: "1rem",
 													}}
 												/>
-												<span className='text-lg font-semibold'>
-													{selectedCafe.rating}
-												</span>
-												<span className='text-sm text-gray-500'>
-													({selectedCafe.reviews}{" "}
-													reviews)
-												</span>
-											</div>
-										</div>
+												Map
+											</Tab>
+										</TabList>
 
-										<Tabs
-											value={activeTab}
-											onChange={(e, value) =>
-												setActiveTab(value as number)
-											}
-										>
-											<TabList>
-												<Tab>Details</Tab>
-												<Tab>
-													<Map
-														sx={{
-															mr: 1,
-															fontSize: "1rem",
-														}}
-													/>
-													Map
-												</Tab>
-											</TabList>
+										{/* Details Tab */}
+										<TabPanel value={0}>
+											<div className='space-y-4'>
+												<div>
+													<p className='text-sm text-gray-700 mb-4'>
+														{selectedVenue.description ||
+															"No description available"}
+													</p>
+												</div>
 
-											{/* Details Tab */}
-											<TabPanel value={0}>
-												<div className='space-y-4'>
-													<div>
-														<p className='text-sm text-gray-700 mb-4'>
-															{
-																selectedCafe.description
-															}
-														</p>
-													</div>
-
-													<div>
-														<h3 className='text-sm font-semibold text-gray-900 mb-2'>
-															Contact
-														</h3>
-														<div className='flex items-center gap-2 text-sm text-gray-600 mb-2'>
-															<Phone
-																sx={{
-																	fontSize:
-																		"1rem",
-																}}
-															/>
-															<span>
-																{
-																	selectedCafe.phone
-																}
-															</span>
-														</div>
-														<div className='flex items-center gap-2 text-sm text-gray-600'>
-															<Schedule
-																sx={{
-																	fontSize:
-																		"1rem",
-																}}
-															/>
-															<span>
-																{
-																	selectedCafe.hours
-																}
-															</span>
-														</div>
-													</div>
-
-													<div className=''>
-														<h3 className='text-sm font-semibold text-gray-900 mb-2'>
-															Price
-														</h3>
-														<span className=''>
-															<AttachMoney
-																sx={{
-																	fontSize:
-																		"1rem",
-																}}
-															/>
-															{selectedCafe.price}
+												<div>
+													<h3 className='text-sm font-semibold text-gray-900 mb-2'>
+														Contact
+													</h3>
+													<div className='flex items-center gap-2 text-sm text-gray-600 mb-2'>
+														<Phone
+															sx={{
+																fontSize:
+																	"1rem",
+															}}
+														/>
+														<span>
+															{selectedVenue.phonecall ||
+																"N/A"}
 														</span>
 													</div>
-
-													<div>
-														<h3 className='text-sm font-semibold text-gray-900 mb-2'>
-															Amenities
-														</h3>
-														<div className='flex flex-wrap gap-2'>
-															{selectedCafe.amenities.map(
-																(amenity) => (
-																	<Chip
-																		key={
-																			amenity
-																		}
-																		size='sm'
-																		variant='soft'
-																		color='primary'
-																		sx={{
-																			backgroundColor:
-																				"#f3e8ff",
-																			color: "#7c3aed",
-																		}}
-																	>
-																		{
-																			amenity
-																		}
-																	</Chip>
-																)
-															)}
-														</div>
+													<div className='flex items-center gap-2 text-sm text-gray-600 mb-2'>
+														<Schedule
+															sx={{
+																fontSize:
+																	"1rem",
+															}}
+														/>
+														<span>
+															{selectedVenue.openingHours ||
+																"N/A"}
+														</span>
 													</div>
-
-													<div>
-														<h3 className='text-sm font-semibold text-gray-900 mb-2'>
-															Location
-														</h3>
-														<div className='flex items-start gap-2 text-sm text-gray-600'>
-															<LocationOn
+													{selectedVenue.website && (
+														<div className='flex items-center gap-2 text-sm text-gray-600'>
+															<Language
 																sx={{
 																	fontSize:
 																		"1rem",
 																}}
 															/>
-															<span>
-																{
-																	selectedCafe.address
+															<a
+																href={
+																	selectedVenue.website
 																}
-															</span>
+																target='_blank'
+																rel='noopener noreferrer'
+																className='text-purple-600 hover:underline'
+															>
+																Website
+															</a>
 														</div>
+													)}
+												</div>
+
+												<div>
+													<h3 className='text-sm font-semibold text-gray-900 mb-2'>
+														Price Range
+													</h3>
+													<span className='flex items-center'>
+														<AttachMoney
+															sx={{
+																fontSize:
+																	"1rem",
+															}}
+														/>
+														{selectedVenue.price ||
+															"N/A"}
+													</span>
+												</div>
+
+												<div>
+													<h3 className='text-sm font-semibold text-gray-900 mb-2'>
+														Attributes
+													</h3>
+													<div className='grid grid-cols-2 gap-2'>
+														<Chip
+															size='sm'
+															variant='soft'
+															color='primary'
+														>
+															Comfort:{" "}
+															{FILTER_OPTIONS.comfort.options.find(
+																(opt) =>
+																	opt.numericValue ===
+																	selectedVenue
+																		.attributes
+																		.comfort
+															)?.label ||
+																selectedVenue
+																	.attributes
+																	.comfort}
+														</Chip>
+														<Chip
+															size='sm'
+															variant='soft'
+															color='primary'
+														>
+															Noise:{" "}
+															{FILTER_OPTIONS.noise.options.find(
+																(opt) =>
+																	opt.numericValue ===
+																	selectedVenue
+																		.attributes
+																		.noise
+															)?.label ||
+																selectedVenue
+																	.attributes
+																	.noise}
+														</Chip>
+														<Chip
+															size='sm'
+															variant='soft'
+															color='primary'
+														>
+															Interior:{" "}
+															{FILTER_OPTIONS.interior.options.find(
+																(opt) =>
+																	opt.numericValue ===
+																	selectedVenue
+																		.attributes
+																		.interior
+															)?.label ||
+																selectedVenue
+																	.attributes
+																	.interior}
+														</Chip>
+														<Chip
+															size='sm'
+															variant='soft'
+															color='primary'
+														>
+															View:{" "}
+															{FILTER_OPTIONS.view.options.find(
+																(opt) =>
+																	opt.numericValue ===
+																	selectedVenue
+																		.attributes
+																		.view
+															)?.label ||
+																selectedVenue
+																	.attributes
+																	.view}
+														</Chip>
+														<Chip
+															size='sm'
+															variant='soft'
+															color='primary'
+														>
+															Staff Interaction:{" "}
+															{FILTER_OPTIONS.staffInteraction.options.find(
+																(opt) =>
+																	opt.numericValue ===
+																	selectedVenue
+																		.attributes
+																		.staffInteraction
+															)?.label ||
+																selectedVenue
+																	.attributes
+																	.staffInteraction}
+														</Chip>
 													</div>
 												</div>
-											</TabPanel>
 
-											{/* Map Tab */}
-											<TabPanel value={1}>
-												<div className='w-full h-[400px] rounded-lg overflow-hidden'>
+												{selectedVenue.menu &&
+													selectedVenue.menu.length >
+														0 && (
+														<div>
+															<h3 className='text-sm font-semibold text-gray-900 mb-2'>
+																Menu Items
+															</h3>
+															<div className='flex flex-wrap gap-2'>
+																{selectedVenue.menu.map(
+																	(
+																		item,
+																		idx
+																	) => (
+																		<Chip
+																			key={
+																				idx
+																			}
+																			size='sm'
+																			variant='outlined'
+																		>
+																			{
+																				item
+																			}
+																		</Chip>
+																	)
+																)}
+															</div>
+														</div>
+													)}
+
+												<div>
+													<h3 className='text-sm font-semibold text-gray-900 mb-2'>
+														Location
+													</h3>
+													<div className='flex items-start gap-2 text-sm text-gray-600'>
+														<LocationOn
+															sx={{
+																fontSize:
+																	"1rem",
+															}}
+														/>
+														<span>
+															{
+																selectedVenue.address
+															}
+														</span>
+													</div>
+													<div className='text-xs text-gray-500 mt-1'>
+														Lat:{" "}
+														{
+															selectedVenue
+																.location.lat
+														}
+														, Lng:{" "}
+														{
+															selectedVenue
+																.location.lng
+														}
+													</div>
+												</div>
+											</div>
+										</TabPanel>
+
+										{/* Map Tab */}
+										<TabPanel value={1}>
+											<div className='w-full h-[400px] rounded-lg overflow-hidden'>
+												{selectedVenue.mapEmbeddingUrl ? (
 													<iframe
 														src={
-															selectedCafe.mapUrl
+															selectedVenue.mapEmbeddingUrl
 														}
 														width='100%'
 														height='100%'
@@ -568,43 +807,49 @@ function VenuesFindingPage() {
 														loading='lazy'
 														referrerPolicy='no-referrer-when-downgrade'
 													></iframe>
-												</div>
-											</TabPanel>
-										</Tabs>
-									</Card>
-								) : (
-									<Card
-										variant='outlined'
-										sx={{
-											border: "1px solid #e5e7eb",
-											borderRadius: "16px",
-											minHeight: "400px",
-											display: "flex",
-											alignItems: "center",
-											justifyContent: "center",
-										}}
-									>
-										<div className='text-center text-gray-500'>
-											<LocationOn
-												sx={{
-													fontSize: "4rem",
-													color: "#d1d5db",
-													mb: 2,
-												}}
-											/>
-											<p className='text-sm'>
-												Select a cafe to view details
-												and map
-											</p>
-										</div>
-									</Card>
-								)}
-							</div>
+												) : (
+													<div className='flex items-center justify-center h-full bg-gray-100'>
+														<p className='text-gray-500'>
+															Map not available
+														</p>
+													</div>
+												)}
+											</div>
+										</TabPanel>
+									</Tabs>
+								</Card>
+							) : (
+								<Card
+									variant='outlined'
+									sx={{
+										border: "1px solid #e5e7eb",
+										borderRadius: "16px",
+										minHeight: "400px",
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "center",
+									}}
+								>
+									<div className='text-center text-gray-500'>
+										<LocationOn
+											sx={{
+												fontSize: "4rem",
+												color: "#d1d5db",
+												mb: 2,
+											}}
+										/>
+										<p className='text-sm'>
+											Select a cafe to view details and
+											map
+										</p>
+									</div>
+								</Card>
+							)}
 						</div>
 					</div>
 				</div>
-			</Layout>
-		</>
+			</div>
+		</Layout>
 	);
 }
 
