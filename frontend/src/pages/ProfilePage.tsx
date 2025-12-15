@@ -199,18 +199,25 @@ function ProfilePage() {
 						{/* Work Vibe */}
 						{userProfile.workVibe && (
 							<div>
-								<p className='text-sm text-gray-500 mb-2'>
+								<p className='text-sm text-gray-500 mb-2 '>
 									Work Vibe
 								</p>
-								<Chip
-									sx={{
-										backgroundColor: "#f3e8ff",
-										color: "#7e22ce",
-										fontWeight: "500",
-									}}
-								>
-									{/* {userProfile.workVibe} */}
-								</Chip>
+								<div className='capitalize'>
+									<Chip
+										sx={{
+											backgroundColor: "#f3e8ff",
+											color: "#7e22ce",
+											fontWeight: "500",
+										}}
+									>
+										{typeof userProfile.workVibe ===
+										"object"
+											? JSON.stringify(
+													userProfile.workVibe
+											  )
+											: userProfile.workVibe}
+									</Chip>
+								</div>
 							</div>
 						)}
 

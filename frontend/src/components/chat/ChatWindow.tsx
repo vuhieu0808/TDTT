@@ -2,10 +2,13 @@ import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useChatStore } from "@/stores/useChatStore";
 import { useSocketStore } from "@/stores/useSocketStore";
-import type { Conversation, Message } from "@/types/chat";
+import type { Conversation, Message, Participant } from "@/types/chat";
+import type { UserProfile } from "@/types/user";
 import IconButton from "@mui/material/IconButton";
 import { Info, Circle } from "@mui/icons-material";
 import { formatFileSize, isImageFile } from "@/lib/utils";
+import ProfileModal from "@/components/ProfileModal";
+import { useNavigate, useSearchParams } from "react-router";
 
 interface ChatWindowProps {
 	onToggleDetails: () => void;
@@ -24,10 +27,16 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 	} = useChatStore();
 
 	const { onlineUsers } = useSocketStore();
+	const navigate = useNavigate();
 
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const [messageText, setMessageText] = useState("");
 	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+	const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+	const [selectedProfile, setSelectedProfile] = useState<
+		UserProfile | Participant | null
+	>(null);
+	const [searchParams] = useSearchParams();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -47,6 +56,26 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 		: null;
 	const currentMessages = conversationData ? conversationData.items : [];
 	const hasMoreMessages = conversationData ? conversationData.hasMore : false;
+
+	useEffect(() => {
+		const userId = searchParams.get("userId");
+
+		if (userId && conversations.length > 0) {
+			// Find if there's an existing direct conversation with this user
+			const conversation = conversations.find((convo) => {
+				return convo.participants.some(
+					(participant) => participant.uid === userId
+				);
+			});
+
+			console.log("Found conversation from URL param:", conversation);
+
+			if (conversation) {
+				// Set this conversation as active
+				useChatStore.getState().setActiveConversation(conversation.id);
+			}
+		}
+	}, [conversations, searchParams]);
 
 	// Fetch messages when active conversation changes
 	useEffect(() => {
@@ -182,12 +211,31 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 	);
 	const isOnline = onlineUsers.includes(otherUser?.uid || "");
 
+	const handleViewProfile = () => {
+		if (otherUser) {
+			setSelectedProfile(otherUser);
+			setIsProfileModalOpen(true);
+		}
+	};
+
+	const handleCloseModal = () => {
+		setIsProfileModalOpen(false);
+		setSelectedProfile(null);
+	};
+
+	const handleChat = () => {
+		handleCloseModal();
+	};
+
 	return (
 		<div className='flex flex-col border-r border-gray-200 h-full overflow-hidden'>
 			{/* Chat Header */}
 			<div className='flex flex-row justify-between p-4 border-b border-gray-200 bg-white flex-shrink-0'>
 				{/* Other User Data */}
-				<div className='flex items-center gap-3'>
+				<div
+					className='flex items-center gap-3 px-3 py-3 hover:cursor-pointer hover:bg-gray-50 rounded-lg transition-colors'
+					onClick={handleViewProfile}
+				>
 					<img
 						src={
 							activeConversation?.groupAvatarUrl ||
@@ -534,6 +582,15 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 					</button>
 				</div>
 			</div>
+
+			{/* Profile Modal */}
+			<ProfileModal
+				isOpen={isProfileModalOpen}
+				onClose={handleCloseModal}
+				userProfile={selectedProfile}
+				onChat={handleChat}
+				showActions={false}
+			/>
 		</div>
 	);
 }

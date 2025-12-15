@@ -1,20 +1,14 @@
 import api from "@/lib/axios";
-import type { Venue } from "@/types/venue";
+import type { Venue, VenueFilter } from "@/types/venue";
 
 export const venueServices = {
-	async fetchVenues(lat: number, lng: number) {
+	async fetchVenues(lat: number, lng: number, filter: VenueFilter) {
 		const res = await api.post("/venues/queryNearby", {
 			location: {
 				lat,
 				lng,
 			},
-			filter: {
-				comfort: [],
-				noise: [],
-				interior: [],
-				view: [],
-				staffInteraction: [],
-			},
+			filter,
 		});
 
 		const venuesWithDistance = res.data.venues;
