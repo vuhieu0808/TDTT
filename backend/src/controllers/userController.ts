@@ -67,12 +67,26 @@ export const fetchUserById = async (req: AuthRequest, res: Response) => {
       lastActivity: userDataFetched.lastActivity.toDate().toISOString(),
     };
     return res.status(200).json({ data: userData });
-  }
-  catch (error) {
+  } catch (error) {
     console.error("Error fetching user by ID:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
-}
+};
+
+const isReadyToMatch = (userData: User) => {
+  // Kiểm tra từng trường
+  if (userData.age === undefined || userData.age <= 0) return false;
+  if (!userData.gender) return false;
+  if (!userData.interests || userData.interests.length === 0) return false;
+  if (!userData.availability || userData.availability.length === 0) return false;
+  if (!userData.occupation) return false;
+  if (!userData.location || userData.location.lat === undefined || userData.location.lng === undefined) return false;
+  if (userData.maxDistanceKm === undefined || userData.maxDistanceKm <= 0) return false;
+  if (!userData.workVibe) return false;
+  
+  return true;
+};
+
 
 export const updateMe = async (req: AuthRequest, res: Response) => {
   try {
@@ -80,7 +94,7 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
     if (!uid) {
       return res.status(401).json({ error: "Unauthorized. No token provided" });
     }
-    const updateData: Partial<User> = (req.body as User);
+    const updateData: Partial<User> = req.body as User;
 
     // Cập nhật trường updatedAt
     updateData.updatedAt = admin.firestore.Timestamp.now();
@@ -90,20 +104,15 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
     if (!userDataRef.exists) {
       return res.status(404).json({ error: "User not found" });
     }
-    
+
     const newUserData = {
-      ...userDataRef.data() as User,
+      ...(userDataRef.data() as User),
       ...updateData,
     };
-    if (
-      newUserData.age === undefined ||
-      newUserData.interests === undefined ||
-      newUserData.occupation === undefined ||
-      newUserData.location === undefined ||
-      newUserData.workVibe === undefined
-    ) {
-      newUserData.isReadyToMatch = false;
-    }
+    console.log("New User Data:", newUserData);
+    newUserData.isReadyToMatch = isReadyToMatch(newUserData);
+    console.log("isReadyToMatch:", newUserData.isReadyToMatch);
+
     await userDataDoc.update(newUserData);
 
     const updatedUserDataRef = await userDataDoc.get();
