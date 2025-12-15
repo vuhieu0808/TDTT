@@ -45,7 +45,7 @@ const HomePage = () => {
 
 	const handleVenuesClick = () => {
 		if (checkVenueMissingFields()) {
-			setMissingFieldsModalType("venue");
+			setMissingFieldsModalType("seaching venue");
 			setShowMissingFieldsModal(true);
 			return;
 		}
@@ -72,7 +72,7 @@ const HomePage = () => {
 	);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
-	const [missingFieldsModalType, setMissingFieldsModalType] = useState<"venue" | "matching">("matching");
+	const [missingFieldsModalType, setMissingFieldsModalType] = useState<"seaching venue" | "matching">("matching");
 
 	const handleViewProfile = (profile: UserProfile) => {
 		setSelectedProfile(profile);
@@ -588,7 +588,7 @@ const HomePage = () => {
 								Profile Incomplete
 							</h2>
 							<p className='text-gray-600'>
-								Please complete your profile to start matching
+								Please complete your profile to start {missingFieldsModalType}
 							</p>
 						</div>
 
