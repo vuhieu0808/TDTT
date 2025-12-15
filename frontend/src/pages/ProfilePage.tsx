@@ -53,12 +53,6 @@ function ProfilePage() {
 		if (!userProfile.workVibe) {
 			missingFields.push("work vibe");
 		}
-		if (
-			!userProfile.availability ||
-			userProfile.availability.length === 0
-		) {
-			missingFields.push("availability");
-		}
 		return missingFields;
 	};
 
@@ -132,7 +126,7 @@ function ProfilePage() {
 					</div>
 				)}
 				{/* Cover Photo and Profile Picture */}
-				<div className='relative bg-white rounded-lg shadow-sm overflow-hidden mb-4'>
+				<div className='flex flex-col gap-10 relative bg-white rounded-lg shadow-sm overflow-hidden mb-4'>
 					{/* Cover Image */}
 					<div
 						className='h-48 bg-gradient-to-r from-purple-500 to-pink-500'
@@ -149,7 +143,7 @@ function ProfilePage() {
 					<div className='px-6 py-6'>
 						<div className='flex flex-col sm:flex-row gap-4 sm:gap-6 items-start sm:items-end -mt-16 sm:-mt-20'>
 							{/* Avatar */}
-							<div className='relative'>
+							<div className='relative flex-shrink-0'>
 								<img
 									src={
 										userProfile.avatarUrl ||
@@ -166,22 +160,32 @@ function ProfilePage() {
 							</div>
 
 							{/* Name and Basic Info */}
-							<div className='flex-1 mt-2 sm:mt-0'>
-								<h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>
-									{userProfile.displayName}
-								</h1>
-								{userProfile.occupation && (
-									<p className='text-gray-600 mt-1'>
-										{userProfile.occupation}
+							<div className='flex-1 sm:pb-2'>
+								<div className='pt-5'>
+									<h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>
+										{userProfile.displayName}
+									</h1>
+								</div>
+								<div className='min-h-[1.75rem] mt-1'>
+									<p className='text-gray-600'>
+										{userProfile.occupation || "\u00A0"}
 									</p>
-								)}
-								{userProfile.location && (
-									<p className='text-gray-500 text-sm mt-1 flex items-center gap-1'>
-										<LocationOn sx={{ fontSize: "1rem" }} />
-										Lat: {userProfile.location.lat}, Lng:{" "}
-										{userProfile.location.lng}
+								</div>
+								<div className='min-h-[1.5rem] mt-1'>
+									<p className='text-gray-500 text-sm flex items-center gap-1'>
+										{userProfile.location ? (
+											<>
+												<LocationOn
+													sx={{ fontSize: "1rem" }}
+												/>
+												Lat: {userProfile.location.lat},
+												Lng: {userProfile.location.lng}
+											</>
+										) : (
+											"\u00A0"
+										)}
 									</p>
-								)}
+								</div>
 							</div>
 
 							{/* Edit Button */}

@@ -116,12 +116,6 @@ function PreferencePage() {
 		if (!userProfile.age) {
 			missingFields.push("age");
 		}
-		if (!userProfile.dateOfBirth) {
-			missingFields.push("date of birth");
-		}
-		if (!userProfile.gender) {
-			missingFields.push("gender");
-		}
 		if (!userProfile.occupation) {
 			missingFields.push("occupation");
 		}
