@@ -36,6 +36,7 @@ const HomePage = () => {
 	const handleMatchingClick = () => {
 		// Check if user is ready to match
 		if (!userProfile?.isReadyToMatch) {
+			setMissingFieldsModalType("matching");
 			setShowMissingFieldsModal(true);
 			return;
 		}
@@ -43,6 +44,11 @@ const HomePage = () => {
 	};
 
 	const handleVenuesClick = () => {
+		if (checkVenueMissingFields()) {
+			setMissingFieldsModalType("venue");
+			setShowMissingFieldsModal(true);
+			return;
+		}
 		navigate("/VenuesFindingPage");
 	};
 
@@ -66,6 +72,7 @@ const HomePage = () => {
 	);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
+	const [missingFieldsModalType, setMissingFieldsModalType] = useState<"venue" | "matching">("matching");
 
 	const handleViewProfile = (profile: UserProfile) => {
 		setSelectedProfile(profile);
@@ -107,7 +114,7 @@ const HomePage = () => {
 	};
 
 	// Check which fields are missing
-	const getMissingFields = () => {
+	const getMatchingMissingFields = () => {
 		const missing: string[] = [];
 		if (!userProfile?.age) missing.push("Age");
 		if (!userProfile?.interests || userProfile.interests.length === 0)
@@ -117,6 +124,17 @@ const HomePage = () => {
 		if (!userProfile?.workVibe) missing.push("Work Vibe");
 		return missing;
 	};
+
+	const checkVenueMissingFields = () => {
+		return !userProfile?.maxDistanceKm || !userProfile?.location;
+	}
+
+	const getVenueMissingFields = () => {
+		const missing: string[] = [];
+		if (!userProfile?.maxDistanceKm) missing.push("Maximum Distance");
+		if (!userProfile?.location) missing.push("Location");
+		return missing;
+	}
 
 	useEffect(() => {
 		const fetchRequest = async () => {
@@ -580,17 +598,18 @@ const HomePage = () => {
 								Missing Information:
 							</h3>
 							<ul className='space-y-2'>
-								{getMissingFields().map((field, index) => (
-									<li
-										key={index}
-										className='flex items-center gap-2 text-red-700'
-									>
-										<span className='w-2 h-2 bg-red-500 rounded-full'></span>
-										<span className='font-medium'>
-											{field}
-										</span>
-									</li>
-								))}
+								{
+								(missingFieldsModalType === "matching" ? getMatchingMissingFields() : getVenueMissingFields())
+									.map((field, index) => (
+										<li
+											key={index}
+											className='flex items-center gap-2 text-red-700'
+										>
+											<span className='w-2 h-2 bg-red-500 rounded-full'></span>
+											<span className='font-medium'>{field}</span>
+										</li>
+									))			
+								}
 							</ul>
 						</div>
 
