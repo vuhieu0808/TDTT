@@ -56,3 +56,22 @@ export const deleteLLMHistory = async (req: AuthRequest, res: Response) => {
     await llmChatService.updateHistory(userId, conversationId, []);
     return res.status(200).json({ message: "History deleted successfully" });
 }
+
+export const emotionAnalysis = async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.uid;
+    const conversationId = req.body?.conversationId as string;
+
+    if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+    if (!conversationId) {
+        return res.status(400).json({ error: "conversationId is required" });
+    }
+
+    const result = await llmChatService.emotionAnalysis(userId, conversationId);
+    if (result[0]) {
+        return res.status(200).json({ response: result[1] });
+    } else {
+        return res.status(500).json({ error: result[1] });
+    }
+}
