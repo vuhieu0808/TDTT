@@ -172,7 +172,7 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 		try {
 			const ret = await api.post("/llmSuggest/suggest", {
 				conversationId: activeConversationId,
-			})
+			});
 			const data = ret.data;
 			if (data && data.response) {
 				setLatestSuggestionId(data.llmSuggestId);
@@ -199,7 +199,7 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 		} catch (error) {
 			console.error("Failed to send telemetry:", error);
 		}
-	}
+	};
 
 	const handleScroll = async (e: React.UIEvent<HTMLDivElement>) => {
 		const { scrollTop, scrollHeight } = e.currentTarget;
@@ -596,7 +596,9 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 				{showHelpfulBanner && (
 					<div className='border-t border-gray-200 bg-blue-50 px-4 py-3'>
 						<div className='flex items-center justify-between'>
-							<p className='text-sm text-gray-700'>Is the suggestion helpful?</p>
+							<p className='text-sm text-gray-700'>
+								Is the suggestion helpful?
+							</p>
 							<div className='flex gap-2'>
 								<button
 									onClick={() => {
@@ -622,7 +624,13 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 				)}
 
 				{/* Message Input Area */}
-				<div className={`p-4 flex gap-2 items-end ${isLoadingSuggestion ? 'opacity-50 pointer-events-none' : ''}`}>
+				<div
+					className={`p-4 flex gap-2 items-end ${
+						isLoadingSuggestion
+							? "opacity-50 pointer-events-none"
+							: ""
+					}`}
+				>
 					{/* Suggest Me Button*/}
 					<button
 						onClick={handleSuggestMessage}
