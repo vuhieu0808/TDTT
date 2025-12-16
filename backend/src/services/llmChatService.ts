@@ -1,6 +1,7 @@
 import { Chat, GoogleGenAI, Content } from "@google/genai";
 import { llmChatDB } from "../models/db.js";
 import * as llmChatHelper from "../utils/llmChatHelper.js";
+import { db } from "../config/firebase.js";
 
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
@@ -8,76 +9,103 @@ if (!apiKey) {
 }
 const ai = new GoogleGenAI({ apiKey: apiKey! });
 
-async function chatHandlerImpl(history: Content[], model: string, message: string): Promise<[boolean, string, Content[]]> {
-    let chatHandle: Chat = ai.chats.create({
-        model: model,
-        history: history,
-    });
-    try {
-        const response = await chatHandle.sendMessage({
-            message: message,
-        });
-        return [true, response.text || "", chatHandle.getHistory(true)];
-    } catch (error) {
-        return [false, `Error processing the message: ${error}`, history];
-    }
-}
+export async function deleteHistory(userId: string, conversationId: string) {
+    const limit = 400;
+    const query = llmChatDB.where('userId', '==', userId).where('conversationId', '==', conversationId).limit(limit);
 
-//chat & auto update history to database
-async function chatHandler(userId: string, conversationId: string, history: Content[], message: string): Promise<[boolean, string]> {
-    const modelList = ["gemma-3-12b-it", "gemma-3-4b-it", "gemma-3-2b-it"];
-    let ret: [boolean, string, Content[]] = [false, "", []];
-    for (const m of modelList) {
-        ret = await chatHandlerImpl(history, m, message);
-        if(ret[0]) {
-            await updateHistory(userId, conversationId, ret[2]);
+    while(true) {
+        let batch = db.batch();
+        const snapshot = await query.get();
+        if(snapshot.empty) {
             break;
         }
+        snapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
     }
-    return [ret[0], ret[1]];
 }
 
-async function getHistory(userId: string, conversationId: string): Promise<Content[]> {
-    const str = await getHistoryString(userId, conversationId);
+export async function queryHistory(userId: string, conversationId: string): Promise<LLMHistory[]> {
+    const ret: LLMHistory[] = [];
+    const query = llmChatDB.where('userId', '==', userId).where('conversationId', '==', conversationId);
     try {
-        return JSON.parse(str) as Content[];
-    } catch {
-        return [];
+        const snapshot = await query.get();
+        snapshot.forEach((doc) => {
+            ret.push(doc.data() as LLMHistory);
+        });
+    } catch (error) {
+
     }
+
+    return ret;
 }
 
-async function getHistoryString(userId: string, conversationId: string): Promise<string> {
-    const docRef = await llmChatDB.doc(userId).get();
-    if(docRef.exists) {
-        const userData = docRef.data();
-        const llmHistoryString = userData?.[conversationId] as string || "";
-        return llmHistoryString;
-    }
-    return "";
+async function addHistory(llmHistory: LLMHistory): Promise<[boolean, string]> {
+    try {
+        const docRef = await llmChatDB.add(llmHistory);
+        if(docRef.id) {
+            docRef.update({
+                llmChatId: docRef.id
+            });
+            return [true, docRef.id];
+        }
+    } catch (error) {}
+    return [false, ""];
 }
 
-async function updateHistory(userId: string, conversationId: string, history: Content[]): Promise<void> {
-    const docRef = llmChatDB.doc(userId);
-    const llmHistoryString = JSON.stringify(history);
-
-    const docSnapshot = await docRef.get();
-    await docRef.set({ [conversationId]: llmHistoryString }, { merge: true });
+export async function helpfulTelemetry(llmChatId: string, isHelpful: boolean): Promise<boolean> {
+    try {
+        const doc = await llmChatDB.doc(llmChatId).get();
+        if(doc.exists) {
+            await llmChatDB.doc(llmChatId).update({
+                isHelpful: isHelpful
+            });
+            console.log(`[helpfulTelemetry] Updated llmChatId ${llmChatId} with isHelpful=${isHelpful}`);
+            return true;
+        }
+    } catch (error) {}
+    return false;
 }
 
-async function emotionAnalysis(userId: string, conversationId: string): Promise<[boolean, string]> {
+export async function emotionAnalysis(userId: string, conversationId: string, userContextInput?: string): Promise<[boolean, string, string]> {
     let messageList = await llmChatHelper.fetchConversation(userId, conversationId);
     if(messageList.length === 0) {
-        return [false, "No conversation history found."];
+        return [false, "No conversation history found.", ""];
     }
 
-    messageList = llmChatHelper.extractLatestMessagesBlock(5, messageList);
+    const userContext = userContextInput || "";
+
+    messageList = llmChatHelper.extractLatestMessagesBlock(6, messageList);
     let flatMessageList = llmChatHelper.flattenSimplifiedMessages(messageList);
-    return await emotionAnalysisImpl(flatMessageList);
-    // return await emotionAnalysisImpl(flatMessageList, true);
+    const ret = await emotionAnalysisImpl(flatMessageList, userContext, false);
+    if(ret[0]) {
+        const llmHistory: LLMHistory = {
+            llmChatId: "",
+            userId: userId,
+            conversationId: conversationId,
+            conversationSegment: flatMessageList,
+            userContext: userContext,
+            llmSuggestion: ret[1],
+            timestamp: new Date().toISOString(),
+            isHelpful: false
+        };
+
+        const pushToDb = await addHistory(llmHistory); 
+        if(pushToDb[0]) {
+            return [true, ret[1], pushToDb[1]];
+        }
+        // return [true, ret[1], pushToDb[1]];
+    }
+    return [false, ret[1], ""];
 }
 
-async function emotionAnalysisImpl(conversation: string[], enableDebug?: boolean): Promise<[boolean, string]> {
+async function emotionAnalysisImpl(conversation: string[], userContext: string, enableDebug?: boolean): Promise<[boolean, string]> {
     const debug = enableDebug || false;
+    let errorString = "";
+    const highendPermit = ["gemma-3-27b-it", "gemma-3-12b-it"];
+    const lowendPermit = ["gemma-3-4b-it", "gemma-3-2b-it", "gemma-3-1b-it"];
+
     console.log(`[emotionAnalysisImpl] Request received. Debug mode: ${debug}`);
     if(debug) console.log(conversation);
 
@@ -87,6 +115,11 @@ async function emotionAnalysisImpl(conversation: string[], enableDebug?: boolean
     You are an emotion recognition module.
     Your task is to identify the dominant known emotion and its intensity
     for each speaker in a text-only conversation.
+
+    Primary evidence is the conversation text.
+    Optional user context may help disambiguate tone or intent,
+    but must not override explicit dialogue content.
+    In the Optional User Context, "you" is Person A and "the opponent" or "the other person" is Person B.
 
     You must NOT generate explanations.
     You must output valid JSON only.
@@ -101,6 +134,8 @@ async function emotionAnalysisImpl(conversation: string[], enableDebug?: boolean
     USER:
     Conversation:
     ${conversation}
+    Optional User Context (may be empty):
+    ${userContext}
 
     TASK:
     Extract the dominant emotion and intensity for both speakers.
@@ -119,24 +154,30 @@ async function emotionAnalysisImpl(conversation: string[], enableDebug?: boolean
     `;
 
     let emotionRecognitionResponse: string = "";
-    try {
-        const response = await ai.models.generateContent({
-            model: "gemma-3-27b-it",
-            config: {
-                temperature: 0.1,
-                topP: 0.85,
-                topK: 40,
-            },
-            contents: emotionRecognitionPrompt
-        });
-        console.log("[emotionAnalysisImpl] emotionRecognition done.");
-        if(response.text) {
-            emotionRecognitionResponse = llmChatHelper.trimMarkdownJson(response.text);
+    for(const m of highendPermit) {
+        try {
+            const response = await ai.models.generateContent({
+                model: m,
+                config: {
+                    temperature: 0.1,
+                    topP: 0.85,
+                    topK: 40,
+                },
+                contents: emotionRecognitionPrompt
+            });
+            console.log(`[emotionAnalysisImpl] emotionRecognition running on ${m} done.`);
+            if(response.text) {
+                emotionRecognitionResponse = llmChatHelper.trimMarkdownJson(response.text);
+            }
+            errorString = "";
+            if(debug) console.log(emotionRecognitionResponse);
+            break;
+        } catch (error) {
+            errorString = `[emotionAnalysisImpl] emotionRecognition running on ${m} Error: ${error}`; 
+            console.log(errorString);
         }
-        if(debug) console.log(emotionRecognitionResponse)
-    } catch (error) {
-        let errorString = `[emotionAnalysisImpl] emotionRecognition Error: ${error}`; 
-        console.log(errorString);
+    }
+    if(errorString !== "") {
         return [false, errorString];
     }
 
@@ -153,6 +194,13 @@ async function emotionAnalysisImpl(conversation: string[], enableDebug?: boolean
     4. Rationalize the cause in ONE concise sentence.
     5. Remove any speculative or unsupported inferences.
 
+    Use the conversation as primary evidence.
+    Use optional user context only to:
+    - disambiguate intent
+    - clarify background relationships
+    - resolve ambiguity
+    In the Optional User Context, "you" is Person A and "the opponent" or "the other person" is Person B.
+
     Rules:
     Do NOT reclassify emotions
     Do NOT include speculative psychology.
@@ -163,6 +211,8 @@ async function emotionAnalysisImpl(conversation: string[], enableDebug?: boolean
     USER:
     Conversation:
     ${conversation}
+    Optional User Context (may be empty):
+    ${userContext}
 
     Known Emotions:
     ${emotionRecognitionResponse}
@@ -185,26 +235,34 @@ async function emotionAnalysisImpl(conversation: string[], enableDebug?: boolean
     `
 
     let ecrResponse: string = "";
-    try {
-        const response = await ai.models.generateContent({
-            model: "gemma-3-27b-it",
-            config: {
-                temperature: 0.1,
-                topP: 0.85,
-                topK: 40,
-            },
-            contents: ecrPrompt
-        });
-        console.log("[emotionAnalysisImpl] ECR done.");
-        if(response.text) {
-            ecrResponse = llmChatHelper.trimMarkdownJson(response.text);
+    for(const m of highendPermit) {
+        try {
+            const response = await ai.models.generateContent({
+                model: m,
+                config: {
+                    temperature: 0.1,
+                    topP: 0.85,
+                    topK: 40,
+                },
+                contents: ecrPrompt
+            });
+            console.log(`[emotionAnalysisImpl] ECR running on ${m} done.`);
+            if(response.text) {
+                ecrResponse = llmChatHelper.trimMarkdownJson(response.text);
+            }
+            errorString = "";
+            if(debug) console.log(ecrResponse);
+            break;
+        } catch (error) {
+            errorString = `[emotionAnalysisImpl] ECR running on ${m} Error: ${error}`; 
+            console.log(errorString);
         }
-        if(debug) console.log(ecrResponse)
-    } catch (error) {
-        let errorString = `[emotionAnalysisImpl] ECR Error: ${error}`; 
-        console.log(errorString);
+    }
+    if(errorString !== "") {
         return [false, errorString];
     }
+
+    ///// Generation
 
     let lastMessageFromA = "";
     for (let i = conversation.length - 1; i >= 0; i--) {
@@ -237,6 +295,10 @@ async function emotionAnalysisImpl(conversation: string[], enableDebug?: boolean
     Conversation so far:
     ${conversation}
 
+    Optional User Request or Intent:
+    ${userContext}
+    In the Optional User Request, "you" is Person A and "the opponent" or "the other person" is Person B.
+
     Emotion States:
     ${emotionRecognitionResponse}
 
@@ -253,33 +315,43 @@ async function emotionAnalysisImpl(conversation: string[], enableDebug?: boolean
     Do NOT mention user role (e.g.: Person A:, Person B:) in your response.
     `
     let generation: string = "";
-    try {
-        const response = await ai.models.generateContent({
-            model: "gemma-3-4b-it",
-            config: {
-                temperature: 0.7,
-                // topP: 0.85,
-            },
-            contents: generationPrompt
-        });
-        console.log("[emotionAnalysisImpl] generation done.");
-        if(response.text) {
-            generation = llmChatHelper.trimMarkdownJson(response.text);
+    for(const m of lowendPermit) {
+        try {
+            const response = await ai.models.generateContent({
+                model: m,
+                config: {
+                    temperature: 1.1,
+                    topP: 0.85,
+                },
+                contents: generationPrompt
+            });
+            console.log(`[emotionAnalysisImpl] generation running on ${m} done.`);
+            if(response.text) {
+                generation = llmChatHelper.trimMarkdownJson(response.text);
+            }
+            errorString = "";
+            console.log(`[emotionAnalysisImpl] generated text: ${generation}`);
+            break;
+        } catch (error) {
+            errorString = `[emotionAnalysisImpl] generation ruunin on ${m} Error: ${error}`; 
+            console.log(errorString);
         }
-        console.log("[emotionAnalysisImpl] generated text: ", generation);
-    } catch (error) {
-        let errorString = `[emotionAnalysisImpl] generation Error: ${error}`; 
-        console.log(errorString);
+    }
+
+    if(errorString !== "") {
         return [false, errorString];
     }
 
     return [true, generation];
 }
 
-export const llmChatService = {
-    chatHandler,
-    getHistory,
-    getHistoryString,
-    updateHistory,
-    emotionAnalysis
-};
+export type LLMHistory = {
+    llmChatId: string;
+    userId: string;
+    conversationId: string;
+    conversationSegment: string[];
+    userContext: string;
+    llmSuggestion: string;
+    timestamp: String
+    isHelpful: boolean;
+}
