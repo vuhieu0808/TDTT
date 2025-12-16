@@ -3,6 +3,7 @@ import { AuthRequest } from "../middlewares/authMiddleware.js";
 import { getDetailsForUserIds, getFullUserProfile } from "../utils/friendHelper.js";
 import { friendServices } from "../services/friendServices.js";
 import { userDB } from "../models/db.js";
+import * as matchingTelemetry from "../services/matchingTelemetry.js";
 
 export const getMatchRequests = async (req: AuthRequest, res: Response) => {
   try {
@@ -61,11 +62,13 @@ export const swipeRight = async (req: AuthRequest, res: Response) => {
           .status(400)
           .json({ error: "There is already a pending match request" });
       case "MATCHED":
+        await matchingTelemetry.unsubscribe(senderId);
         return res.status(200).json({
           message: "You have matched successfully",
           friendData: result.data,
         });
       case "request_sent":
+        await matchingTelemetry.unsubscribe(senderId);
         return res.status(200).json({
           message: "Match request sent successfully",
           request: result.data,
@@ -88,6 +91,7 @@ export const swipeLeft = async (req: AuthRequest, res: Response) => {
     }
     const result = await friendServices.swipeLeft(senderId, receiverId);
     if (result) {
+      await matchingTelemetry.increment(senderId);
       return res.status(200).json({ message: "Swipe left successful" });
     } else {
       return res.status(400).json({ error: "Swipe left failed" });

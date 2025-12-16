@@ -10,3 +10,4 @@ export const llmSuggestDB = db.collection("llmSuggest");
 export const llmChatDB = db.collection("llmChat");
 export const workSessionDB = db.collection("workSessions");
 export const venueDB = db.collection("venues");
+export const matchingTelemetryDB = db.collection("matchingTelemetry");
