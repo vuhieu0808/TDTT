@@ -4,6 +4,7 @@ import { matchingSystem } from "../services/matchingServices.js";
 import { userDB } from "../models/db.js";
 import { User } from "../models/User.js";
 import { getCandidateUsers } from "../services/matchingServices.js";
+import * as matchingTelemetry from "../services/matchingTelemetry.js";
 
 export const findMatches = async (req: AuthRequest, res: Response) => {
   try {
@@ -16,6 +17,7 @@ export const findMatches = async (req: AuthRequest, res: Response) => {
     if (!currentUserDoc.exists) {
       return res.status(404).json({ error: "User not found" });
     }
+    await matchingTelemetry.subscribe(userId);
     const currentUser = currentUserDoc.data() as User;
     const candidates = await getCandidateUsers(currentUser);
     const matchesFetched = await matchingSystem.findMatches(
