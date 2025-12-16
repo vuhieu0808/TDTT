@@ -1,4 +1,3 @@
-import { Conversation } from "../models/Conversation.js";
 import { conversationServices } from "../services/conversationServices.js";
 
 export type SimplifiedMessage = {
