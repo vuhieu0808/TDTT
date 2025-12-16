@@ -162,32 +162,32 @@ function SettingsPage() {
 	};
 
 	const handleDetectLocation = () => {
-        if (!navigator.geolocation) {
-            toast.error("Geolocation is not supported by your browser");
-            return;
-        }
+		if (!navigator.geolocation) {
+			toast.error("Geolocation is not supported by your browser");
+			return;
+		}
 
-        setIsDetectingLocation(true);
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
-                setFormData((prev) => ({
-                    ...prev,
-                    location: {
-                        lat: parseFloat(latitude.toFixed(6)),
-                        lng: parseFloat(longitude.toFixed(6)),
-                    },
-                }));
-                toast.success("Location detected successfully!");
-                setIsDetectingLocation(false);
-            },
-            (error) => {
-                console.error("Geolocation error:", error);
-                toast.error("Failed to detect location. Please try again.");
-                setIsDetectingLocation(false);
-            }
-        );
-    };
+		setIsDetectingLocation(true);
+		navigator.geolocation.getCurrentPosition(
+			(position) => {
+				const { latitude, longitude } = position.coords;
+				setFormData((prev) => ({
+					...prev,
+					location: {
+						lat: parseFloat(latitude.toFixed(6)),
+						lng: parseFloat(longitude.toFixed(6)),
+					},
+				}));
+				toast.success("Location detected successfully!");
+				setIsDetectingLocation(false);
+			},
+			(error) => {
+				console.error("Geolocation error:", error);
+				toast.error("Failed to detect location. Please try again.");
+				setIsDetectingLocation(false);
+			}
+		);
+	};
 
 	const handleSave = async () => {
 		if (!userProfile) {
@@ -197,6 +197,21 @@ function SettingsPage() {
 
 		if (!formData.displayName.trim()) {
 			toast.error("Display name is required");
+			return;
+		}
+
+		const dob = new Date(formData.dateOfBirth);
+		const age = formData.age;
+
+		// Check valid year
+		if (dob.getFullYear() > new Date().getFullYear()) {
+			toast.error("Date of birth cannot be in the future");
+			return;
+		}
+
+		// Check valid age (>18)
+		if (age < 18) {
+			toast.error("You must be at least 18 years old");
 			return;
 		}
 
@@ -345,12 +360,19 @@ function SettingsPage() {
 									<Input
 										type='date'
 										value={formData.dateOfBirth}
-										onChange={(e) =>
+										onChange={(e) => {
 											handleChange(
 												"dateOfBirth",
 												e.target.value
-											)
-										}
+											);
+											handleChange(
+												"age",
+												new Date().getFullYear() -
+													new Date(
+														e.target.value
+													).getFullYear()
+											);
+										}}
 									/>
 								</div>
 
@@ -369,16 +391,12 @@ function SettingsPage() {
 									<Input
 										type='number'
 										value={formData.age}
-										onChange={(e) =>
-											handleChange(
-												"age",
-												parseInt(e.target.value) || 0
-											)
-										}
-										slotProps={{
-											input: { min: 0, max: 150 },
-										}}
+										disabled
+										sx={{ backgroundColor: "#f3f4f6" }}
 									/>
+									<p className='text-xs text-gray-500 mt-1'>
+										Age is calculated from date of birth
+									</p>
 								</div>
 							</div>
 
@@ -519,28 +537,28 @@ function SettingsPage() {
 									/>
 								</div>
 								{/* Detect Location Button */}
-                                <div className='md:col-span-2'>
-                                    <Button
-                                        onClick={handleDetectLocation}
-                                        disabled={isDetectingLocation}
-                                        startDecorator={<MyLocation />}
-                                        sx={{
-                                            backgroundColor: "#3b82f6",
-                                            width: "100%",
-                                            "&:hover": {
-                                                backgroundColor: "#2563eb",
-                                            },
-                                            "&:disabled": {
-                                                backgroundColor: "#e5e7eb",
-                                                color: "#9ca3af",
-                                            },
-                                        }}
-                                    >
-                                        {isDetectingLocation
-                                            ? "Detecting..."
-                                            : "Detect My Location"}
-                                    </Button>
-                                </div>
+								<div className='md:col-span-2'>
+									<Button
+										onClick={handleDetectLocation}
+										disabled={isDetectingLocation}
+										startDecorator={<MyLocation />}
+										sx={{
+											backgroundColor: "#3b82f6",
+											width: "100%",
+											"&:hover": {
+												backgroundColor: "#2563eb",
+											},
+											"&:disabled": {
+												backgroundColor: "#e5e7eb",
+												color: "#9ca3af",
+											},
+										}}
+									>
+										{isDetectingLocation
+											? "Detecting..."
+											: "Detect My Location"}
+									</Button>
+								</div>
 							</div>
 
 							{/* Max Distance */}

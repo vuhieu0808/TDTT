@@ -2,7 +2,10 @@ import { useState, useEffect } from "react";
 import { venueServices } from "@/services/venueServices";
 import type { Venue, VenueFilter } from "@/types/venue";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { friendServices } from "@/services/friendServices";
+import type { UserProfile } from "@/types/user";
 import Layout from "@/components/Layout";
+
 import {
 	Search,
 	LocationOn,
@@ -12,7 +15,9 @@ import {
 	Map,
 	AttachMoney,
 	Language,
-	Sort, // Add this import
+	Sort,
+	PersonPin,
+	People,
 } from "@mui/icons-material";
 import {
 	Input,
@@ -29,6 +34,10 @@ import {
 	Button,
 	Menu,
 	MenuItem,
+	Radio,
+	RadioGroup,
+	FormControl,
+	FormLabel,
 } from "@mui/joy";
 
 const FILTER_OPTIONS = {
@@ -79,6 +88,18 @@ const FILTER_OPTIONS = {
 	},
 };
 
+type LocationMode = "near-me" | "near-partner" | "between";
+
+// Add this interface for partner data
+interface Partner {
+	id: string;
+	displayName: string;
+	location: {
+		lat: number;
+		lng: number;
+	};
+}
+
 function VenuesFindingPage() {
 	const { userProfile } = useAuthStore();
 	const [location, setLocation] = useState("");
@@ -87,7 +108,43 @@ function VenuesFindingPage() {
 	const [allVenues, setAllVenues] = useState<Venue[]>([]);
 	const [filteredVenues, setFilteredVenues] = useState<Venue[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [sortBy, setSortBy] = useState<string>("rating-desc");
+	const [sortBy, setSortBy] = useState<string>("distance-asc");
+
+	// Location filter state
+	const [locationMode, setLocationMode] = useState<LocationMode>("near-me");
+	const [selectedPartner, setSelectedPartner] = useState<Partner | null>(
+		null
+	);
+	const [partners, setPartners] = useState<Partner[]>([]);
+
+	useEffect(() => {
+		const fetchPartners = async () => {
+			try {
+				const matches = await friendServices.getMatches();
+
+				console.log("Fetched matches for partners:", matches);
+
+				if (Array.isArray(matches.matches)) {
+					const partnersData: Partner[] = matches.matches.map(
+						(match: UserProfile) => ({
+							id: match.uid,
+							displayName: match.displayName,
+							location: match.location!,
+						})
+					);
+					setPartners(partnersData);
+				} else {
+					console.error("matches is not an array:", matches);
+					setPartners([]);
+				}
+			} catch (error) {
+				console.error("Error fetching partners:", error);
+				setPartners([]);
+			}
+		};
+
+		fetchPartners();
+	}, []);
 
 	// Filter state with arrays for multiple selections
 	const [filters, setFilters] = useState({
@@ -109,13 +166,105 @@ function VenuesFindingPage() {
 		staffInteraction: null,
 	});
 
+	// Calculate distance between two coordinates (Haversine formula)
+	const calculateDistance = (
+		lat1: number,
+		lng1: number,
+		lat2: number,
+		lng2: number
+	): number => {
+		const R = 6371; // Earth's radius in km
+		const dLat = ((lat2 - lat1) * Math.PI) / 180;
+		const dLng = ((lng2 - lng1) * Math.PI) / 180;
+		const a =
+			Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+			Math.cos((lat1 * Math.PI) / 180) *
+				Math.cos((lat2 * Math.PI) / 180) *
+				Math.sin(dLng / 2) *
+				Math.sin(dLng / 2);
+		const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+		return R * c;
+	};
+
+	// Filter venues based on location mode
+	const filterVenuesByLocation = (venues: Venue[]): Venue[] => {
+		if (!userProfile?.location) return venues;
+
+		const maxDistance = userProfile.maxDistanceKm || 10;
+		const maxDistanceWithBuffer = maxDistance * 1.2; // 120% of maxDistance
+
+		switch (locationMode) {
+			case "near-me": {
+				return venues.filter((venue) => {
+					const distance = calculateDistance(
+						userProfile?.location ? userProfile.location.lat : 0,
+						userProfile?.location ? userProfile.location.lng : 0,
+						venue.location.lat,
+						venue.location.lng
+					);
+					return distance <= maxDistanceWithBuffer;
+				});
+			}
+
+			case "near-partner": {
+				if (!selectedPartner?.location) return venues;
+				return venues.filter((venue) => {
+					const distance = calculateDistance(
+						selectedPartner.location.lat,
+						selectedPartner.location.lng,
+						venue.location.lat,
+						venue.location.lng
+					);
+					return distance <= maxDistanceWithBuffer;
+				});
+			}
+
+			case "between": {
+				if (!selectedPartner?.location) return venues;
+
+				// Calculate midpoint
+				const midLat =
+					(userProfile.location.lat + selectedPartner.location.lat) /
+					2;
+				const midLng =
+					(userProfile.location.lng + selectedPartner.location.lng) /
+					2;
+
+				// Calculate distance between user and partner
+				const distanceBetween = calculateDistance(
+					userProfile.location.lat,
+					userProfile.location.lng,
+					selectedPartner.location.lat,
+					selectedPartner.location.lng
+				);
+
+				// Use half the distance between them as the search radius
+				const searchRadius = distanceBetween / 2;
+
+				return venues.filter((venue) => {
+					const distanceFromMid = calculateDistance(
+						midLat,
+						midLng,
+						venue.location.lat,
+						venue.location.lng
+					);
+
+					// Venue should be within the search radius from midpoint
+					return distanceFromMid <= searchRadius;
+				});
+			}
+
+			default:
+				return venues;
+		}
+	};
+
 	// Fetch venues from Firebase on component mount
 	useEffect(() => {
 		const loadVenues = async () => {
 			try {
 				setLoading(true);
 
-				// Pass filter arrays directly to backend
 				const venueFilter: VenueFilter = {
 					comfort: filters.comfort,
 					noise: filters.noise,
@@ -124,16 +273,43 @@ function VenuesFindingPage() {
 					staffInteraction: filters.staffInteraction,
 				};
 
+				// Determine which location to use for fetching
+				let fetchLat = userProfile?.location?.lat || 0;
+				let fetchLng = userProfile?.location?.lng || 0;
+
+				if (
+					locationMode === "near-partner" &&
+					selectedPartner?.location
+				) {
+					fetchLat = selectedPartner.location.lat;
+					fetchLng = selectedPartner.location.lng;
+				} else if (
+					locationMode === "between" &&
+					selectedPartner?.location &&
+					userProfile?.location
+				) {
+					fetchLat =
+						(userProfile.location.lat +
+							selectedPartner.location.lat) /
+						2;
+					fetchLng =
+						(userProfile.location.lng +
+							selectedPartner.location.lng) /
+						2;
+				}
+
 				const venues = await venueServices.fetchVenues(
-					(userProfile?.location && userProfile?.location.lat) || 0,
-					(userProfile?.location && userProfile?.location.lng) || 0,
+					fetchLat,
+					fetchLng,
 					venueFilter
 				);
 
-				console.log("Fetched venues:", venues);
+				// Apply location-based filtering
+				const locationFiltered = filterVenuesByLocation(venues);
 
-				setAllVenues(sortVenues(venues, sortBy));
-				setFilteredVenues(sortVenues(venues, sortBy));
+				const sortedVenues = sortVenues(locationFiltered, sortBy);
+				setAllVenues(sortedVenues);
+				setFilteredVenues(sortedVenues);
 			} catch (error) {
 				console.error("Error fetching venues:", error);
 			} finally {
@@ -142,7 +318,7 @@ function VenuesFindingPage() {
 		};
 
 		loadVenues();
-	}, []);
+	}, [locationMode, selectedPartner]);
 
 	// Filter venues by location search
 	const findVenues = (searchLocation: string) => {
@@ -198,6 +374,51 @@ function VenuesFindingPage() {
 		}));
 	};
 
+	// Calculate distance for a venue based on current location mode
+	const getVenueDistance = (venue: Venue): number => {
+		if (!userProfile?.location) return 0;
+
+		switch (locationMode) {
+			case "near-me": {
+				return calculateDistance(
+					userProfile.location.lat,
+					userProfile.location.lng,
+					venue.location.lat,
+					venue.location.lng
+				);
+			}
+
+			case "near-partner": {
+				if (!selectedPartner?.location) return 0;
+				return calculateDistance(
+					selectedPartner.location.lat,
+					selectedPartner.location.lng,
+					venue.location.lat,
+					venue.location.lng
+				);
+			}
+
+			case "between": {
+				if (!selectedPartner?.location) return 0;
+				const midLat =
+					(userProfile.location.lat + selectedPartner.location.lat) /
+					2;
+				const midLng =
+					(userProfile.location.lng + selectedPartner.location.lng) /
+					2;
+				return calculateDistance(
+					midLat,
+					midLng,
+					venue.location.lat,
+					venue.location.lng
+				);
+			}
+
+			default:
+				return 0;
+		}
+	};
+
 	// Sort venues function
 	const sortVenues = (venues: Venue[], sortOption: string): Venue[] => {
 		const sorted = [...venues];
@@ -207,6 +428,18 @@ function VenuesFindingPage() {
 				return sorted.sort((a, b) => b.ratingStar - a.ratingStar);
 			case "rating-asc":
 				return sorted.sort((a, b) => a.ratingStar - b.ratingStar);
+			case "distance-asc":
+				return sorted.sort((a, b) => {
+					const distanceA = getVenueDistance(a);
+					const distanceB = getVenueDistance(b);
+					return distanceA - distanceB;
+				});
+			case "distance-desc":
+				return sorted.sort((a, b) => {
+					const distanceA = getVenueDistance(a);
+					const distanceB = getVenueDistance(b);
+					return distanceB - distanceA;
+				});
 			default:
 				return sorted;
 		}
@@ -233,16 +466,38 @@ function VenuesFindingPage() {
 				staffInteraction: filters.staffInteraction,
 			};
 
+			// Determine which location to use for fetching
+			let fetchLat = userProfile?.location?.lat || 0;
+			let fetchLng = userProfile?.location?.lng || 0;
+
+			if (locationMode === "near-partner" && selectedPartner?.location) {
+				fetchLat = selectedPartner.location.lat;
+				fetchLng = selectedPartner.location.lng;
+			} else if (
+				locationMode === "between" &&
+				selectedPartner?.location &&
+				userProfile?.location
+			) {
+				fetchLat =
+					(userProfile.location.lat + selectedPartner.location.lat) /
+					2;
+				fetchLng =
+					(userProfile.location.lng + selectedPartner.location.lng) /
+					2;
+			}
+
 			const venues = await venueServices.fetchVenues(
-				(userProfile?.location && userProfile?.location.lat) || 0,
-				(userProfile?.location && userProfile?.location.lng) || 0,
+				fetchLat,
+				fetchLng,
 				venueFilter
 			);
 
-			// Apply location filter on frontend if exists
-			let filtered = venues;
+			// Apply location-based filtering
+			let filtered = filterVenuesByLocation(venues);
+
+			// Apply location search filter on frontend if exists
 			if (location.trim() !== "") {
-				filtered = venues.filter(
+				filtered = filtered.filter(
 					(venue) =>
 						venue.address
 							.toLowerCase()
@@ -368,6 +623,119 @@ function VenuesFindingPage() {
 							}}
 						/>
 					</div>
+
+					{/* Location Mode Filter */}
+					<Card
+						variant='outlined'
+						sx={{
+							mb: 2,
+							border: "1px solid #e5e7eb",
+							borderRadius: "12px",
+							p: 3,
+						}}
+					>
+						<h3 className='text-lg font-semibold text-gray-900 mb-1'>
+							Search Location
+						</h3>
+						<FormControl>
+							<RadioGroup
+								value={locationMode}
+								onChange={(e) => {
+									setLocationMode(
+										e.target.value as LocationMode
+									);
+									if (e.target.value === "near-me") {
+										setSelectedPartner(null);
+									}
+								}}
+								sx={{
+									display: "flex",
+									flexDirection: "row",
+									justifyContent: "space-between",
+									paddingX: 3,
+									gap: 2,
+								}}
+							>
+								<Radio
+									value='near-me'
+									label={
+										<div className='flex items-center gap-2'>
+											<PersonPin />
+											<span>
+												Near Me (within{" "}
+												{Math.round(
+													(userProfile?.maxDistanceKm ||
+														10) * 1.2
+												)}{" "}
+												km)
+											</span>
+										</div>
+									}
+									sx={{ alignItems: "center" }}
+								/>
+								<Radio
+									value='near-partner'
+									label={
+										<div className='flex items-center gap-2'>
+											<PersonPin />
+											<span>Near Partner</span>
+										</div>
+									}
+									sx={{ alignItems: "center" }}
+								/>
+								<Radio
+									value='between'
+									label={
+										<div className='flex items-center gap-2'>
+											<People />
+											<span>Between Us</span>
+										</div>
+									}
+									sx={{ alignItems: "center" }}
+								/>
+							</RadioGroup>
+						</FormControl>
+
+						{/* Partner Selection - Show only when needed */}
+						{(locationMode === "near-partner" ||
+							locationMode === "between") && (
+							<div className='mt-4'>
+								<FormLabel>Select Partner</FormLabel>
+								<Select
+									placeholder='Choose a partner'
+									value={selectedPartner?.id || ""}
+									onChange={(e, value) => {
+										const partner = partners.find(
+											(p) => p.id === value
+										);
+										setSelectedPartner(partner || null);
+									}}
+									sx={{
+										mt: 1,
+										borderRadius: "8px",
+										border: "2px solid #e5e7eb",
+										"&:hover": {
+											borderColor: "#a855f7",
+										},
+									}}
+								>
+									{partners.map((partner) => (
+										<Option
+											key={partner.id}
+											value={partner.id}
+										>
+											{partner.displayName}
+										</Option>
+									))}
+								</Select>
+								{!selectedPartner && (
+									<p className='text-xs text-red-500 mt-1'>
+										Please select a partner to see venues
+									</p>
+								)}
+							</div>
+						)}
+					</Card>
 
 					{/* Filter Settings */}
 					<Card
@@ -543,7 +911,7 @@ function VenuesFindingPage() {
 									startDecorator={<Sort />}
 									size='sm'
 									sx={{
-										minWidth: "180px",
+										minWidth: "200px",
 										borderRadius: "8px",
 										border: "1px solid #e5e7eb",
 										"&:hover": {
@@ -551,6 +919,12 @@ function VenuesFindingPage() {
 										},
 									}}
 								>
+									<Option value='distance-asc'>
+										Distance: Near to Far
+									</Option>
+									<Option value='distance-desc'>
+										Distance: Far to Near
+									</Option>
 									<Option value='rating-desc'>
 										Rating: High to Low
 									</Option>
@@ -643,6 +1017,24 @@ function VenuesFindingPage() {
 																	venue.ratingCount
 																}
 																)
+															</span>
+														</div>
+														{/* Display distance */}
+														<div className='flex items-center gap-1'>
+															<Map
+																sx={{
+																	fontSize:
+																		"0.875rem",
+																	color: "#a855f7",
+																}}
+															/>
+															<span className='text-xs sm:text-sm text-purple-600 font-medium'>
+																{getVenueDistance(
+																	venue
+																).toFixed(
+																	2
+																)}{" "}
+																km
 															</span>
 														</div>
 													</div>
