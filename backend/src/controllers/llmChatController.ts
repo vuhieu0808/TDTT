@@ -1,8 +1,8 @@
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
-import * as llmChatService from "../services/llmChatService.js";
+import { llmChatService } from "../services/llmChatService.js";
 
-export const queryLLMHistory = async (req: AuthRequest, res: Response) => {
+export const getLLMHistory = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.uid;
     const conversationId = req.body?.conversationId as string;
     if (!userId) {
@@ -11,12 +11,35 @@ export const queryLLMHistory = async (req: AuthRequest, res: Response) => {
     if (!conversationId) {
         return res.status(400).json({ error: "conversationId is required" });
     }
-    const historyList = await llmChatService.queryHistory(userId, conversationId);
+    const historyString = await llmChatService.getHistoryString(userId, conversationId);
 
-    if(historyList.length === 0) {
+    if(!historyString) {
         return res.status(404).json({ error: "No history found" });
     } else {
-        return res.status(200).json({ history: historyList });
+        return res.status(200).json({ history: historyString });
+    }
+}
+
+export const chatController = async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.uid;
+    const conversationId = req.body?.conversationId as string;
+    const message = req.body?.message as string;
+    if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+    if (!conversationId) {
+        return res.status(400).json({ error: "conversationId is required" });
+    }
+    if (!message) {
+        return res.status(400).json({ error: "message is required" });
+    }
+
+    const history = await llmChatService.getHistory(userId, conversationId);
+    let ret = await llmChatService.chatHandler(userId, conversationId, history, message);
+    if(ret[0]) {
+        return res.status(200).json({ response: ret[1] });
+    } else {
+        return res.status(500).json({ error: ret[1] });
     }
 }
 
@@ -30,45 +53,6 @@ export const deleteLLMHistory = async (req: AuthRequest, res: Response) => {
         return res.status(400).json({ error: "conversationId is required" });
     }
 
-    await llmChatService.deleteHistory(userId, conversationId);
+    await llmChatService.updateHistory(userId, conversationId, []);
     return res.status(200).json({ message: "History deleted successfully" });
-}
-
-export const emotionAnalysis = async (req: AuthRequest, res: Response) => {
-    const userId = req.user?.uid;
-    const conversationId = req.body?.conversationId as string;
-    const userContext = req.body?.userContext as string | undefined;
-
-    if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-    }
-    if (!conversationId) {
-        return res.status(400).json({ error: "conversationId is required" });
-    }
-
-    const result = await llmChatService.emotionAnalysis(userId, conversationId, userContext);
-    if (result[0]) {
-        return res.status(200).json({ response: result[1] , llmChatId: result[2]});
-    } else {
-        return res.status(500).json({ error: result[1] });
-    }
-}
-
-export const helpfulTelemetry = async (req: AuthRequest, res: Response) => {
-    const userId = req.user?.uid;
-    const llmChatId = req.body?.llmChatId as string;
-    const isHelpful = req.body?.isHelpful as boolean ?? false;
-    if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-    }
-    if (!llmChatId) {
-        return res.status(400).json({ error: "llmChatId is required" });
-    }
-    
-    const ret = await llmChatService.helpfulTelemetry(llmChatId, isHelpful); 
-    if(ret) {
-        return res.status(200).json({ message: "Telemetry recorded" });
-    } else {
-        return res.status(500).json({ error: "Failed to record telemetry" });
-    }  
 }
