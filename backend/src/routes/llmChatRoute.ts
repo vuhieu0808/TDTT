@@ -3,9 +3,9 @@ import * as llmChatController from '../controllers/llmChatController.js';
 
 const llmChatRoute = express.Router();
 
-llmChatRoute.post('/get', llmChatController.getLLMHistory);
-llmChatRoute.post('/chat', llmChatController.chatController);
+llmChatRoute.post('/query', llmChatController.getLLMHistory);
+llmChatRoute.post('/chat', llmChatController.emotionAnalysis);
 llmChatRoute.post('/delete', llmChatController.deleteLLMHistory);
-llmChatRoute.post('/emotionAnalysis', llmChatController.emotionAnalysis);
+llmChatRoute.post("/telemetry", llmChatController.helpfulTelemetry);
 
 export default llmChatRoute;
