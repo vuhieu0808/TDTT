@@ -1,8 +1,8 @@
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
-import { llmChatService } from "../services/llmChatService.js";
+import * as llmChatService from "../services/llmChatService.js";
 
-export const getLLMHistory = async (req: AuthRequest, res: Response) => {
+export const queryLLMHistory = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.uid;
     const conversationId = req.body?.conversationId as string;
     if (!userId) {
@@ -11,12 +11,12 @@ export const getLLMHistory = async (req: AuthRequest, res: Response) => {
     if (!conversationId) {
         return res.status(400).json({ error: "conversationId is required" });
     }
-    const historyString = await llmChatService.getHistoryString(userId, conversationId);
+    const historyList = await llmChatService.queryHistory(userId, conversationId);
 
-    if(!historyString) {
+    if(historyList.length === 0) {
         return res.status(404).json({ error: "No history found" });
     } else {
-        return res.status(200).json({ history: historyString });
+        return res.status(200).json({ history: historyList });
     }
 }
 
@@ -30,7 +30,7 @@ export const deleteLLMHistory = async (req: AuthRequest, res: Response) => {
         return res.status(400).json({ error: "conversationId is required" });
     }
 
-    await llmChatService.updateHistory(userId, conversationId, []);
+    await llmChatService.deleteHistory(userId, conversationId);
     return res.status(200).json({ message: "History deleted successfully" });
 }
 
@@ -48,7 +48,7 @@ export const emotionAnalysis = async (req: AuthRequest, res: Response) => {
 
     const result = await llmChatService.emotionAnalysis(userId, conversationId, userContext);
     if (result[0]) {
-        return res.status(200).json({ response: result[1] });
+        return res.status(200).json({ response: result[1] , llmChatId: result[2]});
     } else {
         return res.status(500).json({ error: result[1] });
     }
@@ -65,5 +65,10 @@ export const helpfulTelemetry = async (req: AuthRequest, res: Response) => {
         return res.status(400).json({ error: "llmChatId is required" });
     }
     
-    await llmChatService.recordHelpfulTelemetry(userId, llmChatId, isHelpful);
+    const ret = await llmChatService.helpfulTelemetry(llmChatId, isHelpful); 
+    if(ret) {
+        return res.status(200).json({ message: "Telemetry recorded" });
+    } else {
+        return res.status(500).json({ error: "Failed to record telemetry" });
+    }  
 }

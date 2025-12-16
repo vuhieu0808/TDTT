@@ -9,26 +9,7 @@ if (!apiKey) {
 }
 const ai = new GoogleGenAI({ apiKey: apiKey! });
 
-async function getHistory(userId: string, conversationId: string): Promise<Content[]> {
-    const str = await getHistoryString(userId, conversationId);
-    try {
-        return JSON.parse(str) as Content[];
-    } catch {
-        return [];
-    }
-}
-
-async function getHistoryString(userId: string, conversationId: string): Promise<string> {
-    const docRef = await llmChatDB.doc(userId).get();
-    if(docRef.exists) {
-        const userData = docRef.data();
-        const llmHistoryString = userData?.[conversationId] as string || "";
-        return llmHistoryString;
-    }
-    return "";
-}
-
-async function deleteHistory(userId: string, conversationId: string) {
+export async function deleteHistory(userId: string, conversationId: string) {
     const limit = 400;
     const query = llmChatDB.where('userId', '==', userId).where('conversationId', '==', conversationId).limit(limit);
 
@@ -45,7 +26,7 @@ async function deleteHistory(userId: string, conversationId: string) {
     }
 }
 
-async function queryHistory(userId: string, conversationId: string): Promise<LLMHistory[]> {
+export async function queryHistory(userId: string, conversationId: string): Promise<LLMHistory[]> {
     const ret: LLMHistory[] = [];
     const query = llmChatDB.where('userId', '==', userId).where('conversationId', '==', conversationId);
     try {
@@ -60,39 +41,63 @@ async function queryHistory(userId: string, conversationId: string): Promise<LLM
     return ret;
 }
 
-async function addHistory(history: LLMHistory): Promise<void> {
-    const docName = `${history.userId}_${history.conversationId}`;
-    const docRef = llmChatDB.doc(docName);
-
-    const docSnapshot = await docRef.get();
-    await docRef.set(history);
+async function addHistory(llmHistory: LLMHistory): Promise<[boolean, string]> {
+    try {
+        const docRef = await llmChatDB.add(llmHistory);
+        if(docRef.id) {
+            docRef.update({
+                llmChatId: docRef.id
+            });
+            return [true, docRef.id];
+        }
+    } catch (error) {}
+    return [false, ""];
 }
 
-async function emotionAnalysis(userId: string, conversationId: string, userContextInput?: string): Promise<[boolean, string, LLMHistory]> {
+export async function helpfulTelemetry(llmChatId: string, isHelpful: boolean): Promise<boolean> {
+    try {
+        const doc = await llmChatDB.doc(llmChatId).get();
+        if(doc.exists) {
+            await llmChatDB.doc(llmChatId).update({
+                isHelpful: isHelpful
+            });
+            console.log(`[helpfulTelemetry] Updated llmChatId ${llmChatId} with isHelpful=${isHelpful}`);
+            return true;
+        }
+    } catch (error) {}
+    return false;
+}
+
+export async function emotionAnalysis(userId: string, conversationId: string, userContextInput?: string): Promise<[boolean, string, string]> {
     let messageList = await llmChatHelper.fetchConversation(userId, conversationId);
     if(messageList.length === 0) {
-        return [false, "No conversation history found.", emptyLLMHistory()];
+        return [false, "No conversation history found.", ""];
     }
 
     const userContext = userContextInput || "";
 
-    messageList = llmChatHelper.extractLatestMessagesBlock(4, messageList);
+    messageList = llmChatHelper.extractLatestMessagesBlock(6, messageList);
     let flatMessageList = llmChatHelper.flattenSimplifiedMessages(messageList);
     const ret = await emotionAnalysisImpl(flatMessageList, userContext, false);
     if(ret[0]) {
         const llmHistory: LLMHistory = {
+            llmChatId: "",
             userId: userId,
             conversationId: conversationId,
             conversationSegment: flatMessageList,
             userContext: userContext,
             llmSuggestion: ret[1],
-            timestamp: new Date(),
+            timestamp: new Date().toISOString(),
             isHelpful: false
         };
 
-        return [true, ret[1], llmHistory];
+        const pushToDb = await addHistory(llmHistory); 
+        if(pushToDb[0]) {
+            return [true, ret[1], pushToDb[1]];
+        }
+        // return [true, ret[1], pushToDb[1]];
     }
-    return [false, ret[1], emptyLLMHistory()];
+    return [false, ret[1], ""];
 }
 
 async function emotionAnalysisImpl(conversation: string[], userContext: string, enableDebug?: boolean): Promise<[boolean, string]> {
@@ -315,8 +320,8 @@ async function emotionAnalysisImpl(conversation: string[], userContext: string, 
             const response = await ai.models.generateContent({
                 model: m,
                 config: {
-                    temperature: 0.7,
-                    // topP: 0.85,
+                    temperature: 1.1,
+                    topP: 0.85,
                 },
                 contents: generationPrompt
             });
@@ -341,30 +346,12 @@ async function emotionAnalysisImpl(conversation: string[], userContext: string, 
 }
 
 export type LLMHistory = {
+    llmChatId: string;
     userId: string;
     conversationId: string;
     conversationSegment: string[];
     userContext: string;
     llmSuggestion: string;
-    timestamp: Date
+    timestamp: String
     isHelpful: boolean;
 }
-
-function emptyLLMHistory(): LLMHistory {
-    return {
-        userId: "",
-        conversationId: "",
-        conversationSegment: [],
-        userContext: "",
-        llmSuggestion: "",
-        timestamp: new Date(),
-        isHelpful: false
-    };
-}
-
-export const llmChatService = {
-    getHistory,
-    getHistoryString,
-    updateHistory,
-    emotionAnalysis
-};

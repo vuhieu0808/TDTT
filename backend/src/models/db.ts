@@ -6,6 +6,6 @@ export const userDB = db.collection("users");
 export const conversationDB = db.collection("conversations");
 export const messageDB = db.collection("messages");
 export const cooldownDB = db.collection("cooldowns");
-export const llmChatDB = db.collection("llmChat");
+export const llmChatDB = db.collection("llmChat2");
 export const workSessionDB = db.collection("workSessions");
 export const venueDB = db.collection("venues");
