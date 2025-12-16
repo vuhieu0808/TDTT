@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import api from "@/lib/axios";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useChatStore } from "@/stores/useChatStore";
 import { useSocketStore } from "@/stores/useSocketStore";
@@ -9,6 +10,7 @@ import { Info, Circle } from "@mui/icons-material";
 import { formatFileSize, isImageFile } from "@/lib/utils";
 import ProfileModal from "@/components/ProfileModal";
 import { useNavigate, useSearchParams } from "react-router";
+import { toast } from "sonner";
 
 interface ChatWindowProps {
 	onToggleDetails: () => void;
@@ -36,7 +38,10 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 	const [selectedProfile, setSelectedProfile] = useState<
 		UserProfile | Participant | null
 	>(null);
+	const [selectedUserProfile, setSelectedUserProfile] =
+		useState<UserProfile | null>(null);
 	const [searchParams] = useSearchParams();
+	const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -44,6 +49,33 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 	const previousScrollHeightRef = useRef<number>(0);
 	const isFetchingOldMessagesRef = useRef(false);
 	const lastMessageIdRef = useRef<string | null>(null);
+
+	// Fetch UserProfile when selectedProfile changes
+	useEffect(() => {
+		const fetchUserProfile = async () => {
+			if (!selectedProfile?.uid) {
+				setSelectedUserProfile(null);
+				return;
+			}
+
+			setIsLoadingProfile(true);
+			try {
+				const res = await api.get(`/users/${selectedProfile.uid}`);
+				const { data } = res.data;
+
+				console.log("Fetched user profile:", data);
+				console.log("Avatar URL:", data.avatarUrl);
+
+				setSelectedUserProfile(data);
+			} catch (error) {
+				toast.error("Failed to fetch user profile.");
+				console.error("Failed to fetch user profile:", error);
+			} finally {
+				setIsLoadingProfile(false);
+			}
+		};
+		fetchUserProfile();
+	}, [selectedProfile, activeConversationId]);
 
 	// Get the active conversation details
 	const activeConversation = conversations.find(
@@ -593,7 +625,7 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 			<ProfileModal
 				isOpen={isProfileModalOpen}
 				onClose={handleCloseModal}
-				userProfile={selectedProfile}
+				userProfile={selectedUserProfile}
 				onChat={handleChat}
 				showActions={false}
 			/>
