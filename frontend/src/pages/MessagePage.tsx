@@ -9,15 +9,14 @@ import { Button } from "@mui/joy";
 import { Assistant } from "@mui/icons-material";
 
 function MessagePage() {
-	const { fetchConversations } = useChatStore();
+	const { fetchConversations, activeConversationId } = useChatStore();
 	const [isDetailOpen, setIsDetailOpen] = useState(false);
+	const [isLlmSuggestOpen, setIsLlmSuggestOpen] = useState(false);
 
 	// Fetch conversations on component mount
 	useEffect(() => {
 		fetchConversations();
 	}, []);
-
-	const [isLlmSuggestOpen, setIsLlmSuggestOpen] = useState(false);
 
 	const handleLlmSuggestClick = () => {
 		setIsLlmSuggestOpen(true);
@@ -58,6 +57,7 @@ function MessagePage() {
 					<LlmSuggestModal
 						isOpen={isLlmSuggestOpen}
 						onClose={handleCloseLlmSuggest}
+						conversationId={activeConversationId || "default"}
 					></LlmSuggestModal>
 				</div>
 

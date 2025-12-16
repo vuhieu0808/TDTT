@@ -1,5 +1,6 @@
 import api from "@/lib/axios";
 import type { Attachment, ConversationResponse, Message } from "@/types/chat";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 const pageLimit = 50;
 
@@ -74,7 +75,9 @@ export const llmChatServices = {
 	},
 
 	async getHistory(conversationId: string = "default"): Promise<string> {
-		const res = await api.post("/llmChat/get", { conversationId });
+		const res = await api.post("/llmChat/query", {
+			conversationId,
+		});
 		return res.data.history || "";
 	},
 

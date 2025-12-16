@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { llmChatServices } from "@/services/chatServices";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { Send, SmartToy, Person, DeleteOutline } from "@mui/icons-material";
 import { toast } from "sonner";
 import { formatMarkdownToHTML } from "@/lib/utils";
-import { useAuthStore } from "@/stores/useAuthStore";
 
 import {
 	ModalClose,
@@ -33,6 +33,7 @@ function llmSuggestModal({
 	onClose,
 	conversationId = "default",
 }: llmChatModalProps) {
+	const { authUser } = useAuthStore();
 	const [messages, setMessages] = useState<Message[]>([
 		{
 			role: "assistant",
@@ -45,9 +46,45 @@ function llmSuggestModal({
 	const [isLoading, setIsLoading] = useState(false);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 
+	console.log("ngu vai lon:", conversationId);
+
 	const scrollToBottom = () => {
 		messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 	};
+
+	useEffect(() => {
+		const fetchHistory = async () => {
+			if (!isOpen) return;
+
+			try {
+				const history = await llmChatServices.getHistory(
+					conversationId
+				);
+
+				console.log(history);
+
+				if (history) {
+					const parsedHistory = JSON.parse(history);
+					if (
+						Array.isArray(parsedHistory) &&
+						parsedHistory.length > 0
+					) {
+						const formattedHistory: Message[] = parsedHistory.map(
+							(msg: any) => ({
+								role: msg.role,
+								content: msg.content,
+								timestamp: new Date(msg.timestamp),
+							})
+						);
+						setMessages(formattedHistory);
+					}
+				}
+			} catch (error) {
+				console.error("Failed to fetch LLM chat history:", error);
+			}
+		};
+		fetchHistory();
+	}, [isOpen, conversationId]);
 
 	useEffect(() => {
 		scrollToBottom();
