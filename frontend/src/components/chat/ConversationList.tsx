@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useChatStore } from "@/stores/useChatStore";
-import llmSuggestModal from "@/components/LlmSuggestModal";
+import llmSuggestModal from "@/components/LlmChatModal";
 import type { Conversation } from "@/types/chat";
 import Input from "@mui/joy/Input";
 import Button from "@mui/joy/Button";
