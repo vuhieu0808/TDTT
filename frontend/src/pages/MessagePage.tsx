@@ -4,6 +4,9 @@ import Navbar from "@/components/Navbar";
 import ConversationList from "@/components/chat/ConversationList";
 import ChatWindow from "@/components/chat/ChatWindow";
 import ChatDetails from "@/components/chat/ChatDetails";
+import LlmSuggestModal from "@/components/LlmSuggestModal";
+import { Button } from "@mui/joy";
+import { Assistant } from "@mui/icons-material";
 
 function MessagePage() {
 	const { fetchConversations } = useChatStore();
@@ -13,6 +16,16 @@ function MessagePage() {
 	useEffect(() => {
 		fetchConversations();
 	}, []);
+
+	const [isLlmSuggestOpen, setIsLlmSuggestOpen] = useState(false);
+
+	const handleLlmSuggestClick = () => {
+		setIsLlmSuggestOpen(true);
+	};
+
+	const handleCloseLlmSuggest = () => {
+		setIsLlmSuggestOpen(false);
+	};
 
 	return (
 		<>
@@ -26,7 +39,27 @@ function MessagePage() {
 				}`}
 			>
 				{/* Left Side - Conversations List */}
-				<ConversationList />
+				<div className='flex flex-col h-full'>
+					<div className='flex-1'>
+						<ConversationList />
+					</div>
+					{/* LLM Suggest Modal Button */}
+					<div className='py-5 px-5 border-t border-gray-200 flex justify-left'>
+						<Button
+							variant='solid'
+							onClick={handleLlmSuggestClick}
+							className='rounded-full'
+						>
+							<Assistant className='mr-2' />
+							Chat Suggestion
+						</Button>
+					</div>
+					{/* LLM Suggest Modal */}
+					<LlmSuggestModal
+						isOpen={isLlmSuggestOpen}
+						onClose={handleCloseLlmSuggest}
+					></LlmSuggestModal>
+				</div>
 
 				{/* Middle - Main Chat Display */}
 				<ChatWindow

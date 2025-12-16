@@ -10,7 +10,6 @@ import MessagePage from "./pages/MessagePage";
 import MatchingPage from "./pages/MatchingPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import SettingsPage from "./pages/SettingsPage";
-import AIChatPage from "./pages/AIChatPage";
 import { useAuthStore } from "./stores/useAuthStore";
 import { useSocketStore } from "./stores/useSocketStore";
 import { useEffect } from "react";
@@ -58,7 +57,6 @@ function App() {
 							element={<SettingsPage />}
 						/>
 						<Route path='/MessagePage' element={<MessagePage />} />
-						<Route path='/AIChatPage' element={<AIChatPage />} />
 					</Route>
 
 					<Route path='*' element={<NotFoundPage />} />

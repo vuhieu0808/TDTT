@@ -478,12 +478,18 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 								</p>
 								<p className='text-xs opacity-70 mt-1'>
 									{message.createdAt
-										? new Date(
+										? `${new Date(
 												message.createdAt
 										  ).toLocaleTimeString([], {
 												hour: "2-digit",
 												minute: "2-digit",
-										  })
+										  })} - ${new Date(
+												message.createdAt
+										  ).toLocaleDateString([], {
+												day: "2-digit",
+												month: "2-digit",
+												year: "2-digit",
+										  })}`
 										: ""}
 								</p>
 							</div>
