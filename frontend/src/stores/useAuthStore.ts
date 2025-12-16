@@ -42,10 +42,10 @@ export const useAuthStore = create<AuthState>()(
 					await get().fetchMe();
 					await useChatStore.getState().fetchConversations();
 
-					toast.success("Đăng nhập thành công");
+					toast.success("Login successful");
 				} catch (error) {
 					console.error("Error signing in with Google:", error);
-					toast.error("Đăng nhập thất bại");
+					toast.error("Login failed.");
 				} finally {
 					set({ loading: false });
 				}
@@ -56,7 +56,7 @@ export const useAuthStore = create<AuthState>()(
 					set({ loading: true });
 					await signOut(auth);
 					get().clearState();
-					toast.success("Đăng xuất thành công");
+					toast.success("Successfully signed out");
 				} catch (error) {
 					console.error("Error signing out:", error);
 				} finally {

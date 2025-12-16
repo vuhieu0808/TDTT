@@ -24,14 +24,14 @@ async function chatHandlerImpl(history: Content[], model: string, message: strin
 
 //chat & auto update history to database
 async function chatHandler(userId: string, conversationId: string, history: Content[], message: string): Promise<[boolean, string]> {
-    let ret = await chatHandlerImpl(history, "gemma-3-27b-it", message);
-    if(!ret[0]) {
-        ret = await chatHandlerImpl(history, "gemma-3-12b-it", message);
+    const modelList = ["gemma-3-12b-it", "gemma-3-4b-it"];
+    let ret: [boolean, string, Content[]] = [false, "", []];
+    for (const m of modelList) {
+        ret = await chatHandlerImpl(history, m, message);
         if(ret[0]) {
             await updateHistory(userId, conversationId, ret[2]);
+            break;
         }
-    } else {
-        await updateHistory(userId, conversationId, ret[2]);
     }
     return [ret[0], ret[1]];
 }

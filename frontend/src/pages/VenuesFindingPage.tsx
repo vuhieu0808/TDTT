@@ -1,8 +1,10 @@
-import { useState } from "react";
-
+import { useState, useEffect } from "react";
+import { venueServices } from "@/services/venueServices";
+import type { Venue, VenueFilter } from "@/types/venue";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { friendServices } from "@/services/friendServices";
+import type { UserProfile } from "@/types/user";
 import Layout from "@/components/Layout";
-
-import VenuesData from "@/data/Venues.json";
 
 import {
 	Search,
@@ -12,6 +14,10 @@ import {
 	Schedule,
 	Map,
 	AttachMoney,
+	Language,
+	Sort,
+	PersonPin,
+	People,
 } from "@mui/icons-material";
 import {
 	Input,
@@ -23,23 +29,16 @@ import {
 	TabPanel,
 	Select,
 	Option,
+	CircularProgress,
+	Checkbox,
+	Button,
+	Menu,
+	MenuItem,
+	Radio,
+	RadioGroup,
+	FormControl,
+	FormLabel,
 } from "@mui/joy";
-
-interface Cafe {
-	id: number;
-	name: string;
-	address: string;
-	city: string;
-	distance: string;
-	rating: number;
-	reviews: number;
-	phone: string;
-	price: string;
-	hours: string;
-	description: string;
-	amenities: string[];
-	mapUrl: string;
-}
 
 const FILTER_OPTIONS = {
 	comfort: {
@@ -60,284 +59,917 @@ const FILTER_OPTIONS = {
 			{ value: "2", label: "Lively", numericValue: 2 },
 		],
 	},
-	wifi: {
-		label: "WiFi Speed",
+	interior: {
+		label: "Interior",
 		options: [
 			{ value: "all", label: "All", numericValue: null },
 			{ value: "0", label: "Basic", numericValue: 0 },
-			{ value: "1", label: "Fast", numericValue: 1 },
-			{ value: "2", label: "Ultra Fast", numericValue: 2 },
+			{ value: "1", label: "Modern", numericValue: 1 },
+			{ value: "2", label: "Luxurious", numericValue: 2 },
 		],
 	},
-	ambiance: {
-		label: "Ambiance",
+	view: {
+		label: "View",
 		options: [
 			{ value: "all", label: "All", numericValue: null },
-			{ value: "0", label: "Casual", numericValue: 0 },
-			{ value: "1", label: "Modern", numericValue: 1 },
-			{ value: "2", label: "Cozy", numericValue: 2 },
+			{ value: "0", label: "No View", numericValue: 0 },
+			{ value: "1", label: "Street View", numericValue: 1 },
+			{ value: "2", label: "Scenic", numericValue: 2 },
+		],
+	},
+	staffInteraction: {
+		label: "Staff Interaction",
+		options: [
+			{ value: "all", label: "All", numericValue: null },
+			{ value: "0", label: "Minimal", numericValue: 0 },
+			{ value: "1", label: "Friendly", numericValue: 1 },
+			{ value: "2", label: "Attentive", numericValue: 2 },
 		],
 	},
 };
 
-function VenuesFindingPage() {
-	const [location, setLocation] = useState("");
-	const [selectedCafe, setSelectedCafe] = useState<Cafe | null>(null);
-	const [activeTab, setActiveTab] = useState(0);
-	const [cafesList, setCafesList] = useState<Cafe[]>(VenuesData);
+type LocationMode = "near-me" | "near-partner" | "between";
 
-	// Filter state with string values for display
+// Add this interface for partner data
+interface Partner {
+	id: string;
+	displayName: string;
+	location: {
+		lat: number;
+		lng: number;
+	};
+}
+
+function VenuesFindingPage() {
+	const { userProfile } = useAuthStore();
+	const [location, setLocation] = useState("");
+	const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
+	const [activeTab, setActiveTab] = useState(0);
+	const [allVenues, setAllVenues] = useState<Venue[]>([]);
+	const [filteredVenues, setFilteredVenues] = useState<Venue[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [sortBy, setSortBy] = useState<string>("distance-asc");
+
+	// Location filter state
+	const [locationMode, setLocationMode] = useState<LocationMode>("near-me");
+	const [selectedPartner, setSelectedPartner] = useState<Partner | null>(
+		null
+	);
+	const [partners, setPartners] = useState<Partner[]>([]);
+
+	useEffect(() => {
+		const fetchPartners = async () => {
+			try {
+				const matches = await friendServices.getMatches();
+
+				console.log("Fetched matches for partners:", matches);
+
+				if (Array.isArray(matches.matches)) {
+					const partnersData: Partner[] = matches.matches.map(
+						(match: UserProfile) => ({
+							id: match.uid,
+							displayName: match.displayName,
+							location: match.location!,
+						})
+					);
+					setPartners(partnersData);
+				} else {
+					console.error("matches is not an array:", matches);
+					setPartners([]);
+				}
+			} catch (error) {
+				console.error("Error fetching partners:", error);
+				setPartners([]);
+			}
+		};
+
+		fetchPartners();
+	}, []);
+
+	// Filter state with arrays for multiple selections
 	const [filters, setFilters] = useState({
-		comfort: "all",
-		noise: "all",
-		wifi: "all",
-		ambiance: "all",
+		comfort: [] as number[],
+		noise: [] as number[],
+		interior: [] as number[],
+		view: [] as number[],
+		staffInteraction: [] as number[],
 	});
 
-	const cafes: Cafe[] = VenuesData;
+	// Track which dropdown menu is open
+	const [anchorEl, setAnchorEl] = useState<{
+		[key: string]: HTMLElement | null;
+	}>({
+		comfort: null,
+		noise: null,
+		interior: null,
+		view: null,
+		staffInteraction: null,
+	});
 
-	const findVenues = (searchLocation: string) => {
-		if (searchLocation.trim() === "") {
-			setCafesList(cafes);
-		} else {
-			const filtered = cafes.filter(
-				(cafe) =>
-					cafe.address
-						.toLowerCase()
-						.includes(searchLocation.toLowerCase()) ||
-					cafe.city
-						.toLowerCase()
-						.includes(searchLocation.toLowerCase())
-			);
-			setCafesList(filtered);
+	// Calculate distance between two coordinates (Haversine formula)
+	const calculateDistance = (
+		lat1: number,
+		lng1: number,
+		lat2: number,
+		lng2: number
+	): number => {
+		const R = 6371; // Earth's radius in km
+		const dLat = ((lat2 - lat1) * Math.PI) / 180;
+		const dLng = ((lng2 - lng1) * Math.PI) / 180;
+		const a =
+			Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+			Math.cos((lat1 * Math.PI) / 180) *
+				Math.cos((lat2 * Math.PI) / 180) *
+				Math.sin(dLng / 2) *
+				Math.sin(dLng / 2);
+		const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+		return R * c;
+	};
+
+	// Filter venues based on location mode
+	const filterVenuesByLocation = (venues: Venue[]): Venue[] => {
+		if (!userProfile?.location) return venues;
+
+		const maxDistance = userProfile.maxDistanceKm || 10;
+		const maxDistanceWithBuffer = maxDistance * 1.2; // 120% of maxDistance
+
+		switch (locationMode) {
+			case "near-me": {
+				return venues.filter((venue) => {
+					const distance = calculateDistance(
+						userProfile?.location ? userProfile.location.lat : 0,
+						userProfile?.location ? userProfile.location.lng : 0,
+						venue.location.lat,
+						venue.location.lng
+					);
+					return distance <= maxDistanceWithBuffer;
+				});
+			}
+
+			case "near-partner": {
+				if (!selectedPartner?.location) return venues;
+				return venues.filter((venue) => {
+					const distance = calculateDistance(
+						selectedPartner.location.lat,
+						selectedPartner.location.lng,
+						venue.location.lat,
+						venue.location.lng
+					);
+					return distance <= maxDistanceWithBuffer;
+				});
+			}
+
+			case "between": {
+				if (!selectedPartner?.location) return venues;
+
+				// Calculate midpoint
+				const midLat =
+					(userProfile.location.lat + selectedPartner.location.lat) /
+					2;
+				const midLng =
+					(userProfile.location.lng + selectedPartner.location.lng) /
+					2;
+
+				// Calculate distance between user and partner
+				const distanceBetween = calculateDistance(
+					userProfile.location.lat,
+					userProfile.location.lng,
+					selectedPartner.location.lat,
+					selectedPartner.location.lng
+				);
+
+				// Use half the distance between them as the search radius
+				const searchRadius = distanceBetween / 2;
+
+				return venues.filter((venue) => {
+					const distanceFromMid = calculateDistance(
+						midLat,
+						midLng,
+						venue.location.lat,
+						venue.location.lng
+					);
+
+					// Venue should be within the search radius from midpoint
+					return distanceFromMid <= searchRadius;
+				});
+			}
+
+			default:
+				return venues;
 		}
 	};
 
-	// Helper function to get selected label for display
-	const getFilterLabel = (filterKey: keyof typeof filters) => {
-		const selectedValue = filters[filterKey];
-		const filterConfig = FILTER_OPTIONS[filterKey];
-		const selectedOption = filterConfig.options.find(
-			(opt) => opt.value === selectedValue
-		);
-		return selectedOption?.label || "All";
+	// Fetch venues from Firebase on component mount
+	useEffect(() => {
+		const loadVenues = async () => {
+			try {
+				setLoading(true);
+
+				const venueFilter: VenueFilter = {
+					comfort: filters.comfort,
+					noise: filters.noise,
+					interior: filters.interior,
+					view: filters.view,
+					staffInteraction: filters.staffInteraction,
+				};
+
+				// Determine which location to use for fetching
+				let fetchLat = userProfile?.location?.lat || 0;
+				let fetchLng = userProfile?.location?.lng || 0;
+
+				if (
+					locationMode === "near-partner" &&
+					selectedPartner?.location
+				) {
+					fetchLat = selectedPartner.location.lat;
+					fetchLng = selectedPartner.location.lng;
+				} else if (
+					locationMode === "between" &&
+					selectedPartner?.location &&
+					userProfile?.location
+				) {
+					fetchLat =
+						(userProfile.location.lat +
+							selectedPartner.location.lat) /
+						2;
+					fetchLng =
+						(userProfile.location.lng +
+							selectedPartner.location.lng) /
+						2;
+				}
+
+				const venues = await venueServices.fetchVenues(
+					fetchLat,
+					fetchLng,
+					venueFilter
+				);
+
+				// Apply location-based filtering
+				const locationFiltered = filterVenuesByLocation(venues);
+
+				const sortedVenues = sortVenues(locationFiltered, sortBy);
+				setAllVenues(sortedVenues);
+				setFilteredVenues(sortedVenues);
+			} catch (error) {
+				console.error("Error fetching venues:", error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		loadVenues();
+	}, [locationMode, selectedPartner]);
+
+	// Filter venues by location search
+	const findVenues = (searchLocation: string) => {
+		if (searchLocation.trim() === "") {
+			setFilteredVenues(allVenues);
+		} else {
+			const locationFiltered = allVenues.filter(
+				(venue) =>
+					venue.address
+						.toLowerCase()
+						.includes(searchLocation.toLowerCase()) ||
+					venue.name
+						.toLowerCase()
+						.includes(searchLocation.toLowerCase())
+			);
+			setFilteredVenues(locationFiltered);
+		}
 	};
 
-	// Handle filter change
+	// Handle checkbox toggle for filters
 	const handleFilterChange = (
 		filterKey: keyof typeof filters,
-		value: string
+		value: number
 	) => {
-		setFilters((prev) => ({
+		setFilters((prev) => {
+			const currentValues = prev[filterKey];
+			const newValues = currentValues.includes(value)
+				? currentValues.filter((v) => v !== value)
+				: [...currentValues, value];
+			return {
+				...prev,
+				[filterKey]: newValues,
+			};
+		});
+	};
+
+	// Handle toggle dropdown menu (open/close)
+	const handleToggleMenu = (
+		filterKey: string,
+		event: React.MouseEvent<HTMLElement>
+	) => {
+		setAnchorEl((prev) => ({
 			...prev,
-			[filterKey]: value,
+			[filterKey]: prev[filterKey] ? null : event.currentTarget,
 		}));
 	};
 
-	// Apply filters and convert to numeric values for backend
-	const applyFilters = () => {
-		let filtered = [...cafes];
+	// Handle closing dropdown menu
+	const handleCloseMenu = (filterKey: string) => {
+		setAnchorEl((prev) => ({
+			...prev,
+			[filterKey]: null,
+		}));
+	};
 
-		// Convert string values to numeric for filtering
-		Object.entries(filters).forEach(([key, value]) => {
-			if (value !== "all") {
-				const filterConfig =
-					FILTER_OPTIONS[key as keyof typeof FILTER_OPTIONS];
-				const selectedOption = filterConfig.options.find(
-					(opt) => opt.value === value
+	// Calculate distance for a venue based on current location mode
+	const getVenueDistance = (venue: Venue): number => {
+		if (!userProfile?.location) return 0;
+
+		switch (locationMode) {
+			case "near-me": {
+				return calculateDistance(
+					userProfile.location.lat,
+					userProfile.location.lng,
+					venue.location.lat,
+					venue.location.lng
 				);
-				if (selectedOption && selectedOption.numericValue !== null) {
-					// Apply your filter logic here using selectedOption.numericValue
-					// Example: filtered = filtered.filter(cafe => cafe[key] === selectedOption.numericValue);
-				}
 			}
-		});
 
-		setCafesList(filtered);
+			case "near-partner": {
+				if (!selectedPartner?.location) return 0;
+				return calculateDistance(
+					selectedPartner.location.lat,
+					selectedPartner.location.lng,
+					venue.location.lat,
+					venue.location.lng
+				);
+			}
+
+			case "between": {
+				if (!selectedPartner?.location) return 0;
+				const midLat =
+					(userProfile.location.lat + selectedPartner.location.lat) /
+					2;
+				const midLng =
+					(userProfile.location.lng + selectedPartner.location.lng) /
+					2;
+				return calculateDistance(
+					midLat,
+					midLng,
+					venue.location.lat,
+					venue.location.lng
+				);
+			}
+
+			default:
+				return 0;
+		}
+	};
+
+	// Sort venues function
+	const sortVenues = (venues: Venue[], sortOption: string): Venue[] => {
+		const sorted = [...venues];
+
+		switch (sortOption) {
+			case "rating-desc":
+				return sorted.sort((a, b) => b.ratingStar - a.ratingStar);
+			case "rating-asc":
+				return sorted.sort((a, b) => a.ratingStar - b.ratingStar);
+			case "distance-asc":
+				return sorted.sort((a, b) => {
+					const distanceA = getVenueDistance(a);
+					const distanceB = getVenueDistance(b);
+					return distanceA - distanceB;
+				});
+			case "distance-desc":
+				return sorted.sort((a, b) => {
+					const distanceA = getVenueDistance(a);
+					const distanceB = getVenueDistance(b);
+					return distanceB - distanceA;
+				});
+			default:
+				return sorted;
+		}
+	};
+
+	// Handle sort change
+	const handleSortChange = (newSortOption: string) => {
+		setSortBy(newSortOption);
+		const sorted = sortVenues(filteredVenues, newSortOption);
+		setFilteredVenues(sorted);
+	};
+
+	// Apply filters - fetch from backend with selected filters
+	const applyFilters = async () => {
+		try {
+			setLoading(true);
+			setSelectedVenue(null);
+
+			const venueFilter: VenueFilter = {
+				comfort: filters.comfort,
+				noise: filters.noise,
+				interior: filters.interior,
+				view: filters.view,
+				staffInteraction: filters.staffInteraction,
+			};
+
+			// Determine which location to use for fetching
+			let fetchLat = userProfile?.location?.lat || 0;
+			let fetchLng = userProfile?.location?.lng || 0;
+
+			if (locationMode === "near-partner" && selectedPartner?.location) {
+				fetchLat = selectedPartner.location.lat;
+				fetchLng = selectedPartner.location.lng;
+			} else if (
+				locationMode === "between" &&
+				selectedPartner?.location &&
+				userProfile?.location
+			) {
+				fetchLat =
+					(userProfile.location.lat + selectedPartner.location.lat) /
+					2;
+				fetchLng =
+					(userProfile.location.lng + selectedPartner.location.lng) /
+					2;
+			}
+
+			const venues = await venueServices.fetchVenues(
+				fetchLat,
+				fetchLng,
+				venueFilter
+			);
+
+			// Apply location-based filtering
+			let filtered = filterVenuesByLocation(venues);
+
+			// Apply location search filter on frontend if exists
+			if (location.trim() !== "") {
+				filtered = filtered.filter(
+					(venue) =>
+						venue.address
+							.toLowerCase()
+							.includes(location.toLowerCase()) ||
+						venue.name
+							.toLowerCase()
+							.includes(location.toLowerCase())
+				);
+			}
+
+			const sortedVenues = sortVenues(filtered, sortBy);
+			setAllVenues(sortedVenues);
+			setFilteredVenues(sortedVenues);
+
+			setAnchorEl({
+				comfort: null,
+				noise: null,
+				interior: null,
+				view: null,
+				staffInteraction: null,
+			});
+		} catch (error) {
+			console.error("Error applying filters:", error);
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	// Reset filters
-	const resetFilters = () => {
-		setFilters({
-			comfort: "all",
-			noise: "all",
-			wifi: "all",
-			ambiance: "all",
+	const resetFilters = async () => {
+		// Close all dropdown menus first
+		setAnchorEl({
+			comfort: null,
+			noise: null,
+			interior: null,
+			view: null,
+			staffInteraction: null,
 		});
-		setCafesList(cafes);
+
+		setFilters({
+			comfort: [],
+			noise: [],
+			interior: [],
+			view: [],
+			staffInteraction: [],
+		});
+		setLocation("");
+		setSelectedVenue(null);
+
+		// Refetch all venues without filters
+		try {
+			setLoading(true);
+			const venues = await venueServices.fetchVenues(
+				(userProfile?.location && userProfile?.location.lat) || 0,
+				(userProfile?.location && userProfile?.location.lng) || 0,
+				{
+					comfort: [],
+					noise: [],
+					interior: [],
+					view: [],
+					staffInteraction: [],
+				}
+			);
+			const sortedVenues = sortVenues(venues, sortBy);
+			setAllVenues(sortedVenues);
+			setFilteredVenues(sortedVenues);
+		} catch (error) {
+			console.error("Error resetting filters:", error);
+		} finally {
+			setLoading(false);
+		}
 	};
 
-	return (
-		<>
+	if (loading) {
+		return (
 			<Layout>
-				<div className='min-h-screen bg-gradient-to-br from-slate-50 to-purple-50'>
-					<div className='max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6'>
-						{/* Header */}
-						<div className='mb-6 sm:mb-8'>
-							<h1 className='text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2'>
-								Cafes Scouting
-							</h1>
-							<p className='text-sm sm:text-base text-gray-600'>
-								Find the perfect cafe for your work-and-date
-								sessions
-							</p>
-						</div>
+				<div className='flex items-center justify-center min-h-screen'>
+					<CircularProgress size='lg' />
+				</div>
+			</Layout>
+		);
+	}
 
-						{/* Search Bar */}
-						<div className='mb-6'>
-							<Input
-								placeholder='Enter your location (e.g., District 1, HCMC)'
-								value={location}
-								onChange={(e) => {
-									setLocation(e.target.value);
-									findVenues(e.target.value);
-								}}
-								startDecorator={<Search />}
-								endDecorator={
-									<LocationOn sx={{ color: "#a855f7" }} />
-								}
-								sx={{
-									"--Input-focusedThickness": "2px",
-									"--Input-focusedHighlight": "#a855f7",
-									fontSize: { xs: "0.875rem", sm: "1rem" },
-									padding: {
-										xs: "10px 12px",
-										sm: "12px 16px",
-									},
-									borderRadius: "12px",
-									border: "2px solid #e5e7eb",
-									"&:hover": { borderColor: "#d1d5db" },
-								}}
-							/>
-						</div>
+	return (
+		<Layout>
+			<div className='min-h-screen bg-gradient-to-br from-slate-50 to-purple-50'>
+				<div className='max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6'>
+					{/* Header */}
+					<div className='mb-6 sm:mb-8'>
+						<h1 className='text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2'>
+							Cafes Scouting
+						</h1>
+						<p className='text-sm sm:text-base text-gray-600'>
+							Find the perfect cafe for your work-and-date
+							sessions
+						</p>
+					</div>
 
-						{/* Filter Settings */}
-						<Card
-							variant='outlined'
-							sx={{
-								mb: 2,
-								border: "1px solid #e5e7eb",
-								borderRadius: "12px",
-								p: 3,
+					{/* Search Bar */}
+					<div className='mb-6'>
+						<Input
+							placeholder='Enter your location or cafe name'
+							value={location}
+							onChange={(e) => {
+								setLocation(e.target.value);
+								findVenues(e.target.value);
 							}}
-						>
-							<div className='flex justify-between items-center mb-2'>
-								<h3 className='text-lg font-semibold text-gray-900'>
-									Filters
-								</h3>
-								<Chip
-									size='sm'
-									variant='soft'
-									onClick={resetFilters}
+							startDecorator={<Search />}
+							endDecorator={
+								<LocationOn sx={{ color: "#a855f7" }} />
+							}
+							sx={{
+								"--Input-focusedThickness": "2px",
+								"--Input-focusedHighlight": "#a855f7",
+								fontSize: { xs: "0.875rem", sm: "1rem" },
+								padding: {
+									xs: "10px 12px",
+									sm: "12px 16px",
+								},
+								borderRadius: "12px",
+								border: "2px solid #e5e7eb",
+								"&:hover": { borderColor: "#d1d5db" },
+							}}
+						/>
+					</div>
+
+					{/* Location Mode Filter */}
+					<Card
+						variant='outlined'
+						sx={{
+							mb: 2,
+							border: "1px solid #e5e7eb",
+							borderRadius: "12px",
+							p: 3,
+						}}
+					>
+						<h3 className='text-lg font-semibold text-gray-900 mb-1'>
+							Search Location
+						</h3>
+						<FormControl>
+							<RadioGroup
+								value={locationMode}
+								onChange={(e) => {
+									setLocationMode(
+										e.target.value as LocationMode
+									);
+									if (e.target.value === "near-me") {
+										setSelectedPartner(null);
+									}
+								}}
+								sx={{
+									display: "flex",
+									flexDirection: "row",
+									justifyContent: "space-between",
+									paddingX: 3,
+									gap: 2,
+								}}
+							>
+								<Radio
+									value='near-me'
+									label={
+										<div className='flex items-center gap-2'>
+											<PersonPin />
+											<span>
+												Near Me (within{" "}
+												{Math.round(
+													(userProfile?.maxDistanceKm ||
+														10) * 1.2
+												)}{" "}
+												km)
+											</span>
+										</div>
+									}
+									sx={{ alignItems: "center" }}
+								/>
+								<Radio
+									value='near-partner'
+									label={
+										<div className='flex items-center gap-2'>
+											<PersonPin />
+											<span>Near Partner</span>
+										</div>
+									}
+									sx={{ alignItems: "center" }}
+								/>
+								<Radio
+									value='between'
+									label={
+										<div className='flex items-center gap-2'>
+											<People />
+											<span>Between Us</span>
+										</div>
+									}
+									sx={{ alignItems: "center" }}
+								/>
+							</RadioGroup>
+						</FormControl>
+
+						{/* Partner Selection - Show only when needed */}
+						{(locationMode === "near-partner" ||
+							locationMode === "between") && (
+							<div className='mt-4'>
+								<FormLabel>Select Partner</FormLabel>
+								<Select
+									placeholder='Choose a partner'
+									value={selectedPartner?.id || ""}
+									onChange={(e, value) => {
+										const partner = partners.find(
+											(p) => p.id === value
+										);
+										setSelectedPartner(partner || null);
+									}}
 									sx={{
-										cursor: "pointer",
-										backgroundColor: "var(--color-red-500)",
+										mt: 1,
+										borderRadius: "8px",
+										border: "2px solid #e5e7eb",
+										"&:hover": {
+											borderColor: "#a855f7",
+										},
 									}}
 								>
-									Reset All
-								</Chip>
-							</div>
-
-							{/* Filter Option Setting */}
-							<div className='grid grid-cols-4 gap-4'>
-								{Object.entries(FILTER_OPTIONS).map(
-									([key, config]) => (
-										<>
-											<div>
-												<label className='text-md font-medium text-gray-700 mb-2 block'>
-													{config.label}
-												</label>
-												<div key={key}>
-													<Select
-														value={
-															filters[
-																key as keyof typeof filters
-															]
-														}
-														onChange={(
-															e,
-															newValue
-														) =>
-															handleFilterChange(
-																key as keyof typeof filters,
-																newValue as string
-															)
-														}
-														placeholder={`${
-															config.label
-														}: ${getFilterLabel(
-															key as keyof typeof filters
-														)}`}
-														sx={{
-															borderRadius:
-																"12px",
-															border: "2px solid #e5e7eb",
-															"&:hover": {
-																borderColor:
-																	"#d1d5db",
-															},
-														}}
-													>
-														{config.options.map(
-															(option) => (
-																<Option
-																	key={
-																		option.value
-																	}
-																	value={
-																		option.value
-																	}
-																>
-																	{
-																		option.label
-																	}
-																</Option>
-															)
-														)}
-													</Select>
-												</div>
-											</div>
-										</>
-									)
+									{partners.map((partner) => (
+										<Option
+											key={partner.id}
+											value={partner.id}
+										>
+											{partner.displayName}
+										</Option>
+									))}
+								</Select>
+								{!selectedPartner && (
+									<p className='text-xs text-red-500 mt-1'>
+										Please select a partner to see venues
+									</p>
 								)}
 							</div>
+						)}
+					</Card>
 
-							<div className='mt-4 flex justify-end'>
-								<button
-									onClick={applyFilters}
-									className='px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors'
-								>
-									Apply Filters
-								</button>
-							</div>
-						</Card>
+					{/* Filter Settings */}
+					<Card
+						variant='outlined'
+						sx={{
+							mb: 2,
+							border: "1px solid #e5e7eb",
+							borderRadius: "12px",
+							p: 3,
+						}}
+					>
+						<div className='flex justify-between items-center mb-2'>
+							<h3 className='text-lg font-semibold text-gray-900'>
+								Filters
+							</h3>
+							<Chip
+								size='sm'
+								variant='solid'
+								color='danger'
+								onClick={resetFilters}
+								sx={{
+									cursor: "pointer",
+									"&:hover": {
+										backgroundColor: "#dc2626",
+									},
+								}}
+							>
+								Reset All
+							</Chip>
+						</div>
 
-						{/* Main Content Grid */}
-						<div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'>
-							{/* Left Side - Cafe List */}
-							<div>
-								<h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-4'>
-									Nearby Cafes ({cafesList.length})
+						{/* Filter Option Setting */}
+						<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4'>
+							{Object.entries(FILTER_OPTIONS).map(
+								([key, config]) => {
+									const hasSelections =
+										filters[key as keyof typeof filters]
+											.length > 0;
+									return (
+										<div key={key}>
+											<label className='text-md font-medium text-gray-700 mb-2 block'>
+												{config.label}
+											</label>
+											<Button
+												variant='outlined'
+												onClick={(e) =>
+													handleToggleMenu(key, e)
+												}
+												fullWidth
+												sx={{
+													justifyContent:
+														"space-between",
+													borderRadius: "8px",
+													border: hasSelections
+														? "2px solid #a855f7"
+														: "2px solid #e5e7eb",
+													backgroundColor:
+														hasSelections
+															? "#faf5ff"
+															: "white",
+													color: hasSelections
+														? "#a855f7"
+														: "#374151",
+													fontWeight: hasSelections
+														? 600
+														: 400,
+													"&:hover": {
+														borderColor: "#a855f7",
+														backgroundColor:
+															"#faf5ff",
+													},
+												}}
+											>
+												<span>
+													{hasSelections
+														? `Selected (${
+																filters[
+																	key as keyof typeof filters
+																].length
+														  })`
+														: "Select options"}
+												</span>
+												<span>▼</span>
+											</Button>
+											<Menu
+												anchorEl={anchorEl[key]}
+												open={Boolean(anchorEl[key])}
+												onClose={() =>
+													handleCloseMenu(key)
+												}
+												placement='bottom-start'
+												disablePortal={false}
+												sx={{
+													minWidth: "200px",
+													maxHeight: "300px",
+													overflowY: "auto",
+												}}
+											>
+												{config.options
+													.filter(
+														(option) =>
+															option.numericValue !==
+															null
+													)
+													.map((option) => (
+														<MenuItem
+															key={option.value}
+															onClick={() =>
+																handleFilterChange(
+																	key as keyof typeof filters,
+																	option.numericValue as number
+																)
+															}
+															sx={{
+																display: "flex",
+																alignItems:
+																	"center",
+																gap: 1,
+																py: 1,
+															}}
+														>
+															<Checkbox
+																checked={filters[
+																	key as keyof typeof filters
+																].includes(
+																	option.numericValue as number
+																)}
+																size='sm'
+																readOnly
+																sx={{
+																	pointerEvents:
+																		"none",
+																}}
+															/>
+															<span>
+																{option.label}
+															</span>
+														</MenuItem>
+													))}
+											</Menu>
+										</div>
+									);
+								}
+							)}
+						</div>
+
+						<div className='mt-4 flex justify-end'>
+							<button
+								onClick={applyFilters}
+								className='px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors'
+							>
+								Apply Filters
+							</button>
+						</div>
+					</Card>
+
+					{/* Main Content Grid */}
+					<div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'>
+						{/* Left Side - Venue List */}
+						<div>
+							{/* Header with Sort */}
+							<div className='flex items-center justify-between mb-4'>
+								<h2 className='text-lg sm:text-xl font-semibold text-gray-900'>
+									Nearby Cafes ({filteredVenues.length})
 								</h2>
 
-								{/* Scrollable area */}
-								<div className='h-[600px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-gray-100'>
-									{cafesList.map((cafe) => (
+								{/* Sort Dropdown */}
+								<Select
+									value={sortBy}
+									onChange={(e, newValue) =>
+										handleSortChange(newValue as string)
+									}
+									startDecorator={<Sort />}
+									size='sm'
+									sx={{
+										minWidth: "200px",
+										borderRadius: "8px",
+										border: "1px solid #e5e7eb",
+										"&:hover": {
+											borderColor: "#a855f7",
+										},
+									}}
+								>
+									<Option value='distance-asc'>
+										Distance: Near to Far
+									</Option>
+									<Option value='distance-desc'>
+										Distance: Far to Near
+									</Option>
+									<Option value='rating-desc'>
+										Rating: High to Low
+									</Option>
+									<Option value='rating-asc'>
+										Rating: Low to High
+									</Option>
+								</Select>
+							</div>
+
+							{/* Scrollable area */}
+							<div className='h-[600px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-gray-100'>
+								{filteredVenues.length === 0 ? (
+									<Card
+										variant='outlined'
+										sx={{
+											border: "1px solid #e5e7eb",
+											borderRadius: "12px",
+											p: 4,
+											textAlign: "center",
+										}}
+									>
+										<p className='text-gray-500'>
+											No venues found matching your
+											criteria
+										</p>
+									</Card>
+								) : (
+									filteredVenues.map((venue, idx) => (
 										<Card
-											key={cafe.id}
+											key={idx}
 											variant='outlined'
 											onClick={() =>
-												setSelectedCafe(cafe)
+												setSelectedVenue(venue)
 											}
 											sx={{
 												cursor: "pointer",
 												transition: "all 0.2s",
 												border:
-													selectedCafe?.id === cafe.id
+													selectedVenue?.name ===
+													venue.name
 														? "2px solid #a855f7"
 														: "1px solid #e5e7eb",
 												backgroundColor:
-													selectedCafe?.id === cafe.id
+													selectedVenue?.name ===
+													venue.name
 														? "#faf5ff"
 														: "white",
 												"&:hover": {
@@ -352,7 +984,7 @@ function VenuesFindingPage() {
 											<div className='flex flex-col sm:flex-row justify-between gap-3'>
 												<div className='flex-1'>
 													<h3 className='text-base sm:text-lg font-semibold text-gray-900 mb-1'>
-														{cafe.name}
+														{venue.name}
 													</h3>
 													<div className='flex items-center gap-1 text-xs sm:text-sm text-gray-600 mb-2'>
 														<LocationOn
@@ -362,7 +994,7 @@ function VenuesFindingPage() {
 															}}
 														/>
 														<span>
-															{cafe.address}
+															{venue.address}
 														</span>
 													</div>
 													<div className='flex items-center gap-3 flex-wrap'>
@@ -375,191 +1007,334 @@ function VenuesFindingPage() {
 																}}
 															/>
 															<span className='text-xs sm:text-sm font-medium'>
-																{cafe.rating}
+																{
+																	venue.ratingStar
+																}
 															</span>
 															<span className='text-xs text-gray-500'>
-																({cafe.reviews})
+																(
+																{
+																	venue.ratingCount
+																}
+																)
 															</span>
 														</div>
-														<Chip
-															size='sm'
-															variant='soft'
-															color='success'
-														>
-															{cafe.distance}
-														</Chip>
+														{/* Display distance */}
+														<div className='flex items-center gap-1'>
+															<Map
+																sx={{
+																	fontSize:
+																		"0.875rem",
+																	color: "#a855f7",
+																}}
+															/>
+															<span className='text-xs sm:text-sm text-purple-600 font-medium'>
+																{getVenueDistance(
+																	venue
+																).toFixed(
+																	2
+																)}{" "}
+																km
+															</span>
+														</div>
 													</div>
 												</div>
 											</div>
 										</Card>
-									))}
-								</div>
+									))
+								)}
 							</div>
+						</div>
 
-							{/* Right Side - Cafe Details */}
-							<div className='lg:sticky lg:top-24 h-fit'>
-								{selectedCafe ? (
-									<Card
-										variant='outlined'
-										sx={{
-											border: "1px solid #e5e7eb",
-											borderRadius: "16px",
-										}}
+						{/* Right Side - Venue Details */}
+						<div className='lg:sticky lg:top-24 h-fit'>
+							{selectedVenue ? (
+								<Card
+									variant='outlined'
+									sx={{
+										border: "1px solid #e5e7eb",
+										borderRadius: "16px",
+									}}
+								>
+									<div className='mb-4'>
+										<h2 className='text-xl sm:text-2xl font-bold text-gray-900 mb-2'>
+											{selectedVenue.name}
+										</h2>
+										<div className='flex items-center gap-2 mb-3'>
+											<Star
+												sx={{
+													fontSize: "1.25rem",
+													color: "#fbbf24",
+												}}
+											/>
+											<span className='text-lg font-semibold'>
+												{selectedVenue.ratingStar}
+											</span>
+											<span className='text-sm text-gray-500'>
+												({selectedVenue.ratingCount}{" "}
+												ratings)
+											</span>
+										</div>
+									</div>
+
+									<Tabs
+										value={activeTab}
+										onChange={(e, value) =>
+											setActiveTab(value as number)
+										}
 									>
-										<div className='mb-4'>
-											<h2 className='text-xl sm:text-2xl font-bold text-gray-900 mb-2'>
-												{selectedCafe.name}
-											</h2>
-											<div className='flex items-center gap-2 mb-3'>
-												<Star
+										<TabList>
+											<Tab>Details</Tab>
+											<Tab>
+												<Map
 													sx={{
-														fontSize: "1.25rem",
-														color: "#fbbf24",
+														mr: 1,
+														fontSize: "1rem",
 													}}
 												/>
-												<span className='text-lg font-semibold'>
-													{selectedCafe.rating}
-												</span>
-												<span className='text-sm text-gray-500'>
-													({selectedCafe.reviews}{" "}
-													reviews)
-												</span>
-											</div>
-										</div>
+												Map
+											</Tab>
+										</TabList>
 
-										<Tabs
-											value={activeTab}
-											onChange={(e, value) =>
-												setActiveTab(value as number)
-											}
-										>
-											<TabList>
-												<Tab>Details</Tab>
-												<Tab>
-													<Map
-														sx={{
-															mr: 1,
-															fontSize: "1rem",
-														}}
-													/>
-													Map
-												</Tab>
-											</TabList>
+										{/* Details Tab */}
+										<TabPanel value={0}>
+											<div className='space-y-4'>
+												<div>
+													<p className='text-sm text-gray-700 mb-4'>
+														{selectedVenue.description ||
+															"No description available"}
+													</p>
+												</div>
 
-											{/* Details Tab */}
-											<TabPanel value={0}>
-												<div className='space-y-4'>
-													<div>
-														<p className='text-sm text-gray-700 mb-4'>
-															{
-																selectedCafe.description
-															}
-														</p>
-													</div>
-
-													<div>
-														<h3 className='text-sm font-semibold text-gray-900 mb-2'>
-															Contact
-														</h3>
-														<div className='flex items-center gap-2 text-sm text-gray-600 mb-2'>
-															<Phone
-																sx={{
-																	fontSize:
-																		"1rem",
-																}}
-															/>
-															<span>
-																{
-																	selectedCafe.phone
-																}
-															</span>
-														</div>
-														<div className='flex items-center gap-2 text-sm text-gray-600'>
-															<Schedule
-																sx={{
-																	fontSize:
-																		"1rem",
-																}}
-															/>
-															<span>
-																{
-																	selectedCafe.hours
-																}
-															</span>
-														</div>
-													</div>
-
-													<div className=''>
-														<h3 className='text-sm font-semibold text-gray-900 mb-2'>
-															Price
-														</h3>
-														<span className=''>
-															<AttachMoney
-																sx={{
-																	fontSize:
-																		"1rem",
-																}}
-															/>
-															{selectedCafe.price}
+												<div>
+													<h3 className='text-sm font-semibold text-gray-900 mb-2'>
+														Contact
+													</h3>
+													<div className='flex items-center gap-2 text-sm text-gray-600 mb-2'>
+														<Phone
+															sx={{
+																fontSize:
+																	"1rem",
+															}}
+														/>
+														<span>
+															{selectedVenue.phonecall ||
+																"N/A"}
 														</span>
 													</div>
-
-													<div>
-														<h3 className='text-sm font-semibold text-gray-900 mb-2'>
-															Amenities
-														</h3>
-														<div className='flex flex-wrap gap-2'>
-															{selectedCafe.amenities.map(
-																(amenity) => (
-																	<Chip
-																		key={
-																			amenity
-																		}
-																		size='sm'
-																		variant='soft'
-																		color='primary'
-																		sx={{
-																			backgroundColor:
-																				"#f3e8ff",
-																			color: "#7c3aed",
-																		}}
-																	>
-																		{
-																			amenity
-																		}
-																	</Chip>
-																)
-															)}
-														</div>
+													<div className='flex items-center gap-2 text-sm text-gray-600 mb-2'>
+														<Schedule
+															sx={{
+																fontSize:
+																	"1rem",
+															}}
+														/>
+														<span>
+															{selectedVenue.openingHours ||
+																"N/A"}
+														</span>
 													</div>
-
-													<div>
-														<h3 className='text-sm font-semibold text-gray-900 mb-2'>
-															Location
-														</h3>
-														<div className='flex items-start gap-2 text-sm text-gray-600'>
-															<LocationOn
+													{selectedVenue.website && (
+														<div className='flex items-center gap-2 text-sm text-gray-600'>
+															<Language
 																sx={{
 																	fontSize:
 																		"1rem",
 																}}
 															/>
-															<span>
-																{
-																	selectedCafe.address
+															<a
+																href={
+																	selectedVenue.website
 																}
-															</span>
+																target='_blank'
+																rel='noopener noreferrer'
+																className='text-purple-600 hover:underline'
+															>
+																Website
+															</a>
 														</div>
+													)}
+												</div>
+
+												<div>
+													<h3 className='text-sm font-semibold text-gray-900 mb-2'>
+														Price Range
+													</h3>
+													<span className='flex items-center'>
+														<AttachMoney
+															sx={{
+																fontSize:
+																	"1rem",
+															}}
+														/>
+														{selectedVenue.price ||
+															"N/A"}
+													</span>
+												</div>
+
+												<div>
+													<h3 className='text-sm font-semibold text-gray-900 mb-2'>
+														Attributes
+													</h3>
+													<div className='grid grid-cols-2 gap-2'>
+														<Chip
+															size='sm'
+															variant='soft'
+															color='primary'
+														>
+															Comfort:{" "}
+															{FILTER_OPTIONS.comfort.options.find(
+																(opt) =>
+																	opt.numericValue ===
+																	selectedVenue
+																		.attributes
+																		.comfort
+															)?.label ||
+																selectedVenue
+																	.attributes
+																	.comfort}
+														</Chip>
+														<Chip
+															size='sm'
+															variant='soft'
+															color='primary'
+														>
+															Noise:{" "}
+															{FILTER_OPTIONS.noise.options.find(
+																(opt) =>
+																	opt.numericValue ===
+																	selectedVenue
+																		.attributes
+																		.noise
+															)?.label ||
+																selectedVenue
+																	.attributes
+																	.noise}
+														</Chip>
+														<Chip
+															size='sm'
+															variant='soft'
+															color='primary'
+														>
+															Interior:{" "}
+															{FILTER_OPTIONS.interior.options.find(
+																(opt) =>
+																	opt.numericValue ===
+																	selectedVenue
+																		.attributes
+																		.interior
+															)?.label ||
+																selectedVenue
+																	.attributes
+																	.interior}
+														</Chip>
+														<Chip
+															size='sm'
+															variant='soft'
+															color='primary'
+														>
+															View:{" "}
+															{FILTER_OPTIONS.view.options.find(
+																(opt) =>
+																	opt.numericValue ===
+																	selectedVenue
+																		.attributes
+																		.view
+															)?.label ||
+																selectedVenue
+																	.attributes
+																	.view}
+														</Chip>
+														<Chip
+															size='sm'
+															variant='soft'
+															color='primary'
+														>
+															Staff Interaction:{" "}
+															{FILTER_OPTIONS.staffInteraction.options.find(
+																(opt) =>
+																	opt.numericValue ===
+																	selectedVenue
+																		.attributes
+																		.staffInteraction
+															)?.label ||
+																selectedVenue
+																	.attributes
+																	.staffInteraction}
+														</Chip>
 													</div>
 												</div>
-											</TabPanel>
 
-											{/* Map Tab */}
-											<TabPanel value={1}>
-												<div className='w-full h-[400px] rounded-lg overflow-hidden'>
+												{selectedVenue.menu &&
+													selectedVenue.menu.length >
+														0 && (
+														<div>
+															<h3 className='text-sm font-semibold text-gray-900 mb-2'>
+																Menu Items
+															</h3>
+															<div className='flex flex-wrap gap-2'>
+																{selectedVenue.menu.map(
+																	(
+																		item,
+																		idx
+																	) => (
+																		<Chip
+																			key={
+																				idx
+																			}
+																			size='sm'
+																			variant='outlined'
+																		>
+																			{
+																				item
+																			}
+																		</Chip>
+																	)
+																)}
+															</div>
+														</div>
+													)}
+
+												<div>
+													<h3 className='text-sm font-semibold text-gray-900 mb-2'>
+														Location
+													</h3>
+													<div className='flex items-start gap-2 text-sm text-gray-600'>
+														<LocationOn
+															sx={{
+																fontSize:
+																	"1rem",
+															}}
+														/>
+														<span>
+															{
+																selectedVenue.address
+															}
+														</span>
+													</div>
+													<div className='text-xs text-gray-500 mt-1'>
+														Lat:{" "}
+														{
+															selectedVenue
+																.location.lat
+														}
+														, Lng:{" "}
+														{
+															selectedVenue
+																.location.lng
+														}
+													</div>
+												</div>
+											</div>
+										</TabPanel>
+
+										{/* Map Tab */}
+										<TabPanel value={1}>
+											<div className='w-full h-[400px] rounded-lg overflow-hidden'>
+												{selectedVenue.mapEmbeddingUrl ? (
 													<iframe
 														src={
-															selectedCafe.mapUrl
+															selectedVenue.mapEmbeddingUrl
 														}
 														width='100%'
 														height='100%'
@@ -568,43 +1343,49 @@ function VenuesFindingPage() {
 														loading='lazy'
 														referrerPolicy='no-referrer-when-downgrade'
 													></iframe>
-												</div>
-											</TabPanel>
-										</Tabs>
-									</Card>
-								) : (
-									<Card
-										variant='outlined'
-										sx={{
-											border: "1px solid #e5e7eb",
-											borderRadius: "16px",
-											minHeight: "400px",
-											display: "flex",
-											alignItems: "center",
-											justifyContent: "center",
-										}}
-									>
-										<div className='text-center text-gray-500'>
-											<LocationOn
-												sx={{
-													fontSize: "4rem",
-													color: "#d1d5db",
-													mb: 2,
-												}}
-											/>
-											<p className='text-sm'>
-												Select a cafe to view details
-												and map
-											</p>
-										</div>
-									</Card>
-								)}
-							</div>
+												) : (
+													<div className='flex items-center justify-center h-full bg-gray-100'>
+														<p className='text-gray-500'>
+															Map not available
+														</p>
+													</div>
+												)}
+											</div>
+										</TabPanel>
+									</Tabs>
+								</Card>
+							) : (
+								<Card
+									variant='outlined'
+									sx={{
+										border: "1px solid #e5e7eb",
+										borderRadius: "16px",
+										minHeight: "400px",
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "center",
+									}}
+								>
+									<div className='text-center text-gray-500'>
+										<LocationOn
+											sx={{
+												fontSize: "4rem",
+												color: "#d1d5db",
+												mb: 2,
+											}}
+										/>
+										<p className='text-sm'>
+											Select a cafe to view details and
+											map
+										</p>
+									</div>
+								</Card>
+							)}
 						</div>
 					</div>
 				</div>
-			</Layout>
-		</>
+			</div>
+		</Layout>
 	);
 }
 

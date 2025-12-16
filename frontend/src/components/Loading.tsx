@@ -10,6 +10,9 @@ const Loading = () => {
       <p className="mt-3 text-sm font-medium text-purple-600 animate-pulse">
         Loading...
       </p>
+      <p className="mt-1 text-xs text-purple-400 animate-pulse">
+        It may takes up to a minute
+      </p>
     </div>
   );
 };

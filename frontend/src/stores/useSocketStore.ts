@@ -72,7 +72,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     socket.on("new-conversation", (payload) => {
       console.log("New conversation received from socket:", payload);
       const { conversation, participantProfile } = payload;
-      console.log()
+      console.log();
       const newConversation = conversation as Conversation;
       const newParticipantProfile = participantProfile as UserProfile[];
       console.log("conversation:", newConversation);
@@ -91,8 +91,30 @@ export const useSocketStore = create<SocketState>((set, get) => ({
 
     socket.on("friend-request", (payload) => {
       const { senderData } = payload;
-      useFriendStore.getState().addNewReceivedRequest(senderData as UserProfile);
+      useFriendStore
+        .getState()
+        .addNewReceivedRequest(senderData as UserProfile);
       console.log("New friend request received from socket:", senderData);
+    });
+
+    socket.on("unmatch-notification", (payload) => {
+      console.log("Unmatch notification received from socket:", payload);
+      const { conversationId, userId } = payload;
+      const { friends } = useFriendStore.getState();
+      useFriendStore.setState({
+        friends: friends.filter((friend) => friend.uid !== userId),
+      });
+      const { conversations } = useChatStore.getState();
+      const conversation = conversations.find(
+        (conv) => conv.id === conversationId
+      );
+      if (conversation) {
+        useChatStore.setState({
+          conversations: conversations.filter(
+            (conv) => conv.id !== conversationId
+          ),
+        });
+      }
     });
   },
   disconnectSocket: () => {

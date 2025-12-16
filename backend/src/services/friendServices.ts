@@ -1,8 +1,8 @@
 import { admin, db } from "../config/firebase.js";
 import { Cooldown } from "../models/Cooldown.js";
-import { cooldownDB, friendDB, friendRequestDB } from "../models/db.js";
+import { conversationDB, cooldownDB, friendDB, friendRequestDB } from "../models/db.js";
 import { Friend } from "../models/Friend.js";
-import { getFullUserProfile } from "../utils/friendHelper.js";
+import { emitUnMatchNotification, getFullUserProfile } from "../utils/friendHelper.js";
 import { conversationServices } from "./conversationServices.js";
 import { io } from "../socket/index.js";
 import { emitFriendRequestNotification } from "../utils/friendHelper.js";
@@ -103,16 +103,23 @@ export const friendServices = {
     );
 
     await db.runTransaction(async (transaction) => {
-      const friendRequstSnapshot = await transaction.get(
-        friendRequestDB
-          .where("senderId", "==", receiverId)
-          .where("receivedId", "==", userId)
-      );
-      if (!friendRequstSnapshot.empty) {
-        friendRequstSnapshot.docs.forEach((doc) => {
-          transaction.delete(doc.ref);
-        });
-      }
+      console.log("userId:", userId, "receiverId:", receiverId);
+      const query1 = friendRequestDB
+        .where("senderId", "==", userId)
+        .where("receivedId", "==", receiverId);
+      const query2 = friendRequestDB
+        .where("senderId", "==", receiverId)
+        .where("receivedId", "==", userId);
+      const [friendRequestSnapshot1, friendRequestSnapshot2] = await Promise.all([
+        transaction.get(query1),
+        transaction.get(query2),
+      ]);
+      friendRequestSnapshot1.docs.forEach((doc) => {
+        transaction.delete(doc.ref);
+      });
+      friendRequestSnapshot2.docs.forEach((doc) => {
+        transaction.delete(doc.ref);
+      });
       transaction.set(cooldownRef, {
         id: friendShipId,
         userA,
@@ -161,7 +168,16 @@ export const friendServices = {
     const expiresAt = admin.firestore.Timestamp.fromMillis(
       Date.now() + Math.pow(2, cooldownTimes) * 24 * 60 * 60 * 1000
     );
+
+    // xóa conversation giữa 2 người
+    const conversationRef = conversationDB.where("participantIds", "in", [
+      [userA, userB],
+      [userB, userA]]);
+    const conversationSnapshot = await conversationRef.get();
+
     await db.runTransaction(async (transaction) => {
+      console.log("userId:", userId, "unmatchUserId:", unmatchUserId);
+      console.log("friendShipId:", friendShipId);
       transaction.delete(friendRef);
       transaction.set(cooldownRef, {
         id: friendShipId,
@@ -170,7 +186,14 @@ export const friendServices = {
         cooldownTime: cooldownTimes,
         expiresAt,
       });
+      conversationSnapshot.docs.forEach((doc) => {
+        transaction.delete(doc.ref);
+      });
     });
+    const conversation = conversationSnapshot.docs[0];
+    console.log("Deleted conversation:", conversation?.id);
+    if (conversation) await emitUnMatchNotification(io, unmatchUserId, conversation.id, userId);
+
     return true;
   },
 };

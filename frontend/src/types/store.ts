@@ -81,6 +81,7 @@ export interface FriendState {
 	fetchFriendRequests: () => Promise<void>; // Hàm lấy danh sách yêu cầu kết bạn
 	swipeLeft: (userId: string) => Promise<void>; // Hàm từ chối kết bạn
 	swipeRight: (userId: string) => Promise<void>; // Hàm chấp nhận kết bạn
+	unMatch: (userId: string) => Promise<void>; // Hàm hủy kết bạn
 	addNewFriend: (friend: UserProfile) => void; // Hàm thêm bạn mới vào danh sách bạn bè
 	addNewReceivedRequest: (user: UserProfile) => void; // Hàm thêm yêu cầu kết bạn mới vào danh sách đã nhận
 	addNewSentRequest: (user: UserProfile) => void; // Hàm thêm yêu cầu kết bạn mới vào danh sách đã gửi

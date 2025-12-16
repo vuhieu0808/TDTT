@@ -25,10 +25,10 @@ class MatchingSystem {
 
   private readonly WEIGHTS = {
     age: 0.1,
-    interests: 0.15,
-    availability: 0.2,
-    occupation: 0.1,
-    location: 0.2,
+    interests: 0.1,
+    availability: 0.25,
+    occupation: 0.2,
+    location: 0.1,
     workVibe: 0.25,
   };
 
@@ -155,19 +155,19 @@ class MatchingSystem {
       }
     }
     if (intersection === 0) return false;
-    if (userA.location && userB.location) {
-      const distance = this.haversineDistance(
-        userA.location.lat,
-        userA.location.lng,
-        userB.location.lat,
-        userB.location.lng
-      );
-      const maxDist = Math.min(
-        userA.maxDistanceKm || 50,
-        userB.maxDistanceKm || 50
-      );
-      if (distance > maxDist) return false;
-    }
+    // if (userA.location && userB.location) {
+    //   const distance = this.haversineDistance(
+    //     userA.location.lat,
+    //     userA.location.lng,
+    //     userB.location.lat,
+    //     userB.location.lng
+    //   );
+    //   const maxDist = Math.min(
+    //     userA.maxDistanceKm || 50,
+    //     userB.maxDistanceKm || 50
+    //   );
+    //   if (distance > maxDist) return false;
+    // }
     return true;
   }
 
@@ -175,6 +175,22 @@ class MatchingSystem {
 
   async calculateMatchScore(userA: User, userB: User): Promise<MatchScore> {
     await this.initialize();
+
+    if (!this.HardFilter(userA, userB)) {
+      return {
+        user: userB,
+        totalScore: 0,
+        compatibility: "Poor",
+        breakdown: {
+          age: 0,
+          interests: 0,
+          availability: 0,
+          occupation: 0,
+          location: 0,
+          workVibe: 0,
+        },
+      };
+    }
 
     const [interestsScore, occupationScore] = await Promise.all([
       this.scoreInterests(userA, userB),
@@ -306,33 +322,33 @@ class MatchingSystem {
   }
 
   private async scoreOccupation(userA: User, userB: User): Promise<number> {
-    const textA = `${userA.occupation || ""}. ${
-      userA.occupationDescription || ""
-    }`.toLowerCase();
-
-    const textB = `${userB.occupation || ""}. ${
-      userB.occupationDescription || ""
-    }`.toLowerCase();
-
-    if (!textA.trim() || !textB.trim()) {
+    const occA = (userA.occupation || "").toLowerCase();
+    const occB = (userB.occupation || "").toLowerCase();
+    if (!occA || !occB) {
       return 0.3;
     }
-
-    const [embeddingA, embeddingB] = await Promise.all([
-      this.getEmbedding(textA),
-      this.getEmbedding(textB),
+    const descriptionA = (userA.occupationDescription || "").toLowerCase();
+    const descriptionB = (userB.occupationDescription || "").toLowerCase();
+    const collab = "This profession typically works with other professionals to complete projects and deliver outcomes.";
+    const occAPrompt = `Profession: ${occA}.`;
+    const occBPrompt = `Profession: ${occB}.`;
+    const resA = `Main responsibilities: ${descriptionA || occA}`;
+    const resB = `Main responsibilities: ${descriptionB || occB}`;
+    const [roleA, roleB, respA, respB, collabEmb] = await Promise.all([
+      this.getEmbedding(occAPrompt),
+      this.getEmbedding(occBPrompt),
+      this.getEmbedding(resA),
+      this.getEmbedding(resB),
+      this.getEmbedding(collab),
     ]);
-
-    if (embeddingA.length !== embeddingB.length) {
-      return 0;
-    }
-
-    const similarity = this.cosineSimilarity(embeddingA, embeddingB);
-
-    if (similarity > 0.6) return 1.0;
-    if (similarity > 0.4) return 0.8;
-    if (similarity > 0.2) return 0.6;
-    return 0.3;
+    const roleSim = this.cosineSimilarity(roleA, roleB);
+    const respSim = this.cosineSimilarity(respA, respB);
+    const collabSimA = this.cosineSimilarity(respA, collabEmb);
+    const collabSimB = this.cosineSimilarity(respB, collabEmb);
+    const collabSim = (collabSimA + collabSimB) / 2;
+    const finalScore =
+      0.45 * roleSim + 0.4 * respSim + 0.15 * collabSim;
+    return Math.min(1, Math.max(0, finalScore));
   }
 
   private scoreLocation(userA: User, userB: User): number {
@@ -505,6 +521,7 @@ export const getCandidateUsers = async (user: User): Promise<User[]> => {
           (c.userB === user.uid && c.userA === candidate.uid)
       );
       if (cd && cd.expiresAt.toMillis() > Date.now()) return;
+      if (!candidate.isReadyToMatch) return;
       candidates.push(candidate);
     });
     return candidates;
