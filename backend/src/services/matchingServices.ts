@@ -248,7 +248,7 @@ class MatchingSystem {
       scores
         // .filter((s) => s.totalScore >= 50) // Chỉ lấy Fair trở lên
         .sort((a, b) => b.totalScore - a.totalScore)
-        .slice(0, limit)
+        // .slice(0, limit)
     );
   }
 
