@@ -107,14 +107,19 @@ const HomePage = () => {
 		}
 	};
 
-	// Check which fields are missing
-	const getMatchingMissingFields = () => {
+	// Check which fields are missing - split into Profile and Preference groups
+	const getProfileMissingFields = () => {
 		const missing: string[] = [];
 		if (!userProfile?.age) missing.push("Age");
-		if (!userProfile?.interests || userProfile.interests.length === 0)
-			missing.push("Interests");
 		if (!userProfile?.occupation) missing.push("Occupation");
 		if (!userProfile?.location) missing.push("Location");
+		return missing;
+	};
+
+	const getPreferenceMissingFields = () => {
+		const missing: string[] = [];
+		if (!userProfile?.interests || userProfile.interests.length === 0)
+			missing.push("Interests");
 		if (!userProfile?.workVibe) missing.push("Work Vibe");
 		return missing;
 	};
@@ -574,57 +579,189 @@ const HomePage = () => {
 							</p>
 						</div>
 
-						<div className='bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-6'>
-							<h3 className='text-lg font-semibold text-red-800 mb-3 flex items-center gap-2'>
-								<Warning sx={{ color: "#991b1b" }} />
-								Missing Information:
-							</h3>
-							<ul className='space-y-2'>
-								{(missingFieldsModalType === "matching"
-									? getMatchingMissingFields()
-									: getVenueMissingFields()
-								).map((field, index) => (
-									<li
-										key={index}
-										className='flex items-center gap-2 text-red-700'
-									>
-										<span className='w-2 h-2 bg-red-500 rounded-full'></span>
-										<span className='font-medium'>
-											{field}
-										</span>
-									</li>
-								))}
-							</ul>
-						</div>
+						{missingFieldsModalType === "matching" ? (
+							<>
+								{/* Profile Missing Fields */}
+								{getProfileMissingFields().length > 0 && (
+									<div className='bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-4'>
+										<h3 className='text-lg font-semibold text-red-800 mb-3 flex items-center gap-2'>
+											<Warning
+												sx={{ color: "#991b1b" }}
+											/>
+											Missing Profile Information:
+										</h3>
+										<ul className='space-y-2'>
+											{getProfileMissingFields().map(
+												(field, index) => (
+													<li
+														key={index}
+														className='flex items-center gap-2 text-red-700'
+													>
+														<span className='w-2 h-2 bg-red-500 rounded-full'></span>
+														<span className='font-medium'>
+															{field}
+														</span>
+													</li>
+												)
+											)}
+										</ul>
+									</div>
+								)}
 
-						<Button
-							onClick={() => {
-								setShowMissingFieldsModal(false);
-								navigate("/SettingsPage");
-							}}
-							endDecorator={<ArrowForward />}
-							sx={{
-								width: "100%",
-								background:
-									"linear-gradient(135deg, #a855f7 0%, #ec4899 100%)",
-								color: "white",
-								padding: "12px 24px",
-								borderRadius: "1rem",
-								fontSize: "1rem",
-								fontWeight: "600",
-								textTransform: "none",
-								"&:hover": {
-									background:
-										"linear-gradient(135deg, #9333ea 0%, #db2777 100%)",
-									transform: "translateY(-2px)",
-									boxShadow:
-										"0 8px 20px rgba(168, 85, 247, 0.4)",
-								},
-								transition: "all 0.3s ease",
-							}}
-						>
-							Complete Profile Now
-						</Button>
+								{/* Preference Missing Fields */}
+								{getPreferenceMissingFields().length > 0 && (
+									<div className='bg-orange-50 border-2 border-orange-200 rounded-2xl p-6 mb-4'>
+										<h3 className='text-lg font-semibold text-orange-800 mb-3 flex items-center gap-2'>
+											<Warning
+												sx={{ color: "#c2410c" }}
+											/>
+											Missing Preference Information:
+										</h3>
+										<ul className='space-y-2'>
+											{getPreferenceMissingFields().map(
+												(field, index) => (
+													<li
+														key={index}
+														className='flex items-center gap-2 text-orange-700'
+													>
+														<span className='w-2 h-2 bg-orange-500 rounded-full'></span>
+														<span className='font-medium'>
+															{field}
+														</span>
+													</li>
+												)
+											)}
+										</ul>
+									</div>
+								)}
+
+								{/* Buttons */}
+								<div className='flex flex-col gap-3'>
+									{getProfileMissingFields().length > 0 && (
+										<Button
+											onClick={() => {
+												setShowMissingFieldsModal(
+													false
+												);
+												navigate("/SettingsPage");
+											}}
+											endDecorator={<ArrowForward />}
+											sx={{
+												width: "100%",
+												background:
+													"linear-gradient(135deg, #a855f7 0%, #ec4899 100%)",
+												color: "white",
+												padding: "12px 24px",
+												borderRadius: "1rem",
+												fontSize: "1rem",
+												fontWeight: "600",
+												textTransform: "none",
+												"&:hover": {
+													background:
+														"linear-gradient(135deg, #9333ea 0%, #db2777 100%)",
+													transform:
+														"translateY(-2px)",
+													boxShadow:
+														"0 8px 20px rgba(168, 85, 247, 0.4)",
+												},
+												transition: "all 0.3s ease",
+											}}
+										>
+											Complete Profile
+										</Button>
+									)}
+
+									{getPreferenceMissingFields().length >
+										0 && (
+										<Button
+											onClick={() => {
+												setShowMissingFieldsModal(
+													false
+												);
+												navigate("/PreferencePage");
+											}}
+											endDecorator={<ArrowForward />}
+											sx={{
+												width: "100%",
+												background:
+													"linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+												color: "white",
+												padding: "12px 24px",
+												borderRadius: "1rem",
+												fontSize: "1rem",
+												fontWeight: "600",
+												textTransform: "none",
+												"&:hover": {
+													background:
+														"linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+													transform:
+														"translateY(-2px)",
+													boxShadow:
+														"0 8px 20px rgba(59, 130, 246, 0.4)",
+												},
+												transition: "all 0.3s ease",
+											}}
+										>
+											Set Work Vibe Preferences
+										</Button>
+									)}
+								</div>
+							</>
+						) : (
+							<>
+								{/* Venue Missing Fields */}
+								<div className='bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-6'>
+									<h3 className='text-lg font-semibold text-red-800 mb-3 flex items-center gap-2'>
+										<Warning sx={{ color: "#991b1b" }} />
+										Missing Information:
+									</h3>
+									<ul className='space-y-2'>
+										{getVenueMissingFields().map(
+											(field, index) => (
+												<li
+													key={index}
+													className='flex items-center gap-2 text-red-700'
+												>
+													<span className='w-2 h-2 bg-red-500 rounded-full'></span>
+													<span className='font-medium'>
+														{field}
+													</span>
+												</li>
+											)
+										)}
+									</ul>
+								</div>
+
+								<Button
+									onClick={() => {
+										setShowMissingFieldsModal(false);
+										navigate("/SettingsPage");
+									}}
+									endDecorator={<ArrowForward />}
+									sx={{
+										width: "100%",
+										background:
+											"linear-gradient(135deg, #a855f7 0%, #ec4899 100%)",
+										color: "white",
+										padding: "12px 24px",
+										borderRadius: "1rem",
+										fontSize: "1rem",
+										fontWeight: "600",
+										textTransform: "none",
+										"&:hover": {
+											background:
+												"linear-gradient(135deg, #9333ea 0%, #db2777 100%)",
+											transform: "translateY(-2px)",
+											boxShadow:
+												"0 8px 20px rgba(168, 85, 247, 0.4)",
+										},
+										transition: "all 0.3s ease",
+									}}
+								>
+									Complete Profile Now
+								</Button>
+							</>
+						)}
 					</Sheet>
 				</Modal>
 			</Layout>
