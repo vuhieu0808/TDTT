@@ -521,6 +521,7 @@ export const getCandidateUsers = async (user: User): Promise<User[]> => {
           (c.userB === user.uid && c.userA === candidate.uid)
       );
       if (cd && cd.expiresAt.toMillis() > Date.now()) return;
+      if (!candidate.isReadyToMatch) return;
       candidates.push(candidate);
     });
     return candidates;
