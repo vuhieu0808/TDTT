@@ -11,7 +11,7 @@ export interface AuthState {
 	loading: boolean; // Trạng thái tải
 
 	clearState: () => void; // Hàm xóa trạng thái xác thực
-	signInWithGoogle: () => Promise<void>; // Hàm đăng nhập với Google
+	signInWithGoogle: () => Promise<{ isNewUser: boolean }>; // Hàm đăng nhập với Google
 	logout: () => Promise<void>; // Hàm đăng xuất
 	fetchMe: () => Promise<void>; // Hàm lấy thông tin hồ sơ người dùng
 	updateUserProfile: (userProfile: UserProfile) => void; // Hàm cập nhật hồ sơ người dùng trong store

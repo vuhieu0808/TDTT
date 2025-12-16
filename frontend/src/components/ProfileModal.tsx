@@ -13,6 +13,7 @@ import {
 	PersonRemove,
 } from "@mui/icons-material";
 import type { UserProfile } from "@/types/user";
+import CircularProgress from "@mui/joy/CircularProgress";
 
 interface ProfileModalProps {
 	isOpen: boolean;
@@ -86,7 +87,7 @@ function ProfileModal({
 									<img
 										src={
 											userProfile.avatarUrl ||
-											"https://via.placeholder.com/120"
+											"/default-avatar.png"
 										}
 										alt={userProfile.displayName}
 										className='w-24 h-24 rounded-full border-4 border-white object-cover'
@@ -134,6 +135,7 @@ function ProfileModal({
 								Personal Information
 							</h3>
 							<div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+								{/* Email */}
 								<div className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
 									<Email
 										className='text-purple-600'
@@ -201,16 +203,12 @@ function ProfileModal({
 								<h3 className='text-lg font-bold text-gray-900 mb-3'>
 									Work Preferences
 								</h3>
-								{userProfile.occupationDescription && (
-									<div>
-										<p className='text-sm text-gray-500 mb-2'>
-											Occupation Description
-										</p>
-										<p className='text-gray-700'>
-											{userProfile.occupationDescription}
-										</p>
-									</div>
-								)}
+								<p className='text-sm text-gray-500 mb-2'>
+									Occupation Description
+								</p>
+								<p className='text-gray-700'>
+									{userProfile.occupationDescription}
+								</p>
 							</div>
 						)}
 

@@ -1,7 +1,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { auth, provider } from "../config/firebase";
-import { onIdTokenChanged, signInWithPopup, signOut } from "firebase/auth";
+import {
+	onIdTokenChanged,
+	signInWithPopup,
+	signOut,
+	getAdditionalUserInfo,
+} from "firebase/auth";
 import type { AuthState } from "../types/store";
 import { toast } from "sonner";
 import { authServices } from "@/services/authServices";
@@ -36,6 +41,10 @@ export const useAuthStore = create<AuthState>()(
 					const authUser = result.user;
 					const token = await authUser.getIdToken();
 
+					// Get additional user info to check if user is new
+					const additionalUserInfo = getAdditionalUserInfo(result);
+					const isNewUser = additionalUserInfo?.isNewUser ?? false;
+
 					set({ authUser: authUser, token: token });
 					await authServices.createUser();
 
@@ -43,9 +52,13 @@ export const useAuthStore = create<AuthState>()(
 					await useChatStore.getState().fetchConversations();
 
 					toast.success("Login successful");
+
+					// Return isNewUser flag
+					return { isNewUser };
 				} catch (error) {
 					console.error("Error signing in with Google:", error);
 					toast.error("Login failed.");
+					throw error;
 				} finally {
 					set({ loading: false });
 				}

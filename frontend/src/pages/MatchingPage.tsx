@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { useAuthStore } from "@/stores/useAuthStore";
 import Navbar from "@/components/Navbar";
 import { matchingServices } from "@/services/matchingServices";
 import type { MatchScore } from "@/types/match";
-import { friendServices } from "@/services/friendServices";
 import type { UserProfile, WorkVibe } from "@/types/user.ts";
 
 import {
@@ -17,7 +15,6 @@ import {
 import { useFriendStore } from "@/stores/useFriendStore";
 
 function MatchingPage() {
-	const { userProfile } = useAuthStore();
 	const navigate = useNavigate();
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [isAnimating, setIsAnimating] = useState(false);
@@ -67,6 +64,9 @@ function MatchingPage() {
 							status: "online",
 							lastActivity: new Date().toISOString(),
 							// matchPercentage: Math.round(match.totalScore * 100),
+							occupation: match.user.occupation || "",
+							occupationDescription:
+								match.user.occupationDescription || "",
 							createdAt: match.user?.createdAt,
 							updatedAt: match.user?.updatedAt,
 							isReadyToMatch: match.user.isReadyToMatch,
@@ -226,11 +226,6 @@ function MatchingPage() {
 								<h1 className='text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
 									{currentMatch.displayName}
 								</h1>
-								<div className='flex gap-2'>
-									<button className='p-2 hover:bg-purple-50 rounded-full transition-colors'>
-										<Info className='text-purple-600' />
-									</button>
-								</div>
 							</div>
 							<p className='text-gray-600 flex items-center gap-2'>
 								<LocationOn
@@ -247,6 +242,25 @@ function MatchingPage() {
 						<div className='mb-6 p-4 bg-purple-50 rounded-2xl'>
 							<p className='text-gray-700 text-sm leading-relaxed'>
 								{currentMatch.bio}
+							</p>
+						</div>
+
+						{/* Occupation Section */}
+						<div className='mb-6'>
+							<div className='flex items-center gap-2 mb-3'>
+								<Info
+									sx={{
+										fontSize: "1.5rem",
+										color: "#a855f7",
+									}}
+								/>
+								<h2 className='text-xl font-bold text-gray-800'>
+									Occupation
+								</h2>
+							</div>
+							<p className='text-gray-700'>
+								{currentMatch.occupation ||
+									"Occupation not specified"}
 							</p>
 						</div>
 

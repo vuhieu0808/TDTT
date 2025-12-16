@@ -50,7 +50,7 @@ function MessagePage() {
 							className='rounded-full'
 						>
 							<Assistant className='mr-2' />
-							Chat Suggestion
+							Chat With AI
 						</Button>
 					</div>
 					{/* LLM Suggest Modal */}

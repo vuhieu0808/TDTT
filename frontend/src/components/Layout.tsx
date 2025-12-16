@@ -1,5 +1,4 @@
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import ChatButton from "@/components/ChatButton";
 
 import Box from "@mui/joy/Box";
@@ -23,7 +22,6 @@ function Layout({ children }: LayoutProps) {
 				<Navbar />
 				<Box sx={{ flexGrow: 1 }}>{children}</Box>
 				<ChatButton />
-				<Footer />
 			</Box>
 		</>
 	);

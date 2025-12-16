@@ -2,10 +2,8 @@ import { useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 
 import { useAuthStore } from "@/stores/useAuthStore";
-import { friendServices } from "@/services/friendServices";
 import type { UserProfile } from "@/types/user";
 
-import ChatButton from "@/components/ChatButton";
 import Layout from "@/components/Layout";
 import ProfileModal from "@/components/ProfileModal";
 import Button from "@mui/joy/Button";
@@ -21,7 +19,6 @@ import {
 	Favorite,
 	FavoriteBorder,
 	TrendingUp,
-	PersonAdd,
 	Check,
 	Close,
 	Warning,
@@ -64,15 +61,22 @@ const HomePage = () => {
 		loadingFriendRequest,
 	} = useFriendStore();
 
-	const { fetchFriends, fetchFriendRequests, swipeLeft, swipeRight, unMatch } =
-		useFriendStore();
+	const {
+		fetchFriends,
+		fetchFriendRequests,
+		swipeLeft,
+		swipeRight,
+		unMatch,
+	} = useFriendStore();
 
 	const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(
 		null
 	);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
-	const [missingFieldsModalType, setMissingFieldsModalType] = useState<"seaching venue" | "matching">("matching");
+	const [missingFieldsModalType, setMissingFieldsModalType] = useState<
+		"seaching venue" | "matching"
+	>("matching");
 
 	const handleViewProfile = (profile: UserProfile) => {
 		setSelectedProfile(profile);
@@ -103,16 +107,6 @@ const HomePage = () => {
 		}
 	};
 
-	const formatDate = (dateString?: string) => {
-		if (!dateString) return "Not set";
-		const date = new Date(dateString);
-		return date.toLocaleDateString("en-US", {
-			year: "numeric",
-			month: "long",
-			day: "numeric",
-		});
-	};
-
 	// Check which fields are missing
 	const getMatchingMissingFields = () => {
 		const missing: string[] = [];
@@ -127,14 +121,14 @@ const HomePage = () => {
 
 	const checkVenueMissingFields = () => {
 		return !userProfile?.maxDistanceKm || !userProfile?.location;
-	}
+	};
 
 	const getVenueMissingFields = () => {
 		const missing: string[] = [];
 		if (!userProfile?.maxDistanceKm) missing.push("Maximum Distance");
 		if (!userProfile?.location) missing.push("Location");
 		return missing;
-	}
+	};
 
 	useEffect(() => {
 		const fetchRequest = async () => {
@@ -362,7 +356,7 @@ const HomePage = () => {
 								</div>
 							) : friends.length > 0 ? (
 								<div className='space-y-4 max-h-96 overflow-y-auto'>
-									{friends.map((profile, index) => (
+									{friends.map((profile) => (
 										<div
 											key={profile.uid}
 											className='flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all'
@@ -442,85 +436,72 @@ const HomePage = () => {
 								</div>
 							) : receivedFriendRequests.length > 0 ? (
 								<div className='space-y-4 max-h-96 overflow-y-auto'>
-									{receivedFriendRequests.map(
-										(profile, index) => (
+									{receivedFriendRequests.map((profile) => (
+										<div
+											key={profile.uid}
+											className='flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all'
+										>
+											<img
+												onClick={() =>
+													handleViewProfile(profile)
+												}
+												src={profile.avatarUrl}
+												alt={profile.displayName}
+												className='w-16 h-16 rounded-full object-cover border-2 border-pink-300 cursor-pointer'
+											/>
 											<div
-												key={profile.uid}
-												className='flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all'
+												className='flex-1 cursor-pointer'
+												onClick={() =>
+													handleViewProfile(profile)
+												}
 											>
-												<img
-													onClick={() =>
-														handleViewProfile(
-															profile
-														)
-													}
-													src={profile.avatarUrl}
-													alt={profile.displayName}
-													className='w-16 h-16 rounded-full object-cover border-2 border-pink-300 cursor-pointer'
-												/>
-												<div
-													className='flex-1 cursor-pointer'
-													onClick={() =>
-														handleViewProfile(
-															profile
-														)
-													}
-												>
-													<h4 className='font-semibold text-gray-800 text-lg'>
-														{profile.displayName}
-													</h4>
-													<p className='text-sm text-gray-600'>
-														{profile.bio?.substring(
-															0,
-															50
-														) || "No bio available"}
-														...
-													</p>
-													<div className='flex gap-2 mt-2'>
-														{profile.interests
-															?.slice(0, 3)
-															.map(
-																(
-																	interest,
-																	i
-																) => (
-																	<span
-																		key={i}
-																		className='px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs'
-																	>
-																		{
-																			interest
-																		}
-																	</span>
-																)
-															)}
-													</div>
-												</div>
-												<div className='flex gap-2'>
-													<button
-														onClick={() =>
-															handleAcceptRequest(
-																profile.uid
-															)
-														}
-														className='p-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors'
-													>
-														<Check />
-													</button>
-													<button
-														onClick={() =>
-															handleRejectRequest(
-																profile.uid
-															)
-														}
-														className='p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors'
-													>
-														<Close />
-													</button>
+												<h4 className='font-semibold text-gray-800 text-lg'>
+													{profile.displayName}
+												</h4>
+												<p className='text-sm text-gray-600'>
+													{profile.bio?.substring(
+														0,
+														50
+													) || "No bio available"}
+													...
+												</p>
+												<div className='flex gap-2 mt-2'>
+													{profile.interests
+														?.slice(0, 3)
+														.map((interest, i) => (
+															<span
+																key={i}
+																className='px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs'
+															>
+																{interest}
+															</span>
+														))}
 												</div>
 											</div>
-										)
-									)}
+											<div className='flex gap-2'>
+												<button
+													onClick={() =>
+														handleAcceptRequest(
+															profile.uid
+														)
+													}
+													className='p-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors'
+												>
+													<Check />
+												</button>
+												<button
+													onClick={() =>
+														handleRejectRequest(
+															profile.uid
+														)
+													}
+													className='p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors'
+												>
+													<Close />
+												</button>
+											</div>
+										</div>
+									))}
 								</div>
 							) : (
 								<div className='text-center py-12'>
@@ -588,7 +569,8 @@ const HomePage = () => {
 								Profile Incomplete
 							</h2>
 							<p className='text-gray-600'>
-								Please complete your profile to start {missingFieldsModalType}
+								Please complete your profile to start{" "}
+								{missingFieldsModalType}
 							</p>
 						</div>
 
@@ -598,18 +580,20 @@ const HomePage = () => {
 								Missing Information:
 							</h3>
 							<ul className='space-y-2'>
-								{
-								(missingFieldsModalType === "matching" ? getMatchingMissingFields() : getVenueMissingFields())
-									.map((field, index) => (
-										<li
-											key={index}
-											className='flex items-center gap-2 text-red-700'
-										>
-											<span className='w-2 h-2 bg-red-500 rounded-full'></span>
-											<span className='font-medium'>{field}</span>
-										</li>
-									))			
-								}
+								{(missingFieldsModalType === "matching"
+									? getMatchingMissingFields()
+									: getVenueMissingFields()
+								).map((field, index) => (
+									<li
+										key={index}
+										className='flex items-center gap-2 text-red-700'
+									>
+										<span className='w-2 h-2 bg-red-500 rounded-full'></span>
+										<span className='font-medium'>
+											{field}
+										</span>
+									</li>
+								))}
 							</ul>
 						</div>
 
