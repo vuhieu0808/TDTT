@@ -185,6 +185,11 @@ function SettingsPage() {
 				console.error("Geolocation error:", error);
 				toast.error("Failed to detect location. Please try again.");
 				setIsDetectingLocation(false);
+			},
+			{
+				maximumAge: 0,
+				timeout: 10000,
+				enableHighAccuracy: true,
 			}
 		);
 	};
