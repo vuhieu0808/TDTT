@@ -107,11 +107,11 @@ function ConversationList() {
 	};
 
 	return (
-		<div className='text-left px-3 overflow-y-auto border-r border-gray-200 min-w-[300px]'>
-			<h1 className='text-xl font-bold mb-4 sticky top-0 py-2'>Chats</h1>
+		<div className='flex flex-col h-full text-left px-3 border-r border-gray-200 min-w-[300px]'>
+			<h1 className='text-xl font-bold mb-4 py-2'>Chats</h1>
 
 			{/* Conversation Search Bar */}
-			<div>
+			<div className='mb-3'>
 				<Input
 					placeholder='Find in chat...'
 					startDecorator={<Search />}
@@ -193,7 +193,7 @@ function ConversationList() {
 			</div>
 
 			{/* Conversations List */}
-			<div className='space-y-2'>
+			<div className='flex-1 space-y-2 overflow-y-auto mb-4'>
 				{conversationsList.map((conversation) => {
 					const unreadCount =
 						conversation.unreadCount?.[userProfile?.uid || ""] || 0;
