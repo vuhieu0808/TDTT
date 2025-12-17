@@ -6,7 +6,7 @@ import { useSocketStore } from "@/stores/useSocketStore";
 import type { Conversation, Message, Participant } from "@/types/chat";
 import type { UserProfile } from "@/types/user";
 import IconButton from "@mui/material/IconButton";
-import { Info, Circle } from "@mui/icons-material";
+import { Info, Circle, Close } from "@mui/icons-material";
 import { formatFileSize, isImageFile } from "@/lib/utils";
 import ProfileModal from "@/components/ProfileModal";
 import { useNavigate, useSearchParams } from "react-router";
@@ -35,6 +35,15 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 	const [messageText, setMessageText] = useState("");
 	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 	const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+	//for llm suggest
+	const suggestTextArea = useRef<HTMLTextAreaElement>(null);
+	const [suggestText, setSuggestText] = useState("");
+	const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
+	const [showSuggestBanner, setShowSuggestBanner] = useState(false);
+	const [showHelpfulBanner, setShowHelpfulBanner] = useState(false);
+	const [latestSuggestionId, setLatestSuggestionId] = useState<string>("");
+
 	const [selectedProfile, setSelectedProfile] = useState<
 		UserProfile | Participant | null
 	>(null);
@@ -163,6 +172,41 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 			}, 100);
 		}
 	}, [currentMessages, activeConversationId]);
+
+	const handleSuggestMessage = async () => {
+		setIsLoadingSuggestion(true);
+		try {
+			const ret = await api.post("/llmSuggest/suggest", {
+				conversationId: activeConversationId,
+				userContext: suggestText.trim(),
+			});
+			const data = ret.data;
+			if (data && data.response) {
+				setLatestSuggestionId(data.llmSuggestId);
+				setMessageText(data.response);
+				setShowHelpfulBanner(true);
+			} else {
+				toast.error("Failed to get suggestion.");
+			}
+		} catch (error) {
+			toast.error("Failed to get suggestion.");
+			console.error("Failed to get suggestion:", error);
+		} finally {
+			setIsLoadingSuggestion(false);
+		}
+	};
+
+	const handleSuggestTelemetry = async (helpful: boolean) => {
+		try {
+			await api.post("/llmSuggest/telemetry", {
+				llmSuggestId: latestSuggestionId,
+				isHelpful: helpful,
+			});
+			setLatestSuggestionId("");
+		} catch (error) {
+			console.error("Failed to send telemetry:", error);
+		}
+	};
 
 	const handleScroll = async (e: React.UIEvent<HTMLDivElement>) => {
 		const { scrollTop, scrollHeight } = e.currentTarget;
@@ -555,8 +599,121 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 					</div>
 				)}
 
+				{/* Helpful Banner */}
+				{showHelpfulBanner && (
+					<div className='border-t border-gray-200 bg-blue-50 px-4 py-3'>
+						<div className='flex items-center justify-between'>
+							<p className='text-sm text-gray-700'>
+								Is the suggestion helpful?
+							</p>
+							<div className='flex gap-2'>
+								<button
+									onClick={() => {
+										handleSuggestTelemetry(true);
+										setShowHelpfulBanner(false);
+									}}
+									className='px-4 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 transition-colors'
+								>
+									Yes
+								</button>
+								<button
+									onClick={() => {
+										handleSuggestTelemetry(false);
+										setShowHelpfulBanner(false);
+									}}
+									className='px-4 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors'
+								>
+									No
+								</button>
+							</div>
+						</div>
+					</div>
+				)}
+
+				{/* Suggest Banner */}
+				{showSuggestBanner && (
+					<div className={`border-t border-gray-200 bg-blue-50 px-3 py-2 ${isLoadingSuggestion ? "opacity-50 pointer-events-none" : ""}`}>
+						<div className='flex items-center justify-between gap-2'>
+							<p className='text-sm text-gray-700'>
+								AI Suggestion for next message
+							</p>
+							<textarea
+								ref={suggestTextArea}
+								value={suggestText}
+								onChange={(e) => setSuggestText(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter" && !e.shiftKey) {
+										e.preventDefault();
+										handleSuggestMessage();
+									}
+								}}
+								placeholder='(Optional) User context to help AI suggest...'
+								rows={1}
+								className='flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 resize-none overflow-y-auto min-h-[44px] max-h-[150px] no-scrollbar'
+							/>
+							<button
+								onClick={handleSuggestMessage}
+								className={`px-4 py-2 text-white rounded-lg transition-all duration-300 ${"bg-blue-500 hover:bg-blue-600 hover:shadow-lg hover:shadow-blue-500/50"}`}
+							>
+								Suggest me!
+							</button>
+							<IconButton
+                                onClick={() => setShowSuggestBanner(false)}
+                                size='small'
+                                sx={{
+                                    color: '#6b7280',
+                                    '&:hover': {
+                                        backgroundColor: '#f3f4f6',
+                                    },
+                                }}
+                            >
+                                <Close fontSize='small' />
+                            </IconButton>
+						</div>
+					</div>
+				)}
+
 				{/* Message Input Area */}
-				<div className='p-4 flex gap-2 items-end'>
+				<div
+					className={`p-4 flex gap-2 items-end ${
+						isLoadingSuggestion
+							? "opacity-50 pointer-events-none"
+							: ""
+					}`}
+				>
+					{/* Suggest Me Button*/}
+					<button
+						onClick={() => {
+							if(showSuggestBanner) setShowSuggestBanner(false);
+							else setShowSuggestBanner(true);
+						}}
+						disabled={isLoadingSuggestion}
+						className={`p-2.5 rounded-lg transition-colors flex-shrink-0 self-end ${
+							isLoadingSuggestion
+								? "bg-blue-300 cursor-not-allowed"
+								: "bg-blue-500 hover:bg-blue-600 text-white"
+						}`}
+						title='AI Suggest'
+					>
+						{isLoadingSuggestion ? (
+							<div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
+						) : (
+							<svg
+								xmlns='http://www.w3.org/2000/svg'
+								className='w-5 h-5'
+								fill='none'
+								viewBox='0 0 24 24'
+								stroke='currentColor'
+							>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									strokeWidth={2}
+									d='M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'
+								/>
+							</svg>
+						)}
+					</button>
 					{/* File Choosing Button */}
 					<button
 						onClick={() => fileInputRef.current?.click()}

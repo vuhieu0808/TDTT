@@ -27,30 +27,30 @@ function MessagePage() {
 	};
 
 	return (
-		<>
+		<div className='flex flex-col h-screen overflow-hidden'>
 			<Navbar />
 			{/* Main Layout */}
 			<div
-				className={`grid h-[calc(100vh-80px)] transition-all duration-300 ${
+				className={`grid flex-1 transition-all duration-300 overflow-hidden ${
 					isDetailOpen
 						? "grid-cols-[0.5fr_1.5fr_0.5fr]"
 						: "grid-cols-[0.5fr_2fr]"
 				}`}
 			>
 				{/* Left Side - Conversations List */}
-				<div className='flex flex-col h-full'>
-					<div className='flex-1'>
+				<div className='flex flex-col h-full overflow-hidden'>
+					<div className='flex-1 overflow-hidden'>
 						<ConversationList />
 					</div>
 					{/* LLM Suggest Modal Button */}
-					<div className='py-5 px-5 border-t border-gray-200 flex justify-left'>
+					<div className='py-5 px-5 border-t border-gray-200 flex justify-left flex-shrink-0'>
 						<Button
 							variant='solid'
 							onClick={handleLlmSuggestClick}
 							className='rounded-full'
 						>
 							<Assistant className='mr-2' />
-							Chat Suggestion
+							Chat With AI
 						</Button>
 					</div>
 					{/* LLM Suggest Modal */}
@@ -71,7 +71,7 @@ function MessagePage() {
 					<ChatDetails onClose={() => setIsDetailOpen(false)} />
 				)}
 			</div>
-		</>
+		</div>
 	);
 }
 

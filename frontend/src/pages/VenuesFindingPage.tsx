@@ -1019,24 +1019,6 @@ function VenuesFindingPage() {
 																)
 															</span>
 														</div>
-														{/* Display distance */}
-														<div className='flex items-center gap-1'>
-															<Map
-																sx={{
-																	fontSize:
-																		"0.875rem",
-																	color: "#a855f7",
-																}}
-															/>
-															<span className='text-xs sm:text-sm text-purple-600 font-medium'>
-																{getVenueDistance(
-																	venue
-																).toFixed(
-																	2
-																)}{" "}
-																km
-															</span>
-														</div>
 													</div>
 												</div>
 											</div>

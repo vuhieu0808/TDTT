@@ -2,10 +2,8 @@ import { useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 
 import { useAuthStore } from "@/stores/useAuthStore";
-import { friendServices } from "@/services/friendServices";
 import type { UserProfile } from "@/types/user";
 
-import ChatButton from "@/components/ChatButton";
 import Layout from "@/components/Layout";
 import ProfileModal from "@/components/ProfileModal";
 import Button from "@mui/joy/Button";
@@ -21,7 +19,6 @@ import {
 	Favorite,
 	FavoriteBorder,
 	TrendingUp,
-	PersonAdd,
 	Check,
 	Close,
 	Warning,
@@ -64,15 +61,22 @@ const HomePage = () => {
 		loadingFriendRequest,
 	} = useFriendStore();
 
-	const { fetchFriends, fetchFriendRequests, swipeLeft, swipeRight, unMatch } =
-		useFriendStore();
+	const {
+		fetchFriends,
+		fetchFriendRequests,
+		swipeLeft,
+		swipeRight,
+		unMatch,
+	} = useFriendStore();
 
 	const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(
 		null
 	);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
-	const [missingFieldsModalType, setMissingFieldsModalType] = useState<"seaching venue" | "matching">("matching");
+	const [missingFieldsModalType, setMissingFieldsModalType] = useState<
+		"seaching venue" | "matching"
+	>("matching");
 
 	const handleViewProfile = (profile: UserProfile) => {
 		setSelectedProfile(profile);
@@ -103,38 +107,33 @@ const HomePage = () => {
 		}
 	};
 
-	const formatDate = (dateString?: string) => {
-		if (!dateString) return "Not set";
-		const date = new Date(dateString);
-		return date.toLocaleDateString("en-US", {
-			year: "numeric",
-			month: "long",
-			day: "numeric",
-		});
-	};
-
-	// Check which fields are missing
-	const getMatchingMissingFields = () => {
+	// Check which fields are missing - split into Profile and Preference groups
+	const getProfileMissingFields = () => {
 		const missing: string[] = [];
 		if (!userProfile?.age) missing.push("Age");
-		if (!userProfile?.interests || userProfile.interests.length === 0)
-			missing.push("Interests");
 		if (!userProfile?.occupation) missing.push("Occupation");
 		if (!userProfile?.location) missing.push("Location");
+		return missing;
+	};
+
+	const getPreferenceMissingFields = () => {
+		const missing: string[] = [];
+		if (!userProfile?.interests || userProfile.interests.length === 0)
+			missing.push("Interests");
 		if (!userProfile?.workVibe) missing.push("Work Vibe");
 		return missing;
 	};
 
 	const checkVenueMissingFields = () => {
 		return !userProfile?.maxDistanceKm || !userProfile?.location;
-	}
+	};
 
 	const getVenueMissingFields = () => {
 		const missing: string[] = [];
 		if (!userProfile?.maxDistanceKm) missing.push("Maximum Distance");
 		if (!userProfile?.location) missing.push("Location");
 		return missing;
-	}
+	};
 
 	useEffect(() => {
 		const fetchRequest = async () => {
@@ -362,7 +361,7 @@ const HomePage = () => {
 								</div>
 							) : friends.length > 0 ? (
 								<div className='space-y-4 max-h-96 overflow-y-auto'>
-									{friends.map((profile, index) => (
+									{friends.map((profile) => (
 										<div
 											key={profile.uid}
 											className='flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all'
@@ -442,85 +441,72 @@ const HomePage = () => {
 								</div>
 							) : receivedFriendRequests.length > 0 ? (
 								<div className='space-y-4 max-h-96 overflow-y-auto'>
-									{receivedFriendRequests.map(
-										(profile, index) => (
+									{receivedFriendRequests.map((profile) => (
+										<div
+											key={profile.uid}
+											className='flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all'
+										>
+											<img
+												onClick={() =>
+													handleViewProfile(profile)
+												}
+												src={profile.avatarUrl}
+												alt={profile.displayName}
+												className='w-16 h-16 rounded-full object-cover border-2 border-pink-300 cursor-pointer'
+											/>
 											<div
-												key={profile.uid}
-												className='flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all'
+												className='flex-1 cursor-pointer'
+												onClick={() =>
+													handleViewProfile(profile)
+												}
 											>
-												<img
-													onClick={() =>
-														handleViewProfile(
-															profile
-														)
-													}
-													src={profile.avatarUrl}
-													alt={profile.displayName}
-													className='w-16 h-16 rounded-full object-cover border-2 border-pink-300 cursor-pointer'
-												/>
-												<div
-													className='flex-1 cursor-pointer'
-													onClick={() =>
-														handleViewProfile(
-															profile
-														)
-													}
-												>
-													<h4 className='font-semibold text-gray-800 text-lg'>
-														{profile.displayName}
-													</h4>
-													<p className='text-sm text-gray-600'>
-														{profile.bio?.substring(
-															0,
-															50
-														) || "No bio available"}
-														...
-													</p>
-													<div className='flex gap-2 mt-2'>
-														{profile.interests
-															?.slice(0, 3)
-															.map(
-																(
-																	interest,
-																	i
-																) => (
-																	<span
-																		key={i}
-																		className='px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs'
-																	>
-																		{
-																			interest
-																		}
-																	</span>
-																)
-															)}
-													</div>
-												</div>
-												<div className='flex gap-2'>
-													<button
-														onClick={() =>
-															handleAcceptRequest(
-																profile.uid
-															)
-														}
-														className='p-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors'
-													>
-														<Check />
-													</button>
-													<button
-														onClick={() =>
-															handleRejectRequest(
-																profile.uid
-															)
-														}
-														className='p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors'
-													>
-														<Close />
-													</button>
+												<h4 className='font-semibold text-gray-800 text-lg'>
+													{profile.displayName}
+												</h4>
+												<p className='text-sm text-gray-600'>
+													{profile.bio?.substring(
+														0,
+														50
+													) || "No bio available"}
+													...
+												</p>
+												<div className='flex gap-2 mt-2'>
+													{profile.interests
+														?.slice(0, 3)
+														.map((interest, i) => (
+															<span
+																key={i}
+																className='px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs'
+															>
+																{interest}
+															</span>
+														))}
 												</div>
 											</div>
-										)
-									)}
+											<div className='flex gap-2'>
+												<button
+													onClick={() =>
+														handleAcceptRequest(
+															profile.uid
+														)
+													}
+													className='p-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors'
+												>
+													<Check />
+												</button>
+												<button
+													onClick={() =>
+														handleRejectRequest(
+															profile.uid
+														)
+													}
+													className='p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors'
+												>
+													<Close />
+												</button>
+											</div>
+										</div>
+									))}
 								</div>
 							) : (
 								<div className='text-center py-12'>
@@ -588,59 +574,194 @@ const HomePage = () => {
 								Profile Incomplete
 							</h2>
 							<p className='text-gray-600'>
-								Please complete your profile to start {missingFieldsModalType}
+								Please complete your profile to start{" "}
+								{missingFieldsModalType}
 							</p>
 						</div>
 
-						<div className='bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-6'>
-							<h3 className='text-lg font-semibold text-red-800 mb-3 flex items-center gap-2'>
-								<Warning sx={{ color: "#991b1b" }} />
-								Missing Information:
-							</h3>
-							<ul className='space-y-2'>
-								{
-								(missingFieldsModalType === "matching" ? getMatchingMissingFields() : getVenueMissingFields())
-									.map((field, index) => (
-										<li
-											key={index}
-											className='flex items-center gap-2 text-red-700'
-										>
-											<span className='w-2 h-2 bg-red-500 rounded-full'></span>
-											<span className='font-medium'>{field}</span>
-										</li>
-									))			
-								}
-							</ul>
-						</div>
+						{missingFieldsModalType === "matching" ? (
+							<>
+								{/* Profile Missing Fields */}
+								{getProfileMissingFields().length > 0 && (
+									<div className='bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-4'>
+										<h3 className='text-lg font-semibold text-red-800 mb-3 flex items-center gap-2'>
+											<Warning
+												sx={{ color: "#991b1b" }}
+											/>
+											Missing Profile Information:
+										</h3>
+										<ul className='space-y-2'>
+											{getProfileMissingFields().map(
+												(field, index) => (
+													<li
+														key={index}
+														className='flex items-center gap-2 text-red-700'
+													>
+														<span className='w-2 h-2 bg-red-500 rounded-full'></span>
+														<span className='font-medium'>
+															{field}
+														</span>
+													</li>
+												)
+											)}
+										</ul>
+									</div>
+								)}
 
-						<Button
-							onClick={() => {
-								setShowMissingFieldsModal(false);
-								navigate("/SettingsPage");
-							}}
-							endDecorator={<ArrowForward />}
-							sx={{
-								width: "100%",
-								background:
-									"linear-gradient(135deg, #a855f7 0%, #ec4899 100%)",
-								color: "white",
-								padding: "12px 24px",
-								borderRadius: "1rem",
-								fontSize: "1rem",
-								fontWeight: "600",
-								textTransform: "none",
-								"&:hover": {
-									background:
-										"linear-gradient(135deg, #9333ea 0%, #db2777 100%)",
-									transform: "translateY(-2px)",
-									boxShadow:
-										"0 8px 20px rgba(168, 85, 247, 0.4)",
-								},
-								transition: "all 0.3s ease",
-							}}
-						>
-							Complete Profile Now
-						</Button>
+								{/* Preference Missing Fields */}
+								{getPreferenceMissingFields().length > 0 && (
+									<div className='bg-orange-50 border-2 border-orange-200 rounded-2xl p-6 mb-4'>
+										<h3 className='text-lg font-semibold text-orange-800 mb-3 flex items-center gap-2'>
+											<Warning
+												sx={{ color: "#c2410c" }}
+											/>
+											Missing Preference Information:
+										</h3>
+										<ul className='space-y-2'>
+											{getPreferenceMissingFields().map(
+												(field, index) => (
+													<li
+														key={index}
+														className='flex items-center gap-2 text-orange-700'
+													>
+														<span className='w-2 h-2 bg-orange-500 rounded-full'></span>
+														<span className='font-medium'>
+															{field}
+														</span>
+													</li>
+												)
+											)}
+										</ul>
+									</div>
+								)}
+
+								{/* Buttons */}
+								<div className='flex flex-col gap-3'>
+									{getProfileMissingFields().length > 0 && (
+										<Button
+											onClick={() => {
+												setShowMissingFieldsModal(
+													false
+												);
+												navigate("/SettingsPage");
+											}}
+											endDecorator={<ArrowForward />}
+											sx={{
+												width: "100%",
+												background:
+													"linear-gradient(135deg, #a855f7 0%, #ec4899 100%)",
+												color: "white",
+												padding: "12px 24px",
+												borderRadius: "1rem",
+												fontSize: "1rem",
+												fontWeight: "600",
+												textTransform: "none",
+												"&:hover": {
+													background:
+														"linear-gradient(135deg, #9333ea 0%, #db2777 100%)",
+													transform:
+														"translateY(-2px)",
+													boxShadow:
+														"0 8px 20px rgba(168, 85, 247, 0.4)",
+												},
+												transition: "all 0.3s ease",
+											}}
+										>
+											Complete Profile
+										</Button>
+									)}
+
+									{getPreferenceMissingFields().length >
+										0 && (
+										<Button
+											onClick={() => {
+												setShowMissingFieldsModal(
+													false
+												);
+												navigate("/PreferencePage");
+											}}
+											endDecorator={<ArrowForward />}
+											sx={{
+												width: "100%",
+												background:
+													"linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+												color: "white",
+												padding: "12px 24px",
+												borderRadius: "1rem",
+												fontSize: "1rem",
+												fontWeight: "600",
+												textTransform: "none",
+												"&:hover": {
+													background:
+														"linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+													transform:
+														"translateY(-2px)",
+													boxShadow:
+														"0 8px 20px rgba(59, 130, 246, 0.4)",
+												},
+												transition: "all 0.3s ease",
+											}}
+										>
+											Set Work Vibe Preferences
+										</Button>
+									)}
+								</div>
+							</>
+						) : (
+							<>
+								{/* Venue Missing Fields */}
+								<div className='bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-6'>
+									<h3 className='text-lg font-semibold text-red-800 mb-3 flex items-center gap-2'>
+										<Warning sx={{ color: "#991b1b" }} />
+										Missing Information:
+									</h3>
+									<ul className='space-y-2'>
+										{getVenueMissingFields().map(
+											(field, index) => (
+												<li
+													key={index}
+													className='flex items-center gap-2 text-red-700'
+												>
+													<span className='w-2 h-2 bg-red-500 rounded-full'></span>
+													<span className='font-medium'>
+														{field}
+													</span>
+												</li>
+											)
+										)}
+									</ul>
+								</div>
+
+								<Button
+									onClick={() => {
+										setShowMissingFieldsModal(false);
+										navigate("/SettingsPage");
+									}}
+									endDecorator={<ArrowForward />}
+									sx={{
+										width: "100%",
+										background:
+											"linear-gradient(135deg, #a855f7 0%, #ec4899 100%)",
+										color: "white",
+										padding: "12px 24px",
+										borderRadius: "1rem",
+										fontSize: "1rem",
+										fontWeight: "600",
+										textTransform: "none",
+										"&:hover": {
+											background:
+												"linear-gradient(135deg, #9333ea 0%, #db2777 100%)",
+											transform: "translateY(-2px)",
+											boxShadow:
+												"0 8px 20px rgba(168, 85, 247, 0.4)",
+										},
+										transition: "all 0.3s ease",
+									}}
+								>
+									Complete Profile Now
+								</Button>
+							</>
+						)}
 					</Sheet>
 				</Modal>
 			</Layout>

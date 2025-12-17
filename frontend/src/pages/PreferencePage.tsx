@@ -2,13 +2,12 @@ import { useState, useEffect } from "react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useNavigate } from "react-router";
 
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 import { userServices } from "@/services/userServices";
 
 import Layout from "@/components/Layout";
 import Button from "@mui/joy/Button";
 import Input from "@mui/joy/Input";
-import Slider from "@mui/joy/Slider";
 import Chip from "@mui/joy/Chip";
 import {
 	Add,
@@ -18,7 +17,6 @@ import {
 	Psychology,
 	BalanceOutlined,
 	Save,
-	Tune,
 	WbSunny,
 	WbTwilight,
 	Brightness3,
@@ -36,11 +34,6 @@ interface UserPreferences {
 	interests: string[];
 	workingMode: WorkingMode;
 	availability: number[]; // Array of 42 slots (7 days × 6 time slots)
-}
-
-interface WorkingModePreset {
-	workRatio: number; // percentage
-	chatExpectation: number;
 }
 
 function PreferencePage() {
@@ -87,29 +80,6 @@ function PreferencePage() {
 		}
 	}, [userProfile, isInitialLoad]);
 
-	// Define presets for each working mode
-	const workingModePresets: Record<
-		Exclude<WorkingMode, "custom">,
-		WorkingModePreset
-	> = {
-		quiet: {
-			workRatio: 90, // 90% work, 10% chat
-			chatExpectation: 10,
-		},
-		creative: {
-			workRatio: 50, // 50% work, 50% chat
-			chatExpectation: 80,
-		},
-		deep: {
-			workRatio: 80, // 80% work, 20% chat
-			chatExpectation: 25,
-		},
-		balanced: {
-			workRatio: 60, // 60% work, 40% chat
-			chatExpectation: 50,
-		},
-	};
-
 	const hasIncompletePersonalInfo = () => {
 		if (!userProfile) return false;
 		const missingFields: string[] = [];
@@ -132,7 +102,6 @@ function PreferencePage() {
 				workingMode: mode,
 			});
 		} else {
-			const preset = workingModePresets[mode];
 			setPreferences({
 				...preferences,
 				workingMode: mode,
@@ -605,7 +574,7 @@ function PreferencePage() {
 										{/* Header Row - Days of Week */}
 										<div className='grid grid-cols-8 gap-2 mb-2'>
 											<div className='text-xs font-medium text-gray-500 flex items-end pb-1'></div>
-											{daysOfWeek.map((day, index) => (
+											{daysOfWeek.map((day) => (
 												<div
 													key={day}
 													className='text-center text-xs font-bold text-gray-700 pb-1'
