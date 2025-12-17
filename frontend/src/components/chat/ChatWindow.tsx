@@ -9,7 +9,7 @@ import IconButton from "@mui/material/IconButton";
 import { Info, Circle, Close } from "@mui/icons-material";
 import { formatFileSize, isImageFile } from "@/lib/utils";
 import ProfileModal from "@/components/ProfileModal";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { toast } from "sonner";
 
 interface ChatWindowProps {
@@ -30,6 +30,7 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 
 	const { onlineUsers } = useSocketStore();
 	const navigate = useNavigate();
+	const location = useLocation();
 
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const [messageText, setMessageText] = useState("");
@@ -49,7 +50,6 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 	>(null);
 	const [selectedUserProfile, setSelectedUserProfile] =
 		useState<UserProfile | null>(null);
-	const [searchParams] = useSearchParams();
 	const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -99,7 +99,7 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 	const hasMoreMessages = conversationData ? conversationData.hasMore : false;
 
 	useEffect(() => {
-		const userId = searchParams.get("userId");
+		const userId = location.state?.userId;
 
 		if (userId && conversations.length > 0) {
 			// Find if there's an existing direct conversation with this user
@@ -114,9 +114,12 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 			if (conversation) {
 				// Set this conversation as active
 				useChatStore.getState().setActiveConversation(conversation.id);
+
+				// Clear the state after using it to prevent issue on refresh
+				navigate(location.pathname, { replace: true, state: {} });
 			}
 		}
-	}, [conversations, searchParams]);
+	}, [conversations, location.state, navigate, location.pathname]);
 
 	// Fetch messages when active conversation changes
 	useEffect(() => {
@@ -632,7 +635,13 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 
 				{/* Suggest Banner */}
 				{showSuggestBanner && (
-					<div className={`border-t border-gray-200 bg-blue-50 px-3 py-2 ${isLoadingSuggestion ? "opacity-50 pointer-events-none" : ""}`}>
+					<div
+						className={`border-t border-gray-200 bg-blue-50 px-3 py-2 ${
+							isLoadingSuggestion
+								? "opacity-50 pointer-events-none"
+								: ""
+						}`}
+					>
 						<div className='flex items-center justify-between gap-2'>
 							<p className='text-sm text-gray-700'>
 								AI Suggestion for next message
@@ -658,17 +667,17 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 								Suggest me!
 							</button>
 							<IconButton
-                                onClick={() => setShowSuggestBanner(false)}
-                                size='small'
-                                sx={{
-                                    color: '#6b7280',
-                                    '&:hover': {
-                                        backgroundColor: '#f3f4f6',
-                                    },
-                                }}
-                            >
-                                <Close fontSize='small' />
-                            </IconButton>
+								onClick={() => setShowSuggestBanner(false)}
+								size='small'
+								sx={{
+									color: "#6b7280",
+									"&:hover": {
+										backgroundColor: "#f3f4f6",
+									},
+								}}
+							>
+								<Close fontSize='small' />
+							</IconButton>
 						</div>
 					</div>
 				)}
@@ -684,7 +693,7 @@ function ChatWindow({ onToggleDetails }: ChatWindowProps) {
 					{/* Suggest Me Button*/}
 					<button
 						onClick={() => {
-							if(showSuggestBanner) setShowSuggestBanner(false);
+							if (showSuggestBanner) setShowSuggestBanner(false);
 							else setShowSuggestBanner(true);
 						}}
 						disabled={isLoadingSuggestion}

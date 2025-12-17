@@ -23,6 +23,7 @@ import {
 	Close,
 	Warning,
 	ArrowForward,
+	Clear, // Add this import
 } from "@mui/icons-material";
 import { useFriendStore } from "@/stores/useFriendStore";
 
@@ -73,13 +74,20 @@ const HomePage = () => {
 		null
 	);
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [showAction, setShowAction] = useState(true);
 	const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
 	const [missingFieldsModalType, setMissingFieldsModalType] = useState<
 		"seaching venue" | "matching"
 	>("matching");
 
-	const handleViewProfile = (profile: UserProfile) => {
+	const handleViewFriendProfile = (profile: UserProfile) => {
 		setSelectedProfile(profile);
+		setShowAction(true);
+		setIsModalOpen(true);
+	};
+	const handleViewRequestProfile = (profile: UserProfile) => {
+		setSelectedProfile(profile);
+		setShowAction(false);
 		setIsModalOpen(true);
 	};
 
@@ -102,7 +110,9 @@ const HomePage = () => {
 	const handleChat = () => {
 		if (selectedProfile) {
 			// Navigate to chat with this user
-			navigate(`/MessagePage?userId=${selectedProfile.uid}`);
+			navigate(`/MessagePage`, {
+				state: { userId: selectedProfile.uid },
+			});
 			handleCloseModal();
 		}
 	};
@@ -183,7 +193,7 @@ const HomePage = () => {
 				<div className='max-w-7xl mx-auto px-6 py-12'>
 					<div className='text-center mb-12'>
 						<h2 className='text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 flex items-center justify-center gap-3'>
-							Welcome back, {userProfile?.displayName}!
+							Welcome, {userProfile?.displayName}!
 							<WavingHand
 								sx={{
 									color: "#ec4899",
@@ -368,7 +378,9 @@ const HomePage = () => {
 										>
 											<img
 												onClick={() =>
-													handleViewProfile(profile)
+													handleViewFriendProfile(
+														profile
+													)
 												}
 												src={profile.avatarUrl}
 												alt={profile.displayName}
@@ -377,7 +389,9 @@ const HomePage = () => {
 											<div
 												className='flex-1 cursor-pointer'
 												onClick={() =>
-													handleViewProfile(profile)
+													handleViewFriendProfile(
+														profile
+													)
 												}
 											>
 												<h4 className='font-semibold text-gray-800 text-lg'>
@@ -448,7 +462,9 @@ const HomePage = () => {
 										>
 											<img
 												onClick={() =>
-													handleViewProfile(profile)
+													handleViewRequestProfile(
+														profile
+													)
 												}
 												src={profile.avatarUrl}
 												alt={profile.displayName}
@@ -457,7 +473,9 @@ const HomePage = () => {
 											<div
 												className='flex-1 cursor-pointer'
 												onClick={() =>
-													handleViewProfile(profile)
+													handleViewRequestProfile(
+														profile
+													)
 												}
 											>
 												<h4 className='font-semibold text-gray-800 text-lg'>
@@ -483,26 +501,45 @@ const HomePage = () => {
 														))}
 												</div>
 											</div>
-											<div className='flex gap-2'>
-												<button
-													onClick={() =>
-														handleAcceptRequest(
-															profile.uid
-														)
-													}
-													className='p-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors'
-												>
-													<Check />
-												</button>
+											<div className='flex items-center gap-3'>
+												{/* Reject Button */}
 												<button
 													onClick={() =>
 														handleRejectRequest(
 															profile.uid
 														)
 													}
-													className='p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors'
+													className='p-3 bg-red-50 hover:bg-red-100 rounded-full shadow-lg transition-all hover:scale-110 group'
 												>
-													<Close />
+													<Clear
+														sx={{
+															fontSize: "1.5rem",
+															color: "#ef4444",
+															transition:
+																"all 0.3s",
+														}}
+														className='group-hover:rotate-90'
+													/>
+												</button>
+
+												{/* Accept Button */}
+												<button
+													onClick={() =>
+														handleAcceptRequest(
+															profile.uid
+														)
+													}
+													className='p-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-full shadow-lg transition-all hover:scale-110 group'
+												>
+													<Favorite
+														sx={{
+															fontSize: "1.5rem",
+															color: "white",
+															transition:
+																"all 0.3s",
+														}}
+														className='group-hover:scale-125'
+													/>
 												</button>
 											</div>
 										</div>
@@ -537,7 +574,7 @@ const HomePage = () => {
 					userProfile={selectedProfile}
 					onUnmatch={handleUnmatch}
 					onChat={handleChat}
-					showActions={true}
+					showActions={showAction}
 				/>
 
 				{/* Missing Fields Modal */}
