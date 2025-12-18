@@ -74,6 +74,7 @@ export const useFriendStore = create<FriendState>((set, get) => ({
     set({ friends: [friend, ...friends] });
     // xóa bạn khỏi danh sách yêu cầu kết bạn đã nhận và đã gửi
     const { receivedFriendRequests, sentFriendRequests } = get();
+    console.log("Friend", friend);
     set({
       receivedFriendRequests: receivedFriendRequests.filter(
         (user) => user.uid !== friend.user.uid
