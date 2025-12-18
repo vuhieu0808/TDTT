@@ -501,46 +501,50 @@ const HomePage = () => {
 														))}
 												</div>
 											</div>
-											<div className='flex items-center gap-3'>
-												{/* Reject Button */}
-												<button
-													onClick={() =>
-														handleRejectRequest(
-															profile.uid
-														)
-													}
-													className='p-3 bg-red-50 hover:bg-red-100 rounded-full shadow-lg transition-all hover:scale-110 group'
-												>
-													<Clear
-														sx={{
-															fontSize: "1.5rem",
-															color: "#ef4444",
-															transition:
-																"all 0.3s",
-														}}
-														className='group-hover:rotate-90'
-													/>
-												</button>
+											<div className='flex flex-col items-center gap-3'>
+												<div className='flex items-center gap-3'>
+													{/* Reject Button */}
+													<button
+														onClick={() =>
+															handleRejectRequest(
+																profile.uid
+															)
+														}
+														className='p-3 bg-red-50 hover:bg-red-100 rounded-full shadow-lg transition-all hover:scale-110 group'
+													>
+														<Clear
+															sx={{
+																fontSize:
+																	"1.5rem",
+																color: "#ef4444",
+																transition:
+																	"all 0.3s",
+															}}
+															className='group-hover:rotate-90'
+														/>
+													</button>
 
-												{/* Accept Button */}
-												<button
-													onClick={() =>
-														handleAcceptRequest(
-															profile.uid
-														)
-													}
-													className='p-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-full shadow-lg transition-all hover:scale-110 group'
-												>
-													<Favorite
-														sx={{
-															fontSize: "1.5rem",
-															color: "white",
-															transition:
-																"all 0.3s",
-														}}
-														className='group-hover:scale-125'
-													/>
-												</button>
+													{/* Accept Button */}
+													<button
+														onClick={() =>
+															handleAcceptRequest(
+																profile.uid
+															)
+														}
+														className='p-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-full shadow-lg transition-all hover:scale-110 group'
+													>
+														<Favorite
+															sx={{
+																fontSize:
+																	"1.5rem",
+																color: "white",
+																transition:
+																	"all 0.3s",
+															}}
+															className='group-hover:scale-125'
+														/>
+													</button>
+												</div>
 											</div>
 										</div>
 									))}
