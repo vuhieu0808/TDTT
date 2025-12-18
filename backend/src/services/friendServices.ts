@@ -153,7 +153,7 @@ export const friendServices = {
     const profiles = await getFullUserProfile(matchedUserIds);
 
     const friends = profiles.map((profile) => ({
-      ...profile,
+      user: profile,
       matchedAt: mapIdToCreatedAt[profile?.uid]?.toDate().toISOString(),
     }));
 
