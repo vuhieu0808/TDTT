@@ -20,14 +20,11 @@ import {
 	Favorite,
 	FavoriteBorder,
 	TrendingUp,
-	Check,
-	Close,
 	Warning,
 	ArrowForward,
 	Clear, // Add this import
 } from "@mui/icons-material";
 import { useFriendStore } from "@/stores/useFriendStore";
-import { dividerClasses } from "@mui/joy";
 
 const HomePage = () => {
 	const { userProfile } = useAuthStore();
