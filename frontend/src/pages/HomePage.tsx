@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import { useAuthStore } from "@/stores/useAuthStore";
 import type { UserProfile } from "@/types/user";
@@ -183,6 +183,19 @@ const HomePage = () => {
 			console.error("Failed to reject request:", error);
 		}
 	};
+
+	const getTimeSinceMatch = (matchedAt: string) => {
+		const matchDate = new Date(matchedAt);
+		const now = new Date();
+		const diffInMs = now.getTime() - matchDate.getTime();
+		const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+
+		return diffInHours;
+	};
+
+	useEffect(() => {
+		console.log("Friends data structure:", friends);
+	}, [friends]);
 
 	console.log(userProfile);
 
@@ -371,54 +384,67 @@ const HomePage = () => {
 								</div>
 							) : friends.length > 0 ? (
 								<div className='space-y-4 max-h-96 overflow-y-auto'>
-									{friends.map((profile) => (
-										<div
-											key={profile.uid}
-											className='flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all'
-										>
-											<img
-												onClick={() =>
-													handleViewFriendProfile(
-														profile
-													)
-												}
-												src={profile.avatarUrl}
-												alt={profile.displayName}
-												className='w-16 h-16 rounded-full object-cover border-2 border-pink-300 cursor-pointer'
-											/>
+									{friends.map((friend) => {
+										if (!friend) return null;
+										const user = friend.user;
+										console.log("Ngu ngu ngu");
+										console.log("ngu", user.uid);
+										return (
 											<div
-												className='flex-1 cursor-pointer'
-												onClick={() =>
-													handleViewFriendProfile(
-														profile
-													)
-												}
+												key={user.uid}
+												className='flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all'
 											>
-												<h4 className='font-semibold text-gray-800 text-lg'>
-													{profile.displayName}
-												</h4>
-												<p className='text-sm text-gray-600'>
-													{profile.bio?.substring(
-														0,
-														50
-													) || "No bio available"}
-													...
-												</p>
-												<div className='flex gap-2 mt-2'>
-													{profile.interests
-														?.slice(0, 3)
-														.map((interest, i) => (
-															<span
-																key={i}
-																className='px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs'
-															>
-																{interest}
-															</span>
-														))}
+												<img
+													onClick={() =>
+														handleViewFriendProfile(
+															user
+														)
+													}
+													src={user.avatarUrl}
+													alt={user.displayName}
+													className='w-16 h-16 rounded-full object-cover border-2 border-pink-300 cursor-pointer'
+												/>
+												<div
+													className='flex-1 cursor-pointer'
+													onClick={() =>
+														handleViewFriendProfile(
+															user
+														)
+													}
+												>
+													<h4 className='font-semibold text-gray-800 text-lg'>
+														{user.displayName}
+													</h4>
+													<p className='text-sm text-gray-600'>
+														{user.bio?.substring(
+															0,
+															50
+														) || "No bio available"}
+														...
+													</p>
+													<div className='flex gap-2 mt-2'>
+														{user.interests
+															?.slice(0, 3)
+															.map(
+																(
+																	interest,
+																	i
+																) => (
+																	<span
+																		key={i}
+																		className='px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs'
+																	>
+																		{
+																			interest
+																		}
+																	</span>
+																)
+															)}
+													</div>
 												</div>
 											</div>
-										</div>
-									))}
+										);
+									})}
 								</div>
 							) : (
 								<div className='text-center py-12'>
