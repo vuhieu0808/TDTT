@@ -10,6 +10,7 @@ import Button from "@mui/joy/Button";
 import Modal from "@mui/joy/Modal";
 import ModalClose from "@mui/joy/ModalClose";
 import Sheet from "@mui/joy/Sheet";
+import Chip from "@mui/joy/Chip";
 
 import {
 	WavingHand,
@@ -26,6 +27,7 @@ import {
 	Clear, // Add this import
 } from "@mui/icons-material";
 import { useFriendStore } from "@/stores/useFriendStore";
+import { dividerClasses } from "@mui/joy";
 
 const HomePage = () => {
 	const { userProfile } = useAuthStore();
@@ -387,13 +389,12 @@ const HomePage = () => {
 									{friends.map((friend) => {
 										if (!friend) return null;
 										const user = friend.user;
-										console.log("Ngu ngu ngu");
-										console.log("ngu", user.uid);
 										return (
 											<div
 												key={user.uid}
 												className='flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all'
 											>
+												{/* Friend Avatar */}
 												<img
 													onClick={() =>
 														handleViewFriendProfile(
@@ -404,6 +405,8 @@ const HomePage = () => {
 													alt={user.displayName}
 													className='w-16 h-16 rounded-full object-cover border-2 border-pink-300 cursor-pointer'
 												/>
+
+												{/* Friend Info */}
 												<div
 													className='flex-1 cursor-pointer'
 													onClick={() =>
@@ -441,6 +444,23 @@ const HomePage = () => {
 																)
 															)}
 													</div>
+												</div>
+
+												{/* Matched Time */}
+												<div className='text-sm text-gray-500'>
+													{getTimeSinceMatch(
+														friend.matchedAt
+													) <= 24 ? (
+														<div>
+															<Chip
+																size='sm'
+																color='success'
+																variant='soft'
+															>
+																New Match
+															</Chip>
+														</div>
+													) : null}
 												</div>
 											</div>
 										);
