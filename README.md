@@ -1,110 +1,141 @@
-# TDTT Final Term Project
+en | [vi](README-vi.md)
 
-## Cấu trúc dự án
+# Computational Thinking course project: The Right Type
 
-Dự án bao gồm 2 phần chính:
+## Members
+#### Group name: Lorem_Ipsum
+- 24127003 - Vũ Trần Minh Hiếu
+- 24127240 - Hoàng Đức Thịnh
+- 24127270 - Trần Viết Bảo
+- 24127326 - Đoàn Quốc Bảo
 
-- **Backend**: Node.js + Express + TypeScript
-- **Frontend**: React + TypeScript + Vite
+## Tech stack
+- **Backend**: Node.js + Express + Firebase + Google Drive
+- **Frontend**: Axios + React + Vite
 
-## Yêu cầu hệ thống
+## Prerequisite
+- Node.js v18 or later (v22.18.0 or later for native Typescript execution)
+- npm for package installation
+- A Firebase project with these service set up 
+    - Authentication, with Google as a sign-in option
+    - Realtime database, with an URL to the database (example for a RTDB located in SEA server : `https://abc-xyz-default-rtdb.asia-southeast1.firebasedatabase.app`). Denote this as `<realtime_db_url>`
+    - Firestore database
+    - Obtain Firebase Admin credential. Example:
+    ```
+    {
+        type: "service_account",
+        project_id: "abcxyz",
+        private_key_id: "....",
+        private_key: "-----BEGIN PRIVATE KEY-----
+        .....
+        -----END PRIVATE KEY-----
+        ",
+        client_email: "...",
+        client_id: "...",
+        auth_uri: https://accounts.google.com/o/oauth2/auth,
+        token_uri: https://oauth2.googleapis.com/token,
+        auth_provider_x509_cert_url: https://www.googleapis.com/oauth2/v1/certs,
+        client_x509_cert_url: ...,
+        universe_domain: "googleapis.com"
+    }
+    ```
 
-- Node.js (phiên bản 14 trở lên)
-- npm hoặc yarn
+    Perform base64 encode for the credential content. Denote this as `<firebase_admin_base64>`
+- Google Drive API 
+    - Refresh token (example: `1//...`). Denote this as `<ggdrive_token>` 
+    - OAuth2 credential. Example:
+    ```
+    {
+        web: 
+        {
+            client_id: "123456789.apps.googleusercontent.com",
+            project_id: "abcxyz",
+            auth_uri: https://accounts.google.com/o/oauth2/auth,
+            token_uri: https://oauth2.googleapis.com/token,
+            auth_provider_x509_cert_url: https://www.googleapis.com/oauth2/v1/certs,
+            client_secret: "G....."
+        }
+    }
+    ```
 
-## Cài đặt
+    Perform base64 encode for the credential content. Denote this as `<ggdrive_oauth_base64>`
+    
+- Gemini API key (example: `AIz...`). Denote this as `<gemini_key>`
 
-### 1. Cài đặt dependencies
-
-#### Backend
-
-```bash
-cd backend
-npm install
+## Deployment
+### A. Backend
+#### 1. Prepare environments
+- Your `.env` file would be like this
 ```
-
-#### Frontend
-
-```bash
-cd frontend
-npm install
-```
-
-### 2. Cấu hình môi trường
-
-#### Backend
-
-Tạo file `.env` trong thư mục `backend/` với nội dung sau:
-
-```env
 PORT=5000
-CLIENT_URL=http://localhost:5173
+CLIENT_URL=<client_url_1>,<client_url_2>,...
+RTDB_URL=<realtime_db_url>
+GOOGLE_REFRESH_TOKEN=<ggdrive_token>
+GEMINI_API_KEY=<gemini_key>
+FIREBASE_ADMIN=<firebase_admin_base64>
+OAUTH2=<ggdrive_oauth_base64>
 ```
 
-**Quan trọng:** Đặt file `serviceAccountKey.json` (Firebase Admin SDK) vào thư mục `backend/src/config/`
-
-
-## Chạy ứng dụng
-
-### Chạy Backend
-
-```bash
-cd backend
-npm run dev
+`<client_url_1>,<client_url_2>,...` is the list of client urls that are allowed to connet
+Example:
+```
+CLIENT_URL=http://localhost:5173,https://hoppscotch.io
 ```
 
-Backend sẽ chạy tại `http://localhost:5000`
+#### 2. Install & compile
+In `backend` directory, run
+```
+npm install
+npm run build
+```
+The compiled code is written to `backend/dist`
 
-### Chạy Frontend
-
-```bash
-cd frontend
-npm run dev
+#### 3. Run
+In `backend` directory, run
+```
+npm run start
 ```
 
-Frontend sẽ chạy tại `http://localhost:5173` (hoặc cổng khác nếu 5173 đã được sử dụng)
+### B. Frontend
 
-## Chạy đồng thời Backend và Frontend
-
-Mở 2 terminal riêng biệt:
-
-**Terminal 1 - Backend:**
-
-```bash
-cd backend
-npm run dev
+#### 1. Setup client-facing Firebase credential
+- Create project's Firebase key (to access database)
+- Navigate to `frontend/src/config/firebase.ts`
+- Modify the credential
+```
+const firebaseConfig = {
+  apiKey: "AIz...",
+  authDomain: "...",
+  projectId: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "...",
+  measurementId: "..."
+};
 ```
 
-**Terminal 2 - Frontend:**
+#### 2. Setup environment
+- Your `.env` file would be like this
+```
+VITE_API_URL="http://localhost:5000/api
+VITE_SOCKET_URL="http://localhost:5000/"
+```
+Change `http://localhost:5000` to backend's URL
 
-```bash
-cd frontend
-npm run dev
+#### 3. Install & compile
+In `backend` directory, run
+```
+npm install
+npm run build
+```
+The compiled code is written to `backend/dist`
+
+#### 4. Run
+In `backend` directory, run
+```
+npm run start
 ```
 
-## Cấu trúc thư mục
-
-```
-.
-├── backend/
-│   ├── src/
-│   │   ├── config/
-│   │   │   ├── firebase.ts
-│   │   │   └── serviceAccountKey.json (cần tạo)
-│   │   ├── controllers/
-│   │   ├── middlewares/
-│   │   ├── models/
-│   │   ├── routes/
-│   │   └── server.ts
-│   ├── .env (cần tạo)
-│   └── package.json
-└── frontend/
-    ├── src/
-    └── package.json
-```
-
-## Lưu ý
-
-- Đảm bảo đã tạo file `.env` cho cả backend trước khi chạy
-- File `serviceAccountKey.json` phải được đặt đúng vị trí: `backend/src/config/serviceAccountKey.json`
-- Không commit file `.env` và `serviceAccountKey.json` lên Git (đã được ignore trong `.gitignore`)
+#### 5. Add frontend URL to Firebase authorized domains
+- Navigate to Authentication -> Settings -> Authorized domains
+- Add your frontend domain name
