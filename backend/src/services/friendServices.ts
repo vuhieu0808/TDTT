@@ -142,12 +142,22 @@ export const friendServices = {
       ...friendsAsUserBSnapshot.docs,
     ];
 
+    const mapIdToCreatedAt: Record<string, FirebaseFirestore.Timestamp> = {};
     const matchedUserIds = allFriendsDocs.map((doc) => {
       const friendData = doc.data() as Friend;
-      return friendData.userA === userId ? friendData.userB : friendData.userA;
+      const friendId = friendData.userA === userId ? friendData.userB : friendData.userA;
+      mapIdToCreatedAt[friendId] = friendData.createdAt;
+      return friendId;
     });
 
-    return await getFullUserProfile(matchedUserIds);
+    const profiles = await getFullUserProfile(matchedUserIds);
+
+    const friends = profiles.map((profile) => ({
+      ...profile,
+      matchedAt: mapIdToCreatedAt[profile?.uid]?.toDate().toISOString(),
+    }));
+
+    return friends;
   },
 
   unmatchUser: async (userId: string, unmatchUserId: string) => {
