@@ -1,4 +1,3 @@
-// ...existing code...
 en | [vi](README-vi.md)
 
 # Computational Thinking course project: The Right Type
