@@ -27,10 +27,16 @@ export const emitNewConversation = async (
       joinedAt: p.joinedAt.toDate().toISOString(),
     })),
   };
-  const participantData = await getFullUserProfile(conversation.participantIds);
+  // const participantData = await getFullUserProfile(conversation.participantIds);
+  const friendProfiles = await getFullUserProfile(conversation.participantIds);
+  const friends = friendProfiles.map((profile) => ({
+    user: profile,
+    matchedAt: conversationData.createdAt,
+  }));
   const payload = {
     conversation: conversationData,
-    participantProfile: participantData,
+    // participantProfile: participantData,
+    friends,
   }
   for (const userId of conversation.participantIds) {
     io.to(userId).emit("new-conversation", payload);
