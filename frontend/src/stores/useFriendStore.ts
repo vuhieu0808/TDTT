@@ -1,6 +1,6 @@
 import { friendServices } from "@/services/friendServices";
 import type { FriendState } from "@/types/store";
-import type { UserProfile } from "@/types/user";
+import type { Friend, UserProfile } from "@/types/user";
 import { create } from "zustand";
 
 export const useFriendStore = create<FriendState>((set, get) => ({
@@ -63,23 +63,23 @@ export const useFriendStore = create<FriendState>((set, get) => ({
       await friendServices.unmatch(userId);
       const { friends } = get();
       set({
-        friends: friends.filter((user) => user.uid !== userId),
+        friends: friends.filter((user) => user.user.uid !== userId),
       });
     } catch (error) {
       console.error("Error unmatching friend:", error);
     }
   },
-  addNewFriend: (friend: UserProfile) => {
+  addNewFriend: (friend: Friend) => {
     const { friends } = get();
     set({ friends: [friend, ...friends] });
     // xóa bạn khỏi danh sách yêu cầu kết bạn đã nhận và đã gửi
     const { receivedFriendRequests, sentFriendRequests } = get();
     set({
       receivedFriendRequests: receivedFriendRequests.filter(
-        (user) => user.uid !== friend.uid
+        (user) => user.uid !== friend.user.uid
       ),
       sentFriendRequests: sentFriendRequests.filter(
-        (user) => user.uid !== friend.uid
+        (user) => user.uid !== friend.user.uid
       ),
     });
   },

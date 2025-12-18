@@ -1,5 +1,5 @@
 import type { User as FirebaseuserProfile } from "firebase/auth";
-import type { UserProfile } from "../types/user";
+import type { Friend, UserProfile } from "../types/user";
 import type { Conversation, Message } from "./chat";
 import type { Socket } from "node_modules/socket.io-client/build/esm/socket";
 import type { MatchScore } from "./match";
@@ -71,7 +71,7 @@ export interface MatchingState {
 }
 
 export interface FriendState {
-	friends: UserProfile[]; // Danh sách bạn bè
+	friends: Friend[]; // Danh sách bạn bè
 	loadingFriend: boolean; // Trạng thái tải danh sách bạn bè
 	receivedFriendRequests: UserProfile[]; // Danh sách yêu cầu kết bạn đã nhận
 	sentFriendRequests: UserProfile[]; // Danh sách yêu cầu kết bạn đã gửi
@@ -82,7 +82,7 @@ export interface FriendState {
 	swipeLeft: (userId: string) => Promise<void>; // Hàm từ chối kết bạn
 	swipeRight: (userId: string) => Promise<void>; // Hàm chấp nhận kết bạn
 	unMatch: (userId: string) => Promise<void>; // Hàm hủy kết bạn
-	addNewFriend: (friend: UserProfile) => void; // Hàm thêm bạn mới vào danh sách bạn bè
+	addNewFriend: (friend: Friend) => void; // Hàm thêm bạn mới vào danh sách bạn bè
 	addNewReceivedRequest: (user: UserProfile) => void; // Hàm thêm yêu cầu kết bạn mới vào danh sách đã nhận
 	addNewSentRequest: (user: UserProfile) => void; // Hàm thêm yêu cầu kết bạn mới vào danh sách đã gửi
 }
