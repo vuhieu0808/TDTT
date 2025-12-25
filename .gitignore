@@ -37,5 +37,4 @@ logs
 *.log
 serviceAccountKey.json
 serviceAccountKeyGoogleDrive.json
-getRefreshToken.ts
 oauth2Key.json
