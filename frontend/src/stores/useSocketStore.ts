@@ -5,7 +5,7 @@ import { useAuthStore } from "./useAuthStore";
 import { useChatStore } from "./useChatStore";
 import { userServices } from "@/services/userServices";
 import type { LastMessage, Message, Conversation } from "@/types/chat";
-import type { UserProfile } from "@/types/user";
+import type { Friend, UserProfile } from "@/types/user";
 import { useFriendStore } from "./useFriendStore";
 
 const baseURL = import.meta.env.VITE_SOCKET_URL as string;
@@ -71,16 +71,16 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     // new conversation
     socket.on("new-conversation", (payload) => {
       console.log("New conversation received from socket:", payload);
-      const { conversation, participantProfile } = payload;
+      const { conversation, friends } = payload;
       console.log();
       const newConversation = conversation as Conversation;
-      const newParticipantProfile = participantProfile as UserProfile[];
+      const newParticipantProfile = friends as Friend[];
       console.log("conversation:", newConversation);
       useChatStore.getState().addConversation(newConversation);
       // const newFriend
       const userId = useAuthStore.getState().userProfile?.uid;
-      const newFriend: UserProfile | undefined = newParticipantProfile.find(
-        (user) => user.uid !== userId
+      const newFriend: Friend | undefined = newParticipantProfile.find(
+        (user) => user.user.uid !== userId
       );
       console.log("participantProfile:", newFriend);
       if (newFriend) {
@@ -102,7 +102,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       const { conversationId, userId } = payload;
       const { friends } = useFriendStore.getState();
       useFriendStore.setState({
-        friends: friends.filter((friend) => friend.uid !== userId),
+        friends: friends.filter((friend) => friend.user.uid !== userId),
       });
       const { conversations } = useChatStore.getState();
       const conversation = conversations.find(

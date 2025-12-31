@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router";
 import Modal from "@mui/joy/Modal";
 import ModalClose from "@mui/joy/ModalClose";
 import Sheet from "@mui/joy/Sheet";
@@ -13,7 +12,6 @@ import {
 	PersonRemove,
 } from "@mui/icons-material";
 import type { UserProfile } from "@/types/user";
-import CircularProgress from "@mui/joy/CircularProgress";
 
 interface ProfileModalProps {
 	isOpen: boolean;

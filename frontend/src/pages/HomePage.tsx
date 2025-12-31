@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import { useAuthStore } from "@/stores/useAuthStore";
 import type { UserProfile } from "@/types/user";
@@ -10,6 +10,7 @@ import Button from "@mui/joy/Button";
 import Modal from "@mui/joy/Modal";
 import ModalClose from "@mui/joy/ModalClose";
 import Sheet from "@mui/joy/Sheet";
+import Chip from "@mui/joy/Chip";
 
 import {
 	WavingHand,
@@ -19,10 +20,9 @@ import {
 	Favorite,
 	FavoriteBorder,
 	TrendingUp,
-	Check,
-	Close,
 	Warning,
 	ArrowForward,
+	Clear, // Add this import
 } from "@mui/icons-material";
 import { useFriendStore } from "@/stores/useFriendStore";
 
@@ -73,13 +73,20 @@ const HomePage = () => {
 		null
 	);
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [showAction, setShowAction] = useState(true);
 	const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
 	const [missingFieldsModalType, setMissingFieldsModalType] = useState<
 		"seaching venue" | "matching"
 	>("matching");
 
-	const handleViewProfile = (profile: UserProfile) => {
+	const handleViewFriendProfile = (profile: UserProfile) => {
 		setSelectedProfile(profile);
+		setShowAction(true);
+		setIsModalOpen(true);
+	};
+	const handleViewRequestProfile = (profile: UserProfile) => {
+		setSelectedProfile(profile);
+		setShowAction(false);
 		setIsModalOpen(true);
 	};
 
@@ -102,7 +109,9 @@ const HomePage = () => {
 	const handleChat = () => {
 		if (selectedProfile) {
 			// Navigate to chat with this user
-			navigate(`/MessagePage?userId=${selectedProfile.uid}`);
+			navigate(`/MessagePage`, {
+				state: { userId: selectedProfile.uid },
+			});
 			handleCloseModal();
 		}
 	};
@@ -174,6 +183,19 @@ const HomePage = () => {
 		}
 	};
 
+	const getTimeSinceMatch = (matchedAt: string) => {
+		const matchDate = new Date(matchedAt);
+		const now = new Date();
+		const diffInMs = now.getTime() - matchDate.getTime();
+		const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+
+		return diffInHours;
+	};
+
+	useEffect(() => {
+		console.log("Friends data structure:", friends);
+	}, [friends]);
+
 	console.log(userProfile);
 
 	return (
@@ -183,7 +205,7 @@ const HomePage = () => {
 				<div className='max-w-7xl mx-auto px-6 py-12'>
 					<div className='text-center mb-12'>
 						<h2 className='text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 flex items-center justify-center gap-3'>
-							Welcome back, {userProfile?.displayName}!
+							Welcome, {userProfile?.displayName}!
 							<WavingHand
 								sx={{
 									color: "#ec4899",
@@ -361,50 +383,85 @@ const HomePage = () => {
 								</div>
 							) : friends.length > 0 ? (
 								<div className='space-y-4 max-h-96 overflow-y-auto'>
-									{friends.map((profile) => (
-										<div
-											key={profile.uid}
-											className='flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all'
-										>
-											<img
-												onClick={() =>
-													handleViewProfile(profile)
-												}
-												src={profile.avatarUrl}
-												alt={profile.displayName}
-												className='w-16 h-16 rounded-full object-cover border-2 border-pink-300 cursor-pointer'
-											/>
+									{friends.map((friend) => {
+										if (!friend) return null;
+										const user = friend.user;
+										return (
 											<div
-												className='flex-1 cursor-pointer'
-												onClick={() =>
-													handleViewProfile(profile)
-												}
+												key={user.uid}
+												className='flex items-center gap-4 p-4 bg-white rounded-2xl border border-pink-200 hover:shadow-md transition-all'
 											>
-												<h4 className='font-semibold text-gray-800 text-lg'>
-													{profile.displayName}
-												</h4>
-												<p className='text-sm text-gray-600'>
-													{profile.bio?.substring(
-														0,
-														50
-													) || "No bio available"}
-													...
-												</p>
-												<div className='flex gap-2 mt-2'>
-													{profile.interests
-														?.slice(0, 3)
-														.map((interest, i) => (
-															<span
-																key={i}
-																className='px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs'
+												{/* Friend Avatar */}
+												<img
+													onClick={() =>
+														handleViewFriendProfile(
+															user
+														)
+													}
+													src={user.avatarUrl}
+													alt={user.displayName}
+													className='w-16 h-16 rounded-full object-cover border-2 border-pink-300 cursor-pointer'
+												/>
+
+												{/* Friend Info */}
+												<div
+													className='flex-1 cursor-pointer'
+													onClick={() =>
+														handleViewFriendProfile(
+															user
+														)
+													}
+												>
+													<h4 className='font-semibold text-gray-800 text-lg'>
+														{user.displayName}
+													</h4>
+													<p className='text-sm text-gray-600'>
+														{user.bio?.substring(
+															0,
+															50
+														) || "No bio available"}
+														...
+													</p>
+													<div className='flex gap-2 mt-2'>
+														{user.interests
+															?.slice(0, 3)
+															.map(
+																(
+																	interest,
+																	i
+																) => (
+																	<span
+																		key={i}
+																		className='px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs'
+																	>
+																		{
+																			interest
+																		}
+																	</span>
+																)
+															)}
+													</div>
+												</div>
+
+												{/* Matched Time */}
+												<div className='text-sm text-gray-500'>
+													{getTimeSinceMatch(
+														friend.matchedAt
+													) <= 24 ? (
+														<div>
+															<Chip
+																size='sm'
+																color='success'
+																variant='soft'
 															>
-																{interest}
-															</span>
-														))}
+																New Match
+															</Chip>
+														</div>
+													) : null}
 												</div>
 											</div>
-										</div>
-									))}
+										);
+									})}
 								</div>
 							) : (
 								<div className='text-center py-12'>
@@ -448,7 +505,9 @@ const HomePage = () => {
 										>
 											<img
 												onClick={() =>
-													handleViewProfile(profile)
+													handleViewRequestProfile(
+														profile
+													)
 												}
 												src={profile.avatarUrl}
 												alt={profile.displayName}
@@ -457,7 +516,9 @@ const HomePage = () => {
 											<div
 												className='flex-1 cursor-pointer'
 												onClick={() =>
-													handleViewProfile(profile)
+													handleViewRequestProfile(
+														profile
+													)
 												}
 											>
 												<h4 className='font-semibold text-gray-800 text-lg'>
@@ -483,27 +544,50 @@ const HomePage = () => {
 														))}
 												</div>
 											</div>
-											<div className='flex gap-2'>
-												<button
-													onClick={() =>
-														handleAcceptRequest(
-															profile.uid
-														)
-													}
-													className='p-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors'
-												>
-													<Check />
-												</button>
-												<button
-													onClick={() =>
-														handleRejectRequest(
-															profile.uid
-														)
-													}
-													className='p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors'
-												>
-													<Close />
-												</button>
+											<div className='flex flex-col items-center gap-3'>
+												<div className='flex items-center gap-3'>
+													{/* Reject Button */}
+													<button
+														onClick={() =>
+															handleRejectRequest(
+																profile.uid
+															)
+														}
+														className='p-3 bg-red-50 hover:bg-red-100 rounded-full shadow-lg transition-all hover:scale-110 group'
+													>
+														<Clear
+															sx={{
+																fontSize:
+																	"1.5rem",
+																color: "#ef4444",
+																transition:
+																	"all 0.3s",
+															}}
+															className='group-hover:rotate-90'
+														/>
+													</button>
+
+													{/* Accept Button */}
+													<button
+														onClick={() =>
+															handleAcceptRequest(
+																profile.uid
+															)
+														}
+														className='p-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-full shadow-lg transition-all hover:scale-110 group'
+													>
+														<Favorite
+															sx={{
+																fontSize:
+																	"1.5rem",
+																color: "white",
+																transition:
+																	"all 0.3s",
+															}}
+															className='group-hover:scale-125'
+														/>
+													</button>
+												</div>
 											</div>
 										</div>
 									))}
@@ -537,7 +621,7 @@ const HomePage = () => {
 					userProfile={selectedProfile}
 					onUnmatch={handleUnmatch}
 					onChat={handleChat}
-					showActions={true}
+					showActions={showAction}
 				/>
 
 				{/* Missing Fields Modal */}
