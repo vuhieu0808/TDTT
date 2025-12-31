@@ -54,10 +54,8 @@ export interface UserProfile {
 }
 
 export interface Friend {
-	uid: string;
-	displayName: string;
-	avatarUrl?: string;
-	status: "online" | "offline" | "working" | "break";
+	user: UserProfile;
+	matchedAt: string;
 }
 
 export interface FriendRequest {
