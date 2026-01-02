@@ -122,16 +122,17 @@ function VenuesFindingPage() {
 			try {
 				const matches = await friendServices.getMatches();
 
-				console.log("Fetched matches for partners:", matches);
+				// console.log("Fetched matches for partners:", matches);
 
 				if (Array.isArray(matches.matches)) {
 					const partnersData: Partner[] = matches.matches.map(
-						(match: UserProfile) => ({
-							id: match.uid,
-							displayName: match.displayName,
-							location: match.location!,
+						(match: any) => ({
+							id: match.user.uid,
+							displayName: match.user.displayName,
+							location: match.user.location!,
 						})
 					);
+					console.log("Processed partners data:", partnersData);
 					setPartners(partnersData);
 				} else {
 					console.error("matches is not an array:", matches);
