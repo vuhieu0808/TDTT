@@ -88,7 +88,7 @@ A work-oriented dating application that helps users find compatible partners and
         return response;
       }
 
-      const googleUrl = https://drive.google.com/thumbnail?id=${fileId}&sz=s4000;
+      const googleUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=s4000`;
 
       try {
         const imageResponse = await fetch(googleUrl);
