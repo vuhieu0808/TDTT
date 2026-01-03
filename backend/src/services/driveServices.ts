@@ -7,8 +7,12 @@ import { Attachment } from "../models/Message.js";
 
 type DriveFileMetadata = drive_v3.Schema$File;
 
-export const WORKER_DOMAIN = "minhhieuvutran046.workers.dev";
-const WORKER_URL = "https://still-night-9727.minhhieuvutran046.workers.dev";
+const WORKER_DOMAIN_NAME = process.env.WORKER_DOMAIN_NAME;
+if(!WORKER_DOMAIN_NAME) {
+  throw new Error("Missing WORKER_DOMAIN_NAME in environment variables");
+}
+const WORKER_URL = `https://${WORKER_DOMAIN_NAME}`;
+export const WORKER_DOMAIN = WORKER_DOMAIN_NAME.split(".").slice(1).join(".");
 
 export const driveServices = {
   findOrCreateFolder: async (folderName: string, parentId?: string) => {

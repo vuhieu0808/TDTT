@@ -1,5 +1,3 @@
-en | [vi](README-vi.md)
-
 # Computational Thinking course project: The Right Type
 
 ## Members
@@ -12,6 +10,8 @@ en | [vi](README-vi.md)
 ## Tech stack
 - **Backend:** Node.js + Express + Firebase + Google Drive
 - **Frontend:** Axios + React + Vite
+
+### * This is README.md for deployment. Switch to `main` branch for the developement instructions  
 
 ## Prerequisites
 - Node.js v18 or later (v22.18.0 or later for native TypeScript execution)
@@ -60,6 +60,53 @@ en | [vi](README-vi.md)
   Perform base64 encoding for the credential content. Denote this as `<ggdrive_oauth_base64>`.
 
 - Gemini API key (example: `AIz...`). Denote this as `<gemini_key>`.
+- Cloudflare worker proxying to Google Drive to upload
+  1. Navigate to "Workers & Pages -> Create application -> Start with Hello world -> Deploy
+  2. Edit the `worker.js`
+  ```js
+  export default {
+    async fetch(request, env, ctx) {
+      const url = new URL(request.url);
+      
+      // https://worker-name.user.workers.dev/FILE_ID
+      const fileId = url.pathname.slice(1);
+
+      if (!fileId) {
+        return new Response("Missing File ID", { status: 400 });
+      }
+
+      const cache = caches.default;
+      let response = await cache.match(request);
+
+      if (response) {
+        return response;
+      }
+
+      const googleUrl = https://drive.google.com/thumbnail?id=${fileId}&sz=s4000;
+
+      try {
+        const imageResponse = await fetch(googleUrl);
+
+        if (!imageResponse.ok) {
+          return new Response("Error fetching image from Google", { status: imageResponse.status });
+        }
+
+        response = new Response(imageResponse.body, imageResponse);
+        
+        response.headers.set("Access-Control-Allow-Origin", "*");
+        response.headers.set("Cache-Control", "public, max-age=2592000, immutable");
+        response.headers.delete("Set-Cookie");
+        response.headers.delete("Expires");
+        ctx.waitUntil(cache.put(request, response.clone()));
+        
+        return response;
+      } catch (error) {
+        return new Response("Internal Error", { status: 500 });
+      }
+    },
+  };
+  ```
+  Your worker domain name would be like this: `still-night-9727.minhhieuvutran046.workers.dev`. Denote this as `<worker_domain>`
 
 ## Deployment
 ### A. Backend
@@ -73,6 +120,7 @@ GOOGLE_REFRESH_TOKEN=<ggdrive_token>
 GEMINI_API_KEY=<gemini_key>
 FIREBASE_ADMIN=<firebase_admin_base64>
 OAUTH2=<ggdrive_oauth_base64>
+WORKER_DOMAIN_NAME=<worker_domain>
 ```
 
 `<client_url_1>,<client_url_2>,...` is the list of client URLs that are allowed to connect. Example:
@@ -93,6 +141,11 @@ In the `backend` directory, run:
 ```
 npm run start
 ```
+
+#### 4. Post-deployment
+- The GOOGLE_REFRESH_TOKEN by default for Testing app expire in 2 weeks. User may either
+  - Switch app to Production mode
+  - Manually retrieve new token every 2 weeks. This can be done of Google Cloud Console, or by running the [script](./backend/getRefreshToken.ts). The script will write straight into `.env`, which isn't the greatest thing to do on deployment since many service store `.env` separately
 
 ### B. Frontend
 
