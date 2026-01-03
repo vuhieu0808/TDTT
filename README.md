@@ -1,5 +1,7 @@
 # Computational Thinking course project: The Right Type
 
+A work-oriented dating application that helps users find compatible partners and discover venues for meetups.
+
 ## Members
 #### Group name: Lorem_Ipsum
 - 24127003 - Vũ Trần Minh Hiếu
@@ -11,7 +13,11 @@
 - **Backend:** Node.js + Express + Firebase + Google Drive
 - **Frontend:** Axios + React + Vite
 
-### * This is README.md for development. Switch to `deploy` branch for the deployment instructions  
+---
+
+> **Note:** This is README.md for development. Switch to `deploy` branch for the deployment instructions  
+
+---
 
 ## Prerequisites
 - Node.js v18 or later (v22.18.0 or later for native TypeScript execution)
@@ -122,7 +128,7 @@
 
   The variable `WORKER_DOMAIN` is the plain domain name, while `WORKER_URL` is the whole domain name with `https` protocol path
 
-## Deployment
+## Run instruction
 ### A. Backend
 #### 1. Prepare environments
 Create a `.env` file like this:
@@ -191,4 +197,18 @@ npm run dev
 - Add your frontend domain name
 
 ## A.I. Acknowledgement
-We utilized various LLM models in this project: Gemini Flash/Pro 2.5/3, Claude Haiku/Sonnet/Opus 4.5, GPT-5/5.1. All models are delivered by Github Copilot with VSCode integration
+This project utilized various Large Language Models (LLMs) for development assistance:
+
+- **Models Used:**
+  - Google Gemini (Flash 2.5, Pro 2.5, Flash 3)
+  - Anthropic Claude (Haiku 4.5, Sonnet 4.5, Opus 4.5)
+  - OpenAI GPT (GPT-5, GPT-5.1)
+
+- **Delivery Method:** 
+  All AI models were accessed through GitHub Copilot with Visual Studio Code integration, providing context-aware code suggestions and development assistance.
+
+- **Usage Areas:**
+  - Code generation and refactoring
+  - Documentation writing
+  - Bug fixing and debugging
+  - Architecture design suggestions
