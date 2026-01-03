@@ -11,7 +11,11 @@
 - **Backend:** Node.js + Express + Firebase + Google Drive
 - **Frontend:** Axios + React + Vite
 
-### * This is README.md for deployment. Switch to `main` branch for the developement instructions  
+---
+
+> **Note:** This is README.md for deployment. Switch to `main` branch for the developement instructions  
+
+---
 
 ## Prerequisites
 - Node.js v18 or later (v22.18.0 or later for native TypeScript execution)
@@ -82,7 +86,7 @@
         return response;
       }
 
-      const googleUrl = https://drive.google.com/thumbnail?id=${fileId}&sz=s4000;
+      const googleUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=s4000`;
 
       try {
         const imageResponse = await fetch(googleUrl);
