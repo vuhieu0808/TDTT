@@ -1,110 +1,194 @@
-# TDTT Final Term Project
+# Computational Thinking course project: The Right Type
 
-## Cấu trúc dự án
+## Members
+#### Group name: Lorem_Ipsum
+- 24127003 - Vũ Trần Minh Hiếu
+- 24127240 - Hoàng Đức Thịnh
+- 24127270 - Trần Viết Bảo
+- 24127326 - Đoàn Quốc Bảo
 
-Dự án bao gồm 2 phần chính:
+## Tech stack
+- **Backend:** Node.js + Express + Firebase + Google Drive
+- **Frontend:** Axios + React + Vite
 
-- **Backend**: Node.js + Express + TypeScript
-- **Frontend**: React + TypeScript + Vite
+### * This is README.md for development. Switch to `deploy` branch for the deployment instructions  
 
-## Yêu cầu hệ thống
+## Prerequisites
+- Node.js v18 or later (v22.18.0 or later for native TypeScript execution)
+- npm for package installation
+- A Firebase project with these services set up:
+  - Authentication, with Google as a sign-in option
+  - Realtime Database, with a URL to the database (example for an RTDB located in the SEA server: `https://abc-xyz-default-rtdb.asia-southeast1.firebasedatabase.app`). Denote this as `<realtime_db_url>`
+  - Firestore
+  - Firebase Admin credential. Example:
+    ```
+    {
+        type: "service_account",
+        project_id: "abcxyz",
+        private_key_id: "....",
+        private_key: "-----BEGIN PRIVATE KEY-----
+        .....
+        -----END PRIVATE KEY-----
+        ",
+        client_email: "...",
+        client_id: "...",
+        auth_uri: https://accounts.google.com/o/oauth2/auth,
+        token_uri: https://oauth2.googleapis.com/token,
+        auth_provider_x509_cert_url: https://www.googleapis.com/oauth2/v1/certs,
+        client_x509_cert_url: ...,
+        universe_domain: "googleapis.com"
+    }
+    ```
+  Save the file as `backend/src/config/serviceAccountKey.json`
 
-- Node.js (phiên bản 14 trở lên)
-- npm hoặc yarn
+- Google Drive API:
+    - Refresh token (example: `1//...`). Denote this as `<ggdrive_token>`
+    - OAuth2 credential. Example:
+    ```
+    {
+        web: 
+        {
+            client_id: "123456789.apps.googleusercontent.com",
+            project_id: "abcxyz",
+            auth_uri: https://accounts.google.com/o/oauth2/auth,
+            token_uri: https://oauth2.googleapis.com/token,
+            auth_provider_x509_cert_url: https://www.googleapis.com/oauth2/v1/certs,
+            client_secret: "G....."
+        }
+    }
+    ```
+  Save the file as `backend/src/config/oauth2Key.json`.
 
-## Cài đặt
+- Gemini API key (example: `AIz...`). Denote this as `<gemini_key>`.
+- Cloudflare worker proxying to Google Drive to upload
+  1. Navigate to "Workers & Pages -> Create application -> Start with Hello world -> Deploy
+  2. Edit the `worker.js`
+  ```js
+  export default {
+    async fetch(request, env, ctx) {
+      const url = new URL(request.url);
+      
+      // https://worker-name.user.workers.dev/FILE_ID
+      const fileId = url.pathname.slice(1);
 
-### 1. Cài đặt dependencies
+      if (!fileId) {
+        return new Response("Missing File ID", { status: 400 });
+      }
 
-#### Backend
+      const cache = caches.default;
+      let response = await cache.match(request);
 
-```bash
-cd backend
-npm install
+      if (response) {
+        return response;
+      }
+
+      const googleUrl = https://drive.google.com/thumbnail?id=${fileId}&sz=s4000;
+
+      try {
+        const imageResponse = await fetch(googleUrl);
+
+        if (!imageResponse.ok) {
+          return new Response("Error fetching image from Google", { status: imageResponse.status });
+        }
+
+        response = new Response(imageResponse.body, imageResponse);
+        
+        response.headers.set("Access-Control-Allow-Origin", "*");
+        response.headers.set("Cache-Control", "public, max-age=2592000, immutable");
+        response.headers.delete("Set-Cookie");
+        response.headers.delete("Expires");
+        ctx.waitUntil(cache.put(request, response.clone()));
+        
+        return response;
+      } catch (error) {
+        return new Response("Internal Error", { status: 500 });
+      }
+    },
+  };
+  ```
+  Your worker domain name would be like this: `still-night-9727.minhhieuvutran046.workers.dev`
+
+  Navigate to `backend/src/services/driveServices.ts` ([link](./backend/src/services/driveServices.ts)) and modify the code as follow
+  ```ts
+  //existing code
+  type DriveFileMetadata = drive_v3.Schema$File;
+
+  export const WORKER_DOMAIN = "minhhieuvutran046.workers.dev";
+  const WORKER_URL = "https://still-night-9727.minhhieuvutran046.workers.dev";
+
+  export const driveServices = {
+  //existing code
+  ```
+
+  The variable `WORKER_DOMAIN` is the plain domain name, while `WORKER_URL` is the whole domain name with `https` protocol path
+
+## Deployment
+### A. Backend
+#### 1. Prepare environments
+Create a `.env` file like this:
 ```
-
-#### Frontend
-
-```bash
-cd frontend
-npm install
-```
-
-### 2. Cấu hình môi trường
-
-#### Backend
-
-Tạo file `.env` trong thư mục `backend/` với nội dung sau:
-
-```env
 PORT=5000
-CLIENT_URL=http://localhost:5173
+CLIENT_URL=<client_url_1>,<client_url_2>,...
+RTDB_URL=<realtime_db_url>
+GOOGLE_REFRESH_TOKEN=<ggdrive_token>
+GEMINI_API_KEY=<gemini_key>
 ```
 
-**Quan trọng:** Đặt file `serviceAccountKey.json` (Firebase Admin SDK) vào thư mục `backend/src/config/`
+`<client_url_1>,<client_url_2>,...` is the list of client URLs that are allowed to connect. Example:
+```
+CLIENT_URL=http://localhost:5173,https://hoppscotch.io
+```
 
+#### 2. Run
+In the `backend` directory, run:
+```
+npm run dev
+```
+Alternatively, you can run
+```
+npm run dev2
+```
+if you hate Nodemon and want to utilize native Typescript execution
 
-## Chạy ứng dụng
+#### 3. Note on expiring token
+- The GOOGLE_REFRESH_TOKEN by default for Testing app expire in 2 weeks. User may either
+  - Switch app to Production mode
+  - Manually retrieve new token every 2 weeks. This can be done of Google Cloud Console, or by running the [script](./backend/getRefreshToken.ts). The script will write straight into `.env`, which isn't the greatest thing to do...
 
-### Chạy Backend
+### B. Frontend
 
-```bash
-cd backend
+#### 1. Setup client-facing Firebase credentials
+- Create your project's Firebase configuration (to access the database).
+- Open `frontend/src/config/firebase.ts` and modify the credential:
+```
+const firebaseConfig = {
+  apiKey: "AIz...",
+  authDomain: "...",
+  projectId: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "...",
+  measurementId: "..."
+};
+```
+
+#### 2. Setup environment
+Create a `.env` file like this:
+```
+VITE_API_URL="http://localhost:5000/api"
+VITE_SOCKET_URL="http://localhost:5000/"
+```
+Change `http://localhost:5000` to your backend's URL.
+
+#### 3. Run
+In the `frontend` directory, run:
+```
 npm run dev
 ```
 
-Backend sẽ chạy tại `http://localhost:5000`
+#### 4. Add frontend URL to Firebase authorized domains
+- Go to Firebase Console -> Authentication -> Settings -> Authorized domains
+- Add your frontend domain name
 
-### Chạy Frontend
-
-```bash
-cd frontend
-npm run dev
-```
-
-Frontend sẽ chạy tại `http://localhost:5173` (hoặc cổng khác nếu 5173 đã được sử dụng)
-
-## Chạy đồng thời Backend và Frontend
-
-Mở 2 terminal riêng biệt:
-
-**Terminal 1 - Backend:**
-
-```bash
-cd backend
-npm run dev
-```
-
-**Terminal 2 - Frontend:**
-
-```bash
-cd frontend
-npm run dev
-```
-
-## Cấu trúc thư mục
-
-```
-.
-├── backend/
-│   ├── src/
-│   │   ├── config/
-│   │   │   ├── firebase.ts
-│   │   │   └── serviceAccountKey.json (cần tạo)
-│   │   ├── controllers/
-│   │   ├── middlewares/
-│   │   ├── models/
-│   │   ├── routes/
-│   │   └── server.ts
-│   ├── .env (cần tạo)
-│   └── package.json
-└── frontend/
-    ├── src/
-    └── package.json
-```
-
-## Lưu ý
-
-- Đảm bảo đã tạo file `.env` cho cả backend trước khi chạy
-- File `serviceAccountKey.json` phải được đặt đúng vị trí: `backend/src/config/serviceAccountKey.json`
-- Không commit file `.env` và `serviceAccountKey.json` lên Git (đã được ignore trong `.gitignore`)
+## A.I. Acknowledgement
+We utilized various LLM models in this project: Gemini Flash/Pro 2.5/3, Claude Haiku/Sonnet/Opus 4.5, GPT-5/5.1. All models are delivered by Github Copilot with VSCode integration
